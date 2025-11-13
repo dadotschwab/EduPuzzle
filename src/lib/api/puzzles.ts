@@ -30,22 +30,28 @@ export async function getRandomWordsForPuzzle(
   listId: string,
   count: number = 30
 ): Promise<Word[]> {
+  console.log('[puzzles.ts] getRandomWordsForPuzzle called with:', { listId, count })
+
   // First, get total word count to verify we have enough words
   const { count: totalWords, error: countError } = await supabase
     .from('words')
     .select('*', { count: 'exact', head: true })
     .eq('list_id', listId)
 
+  console.log('[puzzles.ts] Word count query result:', { totalWords, countError })
+
   if (countError) {
+    console.error('[puzzles.ts] Error counting words:', countError)
     throw new Error(`Failed to count words: ${countError.message}`)
   }
 
   if (!totalWords || totalWords === 0) {
+    console.error('[puzzles.ts] No words found in list:', listId)
     throw new Error('No words found in this list. Please add some words first.')
   }
 
   if (totalWords < count) {
-    console.warn(`List only has ${totalWords} words, but ${count} were requested. Using all available words.`)
+    console.warn(`[puzzles.ts] List only has ${totalWords} words, but ${count} were requested. Using all available words.`)
   }
 
   // Fetch random words using PostgreSQL's random() function
@@ -56,18 +62,22 @@ export async function getRandomWordsForPuzzle(
     .limit(Math.min(count, totalWords))
     .order('id', { ascending: false }) // Use consistent ordering
 
+  console.log('[puzzles.ts] Words fetch result:', { dataLength: data?.length, error })
+
   if (error) {
+    console.error('[puzzles.ts] Error fetching words:', error)
     throw new Error(`Failed to fetch words: ${error.message}`)
   }
 
   if (!data || data.length === 0) {
+    console.error('[puzzles.ts] No data returned from words query')
     throw new Error('No words returned from database')
   }
 
   // Shuffle the results client-side to ensure randomness
   const shuffled = [...data].sort(() => Math.random() - 0.5)
 
-  return shuffled.map(word => ({
+  const mappedWords = shuffled.map(word => ({
     id: word.id,
     listId: word.list_id,
     term: word.term,
@@ -76,6 +86,10 @@ export async function getRandomWordsForPuzzle(
     exampleSentence: word.example_sentence || undefined,
     createdAt: word.created_at,
   }))
+
+  console.log('[puzzles.ts] Returning', mappedWords.length, 'words. First word:', mappedWords[0])
+
+  return mappedWords
 }
 
 /**

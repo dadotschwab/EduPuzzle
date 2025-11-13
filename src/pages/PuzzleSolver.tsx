@@ -30,12 +30,29 @@ export function PuzzleSolver() {
   const { listId } = useParams<{ listId: string }>()
   const navigate = useNavigate()
 
+  console.log('[PuzzleSolver] Component rendered with listId:', listId)
+
   // Generate puzzle from database words (30 random words)
   const { data: allPuzzles, isLoading, error } = usePuzzleGeneration(listId || '', 30, !!listId)
+
+  console.log('[PuzzleSolver] usePuzzleGeneration result:', {
+    isLoading,
+    hasError: !!error,
+    errorMessage: error?.message,
+    hasPuzzles: !!allPuzzles,
+    puzzleCount: allPuzzles?.length
+  })
 
   // For now, just show the first puzzle (Option A)
   const [currentPuzzleIndex] = useState(0)
   const puzzle = useCurrentPuzzle(allPuzzles, currentPuzzleIndex)
+
+  console.log('[PuzzleSolver] Current puzzle state:', {
+    hasPuzzle: !!puzzle,
+    puzzleId: puzzle?.id,
+    gridSize: puzzle?.gridSize,
+    wordCount: puzzle?.placedWords?.length
+  })
   const [userInput, setUserInput] = useState<Record<string, string>>({})
   const [selectedWord, setSelectedWord] = useState<PlacedWord | null>(null)
   const [focusedCell, setFocusedCell] = useState<{ x: number; y: number } | null>(null)

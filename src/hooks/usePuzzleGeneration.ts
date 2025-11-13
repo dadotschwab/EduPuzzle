@@ -46,36 +46,64 @@ export function usePuzzleGeneration(
 ) {
   const { user } = useAuth()
 
-  return useQuery({
+  console.log('[usePuzzleGeneration] Hook called with:', { listId, wordCount, enabled, hasUser: !!user })
+
+  const result = useQuery({
     queryKey: ['puzzles', listId, wordCount],
     queryFn: async () => {
+      console.log('[usePuzzleGeneration] Query function starting...')
       console.log(`🎲 Fetching ${wordCount} random words from list ${listId}...`)
 
-      // Step 1: Fetch random words from database
-      const words = await getRandomWordsForPuzzle(listId, wordCount)
+      try {
+        // Step 1: Fetch random words from database
+        const words = await getRandomWordsForPuzzle(listId, wordCount)
 
-      console.log(`✅ Fetched ${words.length} words`)
-      console.log(`🔄 Generating puzzles...`)
+        console.log(`✅ Fetched ${words.length} words`)
+        console.log('[usePuzzleGeneration] Sample words:', words.slice(0, 3))
+        console.log(`🔄 Generating puzzles...`)
 
-      // Step 2: Generate puzzles using our algorithm
-      const puzzles = await generatePuzzles(words)
+        // Step 2: Generate puzzles using our algorithm
+        const puzzles = await generatePuzzles(words)
 
-      console.log(`✅ Generated ${puzzles.length} puzzles`)
+        console.log(`✅ Generated ${puzzles.length} puzzles`)
+        console.log('[usePuzzleGeneration] Puzzle details:', puzzles.map(p => ({
+          id: p.id,
+          gridSize: p.gridSize,
+          wordCount: p.placedWords.length
+        })))
 
-      // Step 3: Save to database if user is authenticated
-      if (user) {
-        console.log(`💾 Saving puzzle session...`)
-        await savePuzzleSession(user.id, listId, puzzles)
-        console.log(`✅ Session saved`)
+        // Step 3: Save to database if user is authenticated
+        if (user) {
+          console.log(`💾 Saving puzzle session for user ${user.id}...`)
+          await savePuzzleSession(user.id, listId, puzzles)
+          console.log(`✅ Session saved`)
+        } else {
+          console.warn('[usePuzzleGeneration] No user found, skipping session save')
+        }
+
+        console.log('[usePuzzleGeneration] Returning puzzles:', puzzles)
+        return puzzles
+      } catch (error) {
+        console.error('[usePuzzleGeneration] Error in query function:', error)
+        throw error
       }
-
-      return puzzles
     },
     enabled: enabled && !!listId,
     staleTime: 0, // Always fetch fresh puzzles
     gcTime: 0, // Don't cache (was cacheTime in older versions)
     retry: false, // Don't retry on error
   })
+
+  console.log('[usePuzzleGeneration] Query result:', {
+    isLoading: result.isLoading,
+    isError: result.isError,
+    error: result.error,
+    dataExists: !!result.data,
+    dataLength: result.data?.length,
+    status: result.status
+  })
+
+  return result
 }
 
 /**
@@ -145,14 +173,28 @@ export function useCurrentPuzzle(
   puzzles: Puzzle[] | undefined,
   puzzleIndex: number = 0
 ): Puzzle | null {
+  console.log('[useCurrentPuzzle] Called with:', {
+    hasPuzzles: !!puzzles,
+    puzzlesLength: puzzles?.length,
+    puzzleIndex
+  })
+
   if (!puzzles || puzzles.length === 0) {
+    console.warn('[useCurrentPuzzle] No puzzles available, returning null')
     return null
   }
 
   if (puzzleIndex < 0 || puzzleIndex >= puzzles.length) {
-    console.warn(`Invalid puzzle index ${puzzleIndex}, using 0`)
+    console.warn(`[useCurrentPuzzle] Invalid puzzle index ${puzzleIndex}, using 0`)
     return puzzles[0]
   }
 
-  return puzzles[puzzleIndex]
+  const selectedPuzzle = puzzles[puzzleIndex]
+  console.log('[useCurrentPuzzle] Returning puzzle:', {
+    id: selectedPuzzle.id,
+    gridSize: selectedPuzzle.gridSize,
+    wordCount: selectedPuzzle.placedWords.length
+  })
+
+  return selectedPuzzle
 }
