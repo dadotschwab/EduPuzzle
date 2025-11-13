@@ -364,6 +364,7 @@ export function PuzzleGrid({
                   value={userLetter}
                   onChange={(e) => handleCellInput(x, y, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, x, y)}
+                  onFocus={(e) => e.target.select()}
                   spellCheck={false}
                   autoComplete="off"
                   autoCorrect="off"
