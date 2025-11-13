@@ -16,6 +16,9 @@ import { useState } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
 import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { CheckCircle, XCircle, Trophy } from 'lucide-react'
 import type { Puzzle, PlacedWord } from '@/types'
 
 // TODO: Replace with actual puzzle data from API/database
@@ -82,6 +85,7 @@ export function PuzzleSolver() {
   const [focusedCell, setFocusedCell] = useState<{ x: number; y: number } | null>(null)
   const [hintsRemaining, setHintsRemaining] = useState(3)
   const [checkedWords, setCheckedWords] = useState<Record<string, 'correct' | 'incorrect'>>({})
+  const [isPuzzleCompleted, setIsPuzzleCompleted] = useState(false)
 
   /**
    * Handles user input in a cell
@@ -124,8 +128,41 @@ export function PuzzleSolver() {
    * Ends the puzzle and shows results
    */
   const handleEndPuzzle = () => {
-    // TODO: Implement end puzzle logic
-    console.log('Ending puzzle...')
+    // First check the puzzle to get final results
+    const newCheckedWords: Record<string, 'correct' | 'incorrect'> = {}
+
+    puzzle.placedWords.forEach(word => {
+      let isCorrect = true
+      for (let i = 0; i < word.word.length; i++) {
+        const cellX = word.direction === 'horizontal' ? word.x + i : word.x
+        const cellY = word.direction === 'horizontal' ? word.y : word.y + i
+        const key = `${cellX},${cellY}`
+        const userLetter = userInput[key] || ''
+        const correctLetter = word.word[i]
+
+        if (userLetter !== correctLetter) {
+          isCorrect = false
+          break
+        }
+      }
+      newCheckedWords[word.id] = isCorrect ? 'correct' : 'incorrect'
+    })
+
+    setCheckedWords(newCheckedWords)
+    setIsPuzzleCompleted(true)
+    // TODO: Apply SRS logic based on results
+  }
+
+  /**
+   * Calculates puzzle statistics
+   */
+  const getPuzzleStats = () => {
+    const totalWords = puzzle.placedWords.length
+    const correctWords = Object.values(checkedWords).filter(status => status === 'correct').length
+    const incorrectWords = Object.values(checkedWords).filter(status => status === 'incorrect').length
+    const hintsUsed = 3 - hintsRemaining
+
+    return { totalWords, correctWords, incorrectWords, hintsUsed }
   }
 
   /**
@@ -142,6 +179,8 @@ export function PuzzleSolver() {
     }
   }
 
+  const stats = getPuzzleStats()
+
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -150,35 +189,130 @@ export function PuzzleSolver() {
           <h1 className="text-3xl font-bold">Crossword Puzzle</h1>
         </div>
 
-        {/* Main Puzzle Layout - Grid on Left, Clues on Right */}
-        <div className="grid lg:grid-cols-[1.2fr,1fr] gap-8">
-          {/* Left: Puzzle Grid */}
-          <div className="flex items-start justify-center">
-            <PuzzleGrid
-              puzzle={puzzle}
-              userInput={userInput}
-              onCellChange={handleCellChange}
-              selectedWord={selectedWord}
-              onWordSelect={setSelectedWord}
-              onFocusedCellChange={setFocusedCell}
-              checkedWords={checkedWords}
-            />
-          </div>
+        {!isPuzzleCompleted ? (
+          <>
+            {/* Main Puzzle Layout - Grid on Left, Clues on Right */}
+            <div className="grid lg:grid-cols-[1.2fr,1fr] gap-8">
+              {/* Left: Puzzle Grid */}
+              <div className="flex items-start justify-center">
+                <PuzzleGrid
+                  puzzle={puzzle}
+                  userInput={userInput}
+                  onCellChange={handleCellChange}
+                  selectedWord={selectedWord}
+                  onWordSelect={setSelectedWord}
+                  onFocusedCellChange={setFocusedCell}
+                  checkedWords={checkedWords}
+                />
+              </div>
 
-          {/* Right: Clues and Controls */}
-          <div className="lg:sticky lg:top-24 lg:self-start">
-            <PuzzleClues
-              placedWords={puzzle.placedWords}
-              selectedWord={selectedWord}
-              onWordSelect={setSelectedWord}
-              onCheckPuzzle={handleCheckPuzzle}
-              onEndPuzzle={handleEndPuzzle}
-              onGiveHint={handleGiveHint}
-              hintsRemaining={hintsRemaining}
-              checkedWords={checkedWords}
-            />
-          </div>
-        </div>
+              {/* Right: Clues and Controls */}
+              <div className="lg:sticky lg:top-24 lg:self-start">
+                <PuzzleClues
+                  placedWords={puzzle.placedWords}
+                  selectedWord={selectedWord}
+                  onWordSelect={setSelectedWord}
+                  onCheckPuzzle={handleCheckPuzzle}
+                  onEndPuzzle={handleEndPuzzle}
+                  onGiveHint={handleGiveHint}
+                  hintsRemaining={hintsRemaining}
+                  checkedWords={checkedWords}
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Puzzle Completion Screen */}
+            <div className="max-w-2xl mx-auto">
+              <Card className="shadow-lg">
+                <CardHeader className="text-center">
+                  <div className="flex justify-center mb-4">
+                    <Trophy className="w-16 h-16 text-yellow-500" />
+                  </div>
+                  <CardTitle className="text-2xl">Puzzle Completed!</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Statistics */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 rounded-lg p-4 text-center">
+                      <div className="text-3xl font-bold text-blue-700">{stats.totalWords}</div>
+                      <div className="text-sm text-blue-600 mt-1">Total Words</div>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-4 text-center">
+                      <div className="text-3xl font-bold text-green-700">{stats.correctWords}</div>
+                      <div className="text-sm text-green-600 mt-1">Correct</div>
+                    </div>
+                    <div className="bg-red-50 rounded-lg p-4 text-center">
+                      <div className="text-3xl font-bold text-red-700">{stats.incorrectWords}</div>
+                      <div className="text-sm text-red-600 mt-1">Incorrect</div>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-4 text-center">
+                      <div className="text-3xl font-bold text-purple-700">{stats.hintsUsed}</div>
+                      <div className="text-sm text-purple-600 mt-1">Hints Used</div>
+                    </div>
+                  </div>
+
+                  {/* Word Details */}
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg">Results by Word:</h3>
+                    <div className="max-h-64 overflow-y-auto space-y-2">
+                      {puzzle.placedWords
+                        .sort((a, b) => a.number - b.number)
+                        .map(word => {
+                          const isCorrect = checkedWords[word.id] === 'correct'
+                          return (
+                            <div
+                              key={word.id}
+                              className={`flex items-center justify-between p-3 rounded-lg ${
+                                isCorrect ? 'bg-green-50' : 'bg-red-50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {isCorrect ? (
+                                  <CheckCircle className="w-5 h-5 text-green-600" />
+                                ) : (
+                                  <XCircle className="w-5 h-5 text-red-600" />
+                                )}
+                                <span className="font-medium">
+                                  {word.number}. {word.clue}
+                                </span>
+                              </div>
+                              <span className="font-mono font-semibold text-sm">
+                                {word.word}
+                              </span>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      onClick={() => window.location.href = '/dashboard'}
+                      className="flex-1"
+                    >
+                      Back to Dashboard
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsPuzzleCompleted(false)
+                        setUserInput({})
+                        setCheckedWords({})
+                        setHintsRemaining(3)
+                      }}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
       </div>
     </AppLayout>
   )

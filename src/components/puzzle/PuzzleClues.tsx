@@ -12,7 +12,7 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { CheckCircle, XCircle, Lightbulb, Check } from 'lucide-react'
+import { CheckCircle, CheckCheck, Lightbulb, Check } from 'lucide-react'
 import type { PlacedWord } from '@/types'
 
 interface PuzzleCluesProps {
@@ -103,11 +103,11 @@ export function PuzzleClues({
           </Button>
           <Button
             onClick={onEndPuzzle}
-            variant="destructive"
-            className="flex-1"
+            variant="outline"
+            className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
           >
-            <XCircle className="w-4 h-4 mr-2" />
-            End
+            <CheckCheck className="w-4 h-4 mr-2" />
+            Complete
           </Button>
         </div>
       </div>
