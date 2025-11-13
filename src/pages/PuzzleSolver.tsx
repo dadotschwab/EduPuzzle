@@ -18,7 +18,7 @@ import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
 import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, XCircle, Trophy } from 'lucide-react'
+import { CheckCheck, Trophy } from 'lucide-react'
 import type { Puzzle, PlacedWord } from '@/types'
 
 // TODO: Replace with actual puzzle data from API/database
@@ -189,130 +189,113 @@ export function PuzzleSolver() {
           <h1 className="text-3xl font-bold">Crossword Puzzle</h1>
         </div>
 
-        {!isPuzzleCompleted ? (
-          <>
-            {/* Main Puzzle Layout - Grid on Left, Clues on Right */}
-            <div className="grid lg:grid-cols-[1.2fr,1fr] gap-8">
-              {/* Left: Puzzle Grid */}
-              <div className="flex items-start justify-center">
-                <PuzzleGrid
-                  puzzle={puzzle}
-                  userInput={userInput}
-                  onCellChange={handleCellChange}
-                  selectedWord={selectedWord}
-                  onWordSelect={setSelectedWord}
-                  onFocusedCellChange={setFocusedCell}
-                  checkedWords={checkedWords}
-                />
-              </div>
+        {/* Main Puzzle Layout - Grid on Left, Clues/Results on Right */}
+        <div className="grid lg:grid-cols-[1.2fr,1fr] gap-8">
+          {/* Left: Puzzle Grid */}
+          <div className="flex items-start justify-center">
+            <PuzzleGrid
+              puzzle={puzzle}
+              userInput={userInput}
+              onCellChange={handleCellChange}
+              selectedWord={selectedWord}
+              onWordSelect={setSelectedWord}
+              onFocusedCellChange={setFocusedCell}
+              checkedWords={checkedWords}
+            />
+          </div>
 
-              {/* Right: Clues and Controls */}
-              <div className="lg:sticky lg:top-24 lg:self-start">
-                <PuzzleClues
-                  placedWords={puzzle.placedWords}
-                  selectedWord={selectedWord}
-                  onWordSelect={setSelectedWord}
-                  onCheckPuzzle={handleCheckPuzzle}
-                  onEndPuzzle={handleEndPuzzle}
-                  onGiveHint={handleGiveHint}
-                  hintsRemaining={hintsRemaining}
-                  checkedWords={checkedWords}
-                />
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Puzzle Completion Screen */}
-            <div className="max-w-2xl mx-auto">
-              <Card className="shadow-lg">
-                <CardHeader className="text-center">
-                  <div className="flex justify-center mb-4">
-                    <Trophy className="w-16 h-16 text-yellow-500" />
-                  </div>
-                  <CardTitle className="text-2xl">Puzzle Completed!</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Statistics */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-blue-50 rounded-lg p-4 text-center">
-                      <div className="text-3xl font-bold text-blue-700">{stats.totalWords}</div>
-                      <div className="text-sm text-blue-600 mt-1">Total Words</div>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-4 text-center">
-                      <div className="text-3xl font-bold text-green-700">{stats.correctWords}</div>
-                      <div className="text-sm text-green-600 mt-1">Correct</div>
-                    </div>
-                    <div className="bg-red-50 rounded-lg p-4 text-center">
-                      <div className="text-3xl font-bold text-red-700">{stats.incorrectWords}</div>
-                      <div className="text-sm text-red-600 mt-1">Incorrect</div>
-                    </div>
-                    <div className="bg-purple-50 rounded-lg p-4 text-center">
-                      <div className="text-3xl font-bold text-purple-700">{stats.hintsUsed}</div>
-                      <div className="text-sm text-purple-600 mt-1">Hints Used</div>
-                    </div>
-                  </div>
-
-                  {/* Word Details */}
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-lg">Results by Word:</h3>
-                    <div className="max-h-64 overflow-y-auto space-y-2">
-                      {puzzle.placedWords
-                        .sort((a, b) => a.number - b.number)
-                        .map(word => {
-                          const isCorrect = checkedWords[word.id] === 'correct'
-                          return (
-                            <div
-                              key={word.id}
-                              className={`flex items-center justify-between p-3 rounded-lg ${
-                                isCorrect ? 'bg-green-50' : 'bg-red-50'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                {isCorrect ? (
-                                  <CheckCircle className="w-5 h-5 text-green-600" />
-                                ) : (
-                                  <XCircle className="w-5 h-5 text-red-600" />
-                                )}
-                                <span className="font-medium">
-                                  {word.number}. {word.clue}
-                                </span>
-                              </div>
-                              <span className="font-mono font-semibold text-sm">
-                                {word.word}
-                              </span>
-                            </div>
-                          )
-                        })}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-3 pt-4">
+          {/* Right: Clues/Controls or Completion Stats */}
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            {!isPuzzleCompleted ? (
+              <PuzzleClues
+                placedWords={puzzle.placedWords}
+                selectedWord={selectedWord}
+                onWordSelect={setSelectedWord}
+                onCheckPuzzle={handleCheckPuzzle}
+                onEndPuzzle={handleEndPuzzle}
+                onGiveHint={handleGiveHint}
+                hintsRemaining={hintsRemaining}
+                checkedWords={checkedWords}
+              />
+            ) : (
+              <div className="flex flex-col h-full">
+                {/* Action Buttons */}
+                <div className="mb-6">
+                  <div className="flex gap-2">
                     <Button
-                      onClick={() => window.location.href = '/dashboard'}
+                      onClick={() => window.location.href = '/app'}
                       className="flex-1"
                     >
-                      Back to Dashboard
+                      Dashboard
                     </Button>
                     <Button
                       onClick={() => {
+                        // TODO: Load next puzzle from API
                         setIsPuzzleCompleted(false)
                         setUserInput({})
                         setCheckedWords({})
                         setHintsRemaining(3)
                       }}
                       variant="outline"
-                      className="flex-1"
+                      className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
                     >
-                      Try Again
+                      <CheckCheck className="w-4 h-4 mr-2" />
+                      Next Puzzle
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
+                </div>
+
+                {/* Completion Card */}
+                <Card className="flex-1 flex flex-col overflow-hidden">
+                  <CardHeader className="text-center pb-4">
+                    <div className="flex justify-center mb-2">
+                      <Trophy className="w-12 h-12 text-yellow-500" />
+                    </div>
+                    <CardTitle className="text-xl">Puzzle Completed!</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1 overflow-y-auto space-y-4">
+                    {/* Statistics */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-blue-50 rounded-lg p-3 text-center">
+                        <div className="text-2xl font-bold text-blue-700">{stats.totalWords}</div>
+                        <div className="text-xs text-blue-600 mt-1">Total Words</div>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-3 text-center">
+                        <div className="text-2xl font-bold text-green-700">{stats.correctWords}</div>
+                        <div className="text-xs text-green-600 mt-1">Correct</div>
+                      </div>
+                      <div className="bg-red-50 rounded-lg p-3 text-center">
+                        <div className="text-2xl font-bold text-red-700">{stats.incorrectWords}</div>
+                        <div className="text-xs text-red-600 mt-1">Incorrect</div>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-3 text-center">
+                        <div className="text-2xl font-bold text-purple-700">{stats.hintsUsed}</div>
+                        <div className="text-xs text-purple-600 mt-1">Hints Used</div>
+                      </div>
+                    </div>
+
+                    {/* Performance Message */}
+                    <div className="text-center py-4">
+                      {stats.incorrectWords === 0 ? (
+                        <div className="text-green-700 font-semibold">
+                          Perfect! All words correct! 🎉
+                        </div>
+                      ) : stats.correctWords > stats.incorrectWords ? (
+                        <div className="text-blue-700 font-semibold">
+                          Great job! Keep it up! 👏
+                        </div>
+                      ) : (
+                        <div className="text-orange-700 font-semibold">
+                          Good effort! Try the next one! 💪
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </AppLayout>
   )
