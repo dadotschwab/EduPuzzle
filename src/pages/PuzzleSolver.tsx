@@ -184,11 +184,6 @@ export function PuzzleSolver() {
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Crossword Puzzle</h1>
-        </div>
-
         {/* Main Puzzle Layout - Grid on Left, Clues/Results on Right */}
         <div className="grid lg:grid-cols-[1.2fr,1fr] gap-8">
           {/* Left: Puzzle Grid */}
@@ -206,6 +201,11 @@ export function PuzzleSolver() {
 
           {/* Right: Clues/Controls or Completion Stats */}
           <div className="lg:sticky lg:top-24 lg:self-start">
+            {/* Title */}
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold">Crossword Puzzle</h1>
+            </div>
+
             {!isPuzzleCompleted ? (
               <PuzzleClues
                 placedWords={puzzle.placedWords}
@@ -220,7 +220,7 @@ export function PuzzleSolver() {
             ) : (
               <div className="flex flex-col h-full">
                 {/* Action Buttons */}
-                <div className="mb-6">
+                <div className="mb-4">
                   <div className="flex gap-2">
                     <Button
                       onClick={() => window.location.href = '/app'}

@@ -347,7 +347,7 @@ export function PuzzleGrid({
   return (
     <div
       ref={gridRef}
-      className="w-full aspect-square max-w-2xl max-h-[calc(100vh-12rem)] mx-auto"
+      className="w-full aspect-square max-w-2xl mx-auto"
     >
       <div
         className="grid gap-0.5 w-full h-full bg-gray-300 p-1 rounded-lg shadow-lg"

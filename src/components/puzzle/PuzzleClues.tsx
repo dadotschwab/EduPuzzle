@@ -82,7 +82,7 @@ export function PuzzleClues({
   return (
     <div className="flex flex-col h-full">
       {/* Control Buttons - Horizontal Layout */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex gap-2">
           <Button
             onClick={onCheckPuzzle}
