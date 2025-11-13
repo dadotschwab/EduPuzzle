@@ -1,8 +1,25 @@
+/**
+ * @fileoverview Word API functions for Supabase database operations
+ *
+ * Provides CRUD operations for vocabulary words within word lists.
+ * Handles conversion between camelCase TypeScript types and snake_case
+ * database column names.
+ *
+ * Includes support for:
+ * - Single word operations (create, read, update, delete)
+ * - Bulk operations (createWords, deleteWords) for efficiency
+ *
+ * @module lib/api/words
+ */
+
 import { supabase } from '@/lib/supabase'
 import type { Word } from '@/types'
 
 /**
- * Get all words for a specific word list
+ * Fetches all words for a specific word list
+ * @param listId - The word list ID
+ * @returns Array of words, sorted by creation date (oldest first)
+ * @throws Error if database query fails
  */
 export async function getWords(listId: string) {
   const { data, error } = await supabase

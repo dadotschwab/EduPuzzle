@@ -1,8 +1,22 @@
+/**
+ * @fileoverview Word list API functions for Supabase database operations
+ *
+ * Provides CRUD operations for word lists, handling the conversion between
+ * camelCase TypeScript types and snake_case database column names.
+ *
+ * All functions use Row Level Security (RLS) policies to ensure users
+ * can only access their own word lists.
+ *
+ * @module lib/api/wordLists
+ */
+
 import { supabase } from '@/lib/supabase'
 import type { WordList } from '@/types'
 
 /**
- * Get all word lists for the current user
+ * Fetches all word lists for the current user
+ * @returns Array of word lists, sorted by creation date (newest first)
+ * @throws Error if database query fails
  */
 export async function getWordLists() {
   const { data, error } = await supabase
@@ -15,7 +29,10 @@ export async function getWordLists() {
 }
 
 /**
- * Get a single word list by ID
+ * Fetches a single word list by ID
+ * @param id - The word list ID
+ * @returns The word list
+ * @throws Error if word list not found or database query fails
  */
 export async function getWordList(id: string) {
   const { data, error } = await supabase
@@ -29,7 +46,10 @@ export async function getWordList(id: string) {
 }
 
 /**
- * Create a new word list
+ * Creates a new word list for the current user
+ * @param wordList - Word list details (name and languages)
+ * @returns The created word list
+ * @throws Error if user not authenticated or database operation fails
  */
 export async function createWordList(wordList: {
   name: string
@@ -42,6 +62,7 @@ export async function createWordList(wordList: {
 
   if (!user) throw new Error('Not authenticated')
 
+  // Convert camelCase to snake_case for database
   const { data, error } = await supabase
     .from('word_lists')
     .insert({
@@ -58,7 +79,12 @@ export async function createWordList(wordList: {
 }
 
 /**
- * Update a word list
+ * Updates an existing word list
+ * Only provided fields will be updated
+ * @param id - The word list ID
+ * @param updates - Partial word list updates
+ * @returns The updated word list
+ * @throws Error if database operation fails
  */
 export async function updateWordList(
   id: string,
@@ -68,6 +94,7 @@ export async function updateWordList(
     targetLanguage?: string
   }
 ) {
+  // Build update object with only defined fields, converting to snake_case
   const updateData: any = {}
   if (updates.name !== undefined) updateData.name = updates.name
   if (updates.sourceLanguage !== undefined)
@@ -87,7 +114,10 @@ export async function updateWordList(
 }
 
 /**
- * Delete a word list
+ * Deletes a word list and all its associated words
+ * RLS policy ensures user can only delete their own lists
+ * @param id - The word list ID
+ * @throws Error if database operation fails
  */
 export async function deleteWordList(id: string) {
   const { error } = await supabase.from('word_lists').delete().eq('id', id)

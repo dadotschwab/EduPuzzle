@@ -1,84 +1,142 @@
-// Core domain types for EDU-PUZZLE
+/**
+ * @fileoverview Core TypeScript type definitions for EDU-PUZZLE
+ *
+ * This file contains all the domain models and interfaces used throughout
+ * the application, including:
+ * - Word and WordList types for vocabulary management
+ * - Crossword puzzle types (Puzzle, PlacedWord, Crossing)
+ * - Spaced Repetition System types (WordProgress, ReviewType)
+ * - Session tracking types (PuzzleSession, WordReview)
+ *
+ * @module types
+ */
 
+// ============================================================================
+// Spaced Repetition System Types
+// ============================================================================
+
+/**
+ * Represents the performance level of a user on a specific word
+ * Used by the SRS engine to determine the next review interval
+ */
 export type ReviewType = 'perfect' | 'half_known' | 'conditional' | 'unknown' | 'not_evaluated'
 
-export interface Word {
-  id: string
-  listId: string
-  term: string
-  translation: string
-  definition?: string
-  exampleSentence?: string
-  createdAt: string
-}
-
-export interface WordList {
-  id: string
-  userId: string
-  name: string
-  sourceLanguage: string
-  targetLanguage: string
-  createdAt: string
-  updatedAt: string
-}
-
+/**
+ * Tracks a user's progress for a specific word in the SRS system
+ */
 export interface WordProgress {
   id: string
   userId: string
   wordId: string
-  repetitionLevel: number
-  nextReviewDate: string
-  lastReviewedAt?: string
-  totalReviews: number
-  correctReviews: number
+  repetitionLevel: number       // Current SRS level (0-6)
+  nextReviewDate: string        // ISO date string for next review
+  lastReviewedAt?: string       // Last time this word was reviewed
+  totalReviews: number          // Total number of reviews
+  correctReviews: number        // Number of correct reviews
 }
 
+// ============================================================================
+// Vocabulary Management Types
+// ============================================================================
+
+/**
+ * Represents a single vocabulary word with translation and example
+ */
+export interface Word {
+  id: string
+  listId: string
+  term: string                  // The word to learn (e.g., "Apple")
+  translation: string           // Translation or definition (e.g., "A fruit")
+  definition?: string           // Optional detailed definition
+  exampleSentence?: string      // Optional example usage
+  createdAt: string
+}
+
+/**
+ * Represents a collection of vocabulary words
+ */
+export interface WordList {
+  id: string
+  userId: string
+  name: string
+  sourceLanguage: string        // Language being learned
+  targetLanguage: string        // User's native language
+  createdAt: string
+  updatedAt: string
+}
+
+// ============================================================================
+// Crossword Puzzle Types
+// ============================================================================
+
+/**
+ * Represents where one word crosses another in the puzzle grid
+ */
+export interface Crossing {
+  position: number              // Position in current word (0-indexed)
+  otherWordId: string          // ID of the word that crosses this one
+  otherWordPosition: number    // Position in the other word (0-indexed)
+}
+
+/**
+ * A word that has been placed in the crossword grid
+ */
 export interface PlacedWord {
   id: string
-  word: string
-  clue: string
-  x: number
-  y: number
+  word: string                  // The actual word text
+  clue: string                  // The clue shown to the user (translation)
+  x: number                     // Starting X coordinate in grid
+  y: number                     // Starting Y coordinate in grid
   direction: 'horizontal' | 'vertical'
-  number: number
-  crossings: Crossing[]
+  number: number                // Clue number (1, 2, 3, etc.)
+  crossings: Crossing[]         // All crossing points with other words
 }
 
-export interface Crossing {
-  position: number
-  otherWordId: string
-  otherWordPosition: number
-}
-
+/**
+ * The complete crossword puzzle with grid and placed words
+ */
 export interface Puzzle {
   id: string
-  gridSize: number
-  placedWords: PlacedWord[]
-  grid: (string | null)[][]
+  gridSize: number              // Grid dimensions (e.g., 15 = 15x15 grid)
+  placedWords: PlacedWord[]     // All words placed in the puzzle
+  grid: (string | null)[][]     // 2D array of letters (null = empty cell)
 }
 
+// ============================================================================
+// Session and Review Types
+// ============================================================================
+
+/**
+ * A puzzle solving session tracking user progress
+ */
 export interface PuzzleSession {
   id: string
   userId: string
-  listId?: string
+  listId?: string               // Optional: the word list this puzzle is from
   startedAt: string
   completedAt?: string
-  puzzleData: Puzzle
+  puzzleData: Puzzle            // The actual puzzle being solved
   totalWords: number
   correctWords: number
 }
 
+/**
+ * Records how a user performed on a specific word during a puzzle session
+ */
 export interface WordReview {
   id: string
   sessionId: string
   wordId: string
   userId: string
-  reviewType: ReviewType
-  timeToSolve?: number
-  hintsUsed: number
+  reviewType: ReviewType        // Performance rating for SRS
+  timeToSolve?: number          // Time in seconds
+  hintsUsed: number             // Number of hints/reveals used
   reviewedAt: string
 }
 
+/**
+ * Extended user type with subscription information
+ */
 export interface User {
   id: string
   email: string
