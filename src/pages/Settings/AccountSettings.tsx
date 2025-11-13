@@ -19,6 +19,7 @@ export function AccountSettings() {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [newEmail, setNewEmail] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -53,22 +54,49 @@ export function AccountSettings() {
     setError('')
     setSuccess('')
 
+    if (!currentPassword) {
+      setError('Current password is required')
+      setLoading(false)
+      return
+    }
+
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match')
+      setError('New passwords do not match')
       setLoading(false)
       return
     }
 
     if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters')
+      setError('New password must be at least 6 characters')
+      setLoading(false)
+      return
+    }
+
+    if (currentPassword === newPassword) {
+      setError('New password must be different from current password')
       setLoading(false)
       return
     }
 
     try {
+      // Verify current password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: currentPassword,
+      })
+
+      if (signInError) {
+        setError('Current password is incorrect')
+        setLoading(false)
+        return
+      }
+
+      // Update to new password
       const { error } = await supabase.auth.updateUser({ password: newPassword })
       if (error) throw error
+
       setSuccess('Password updated successfully!')
+      setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
       setTimeout(() => {
@@ -162,10 +190,21 @@ export function AccountSettings() {
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
             <DialogDescription>
-              Enter your new password. Make sure it's at least 6 characters long.
+              Enter your current password and choose a new one. Make sure it's at least 6 characters long.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdatePassword} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Current Password</Label>
+              <Input
+                id="current-password"
+                type="password"
+                placeholder="Enter current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="new-password">New Password</Label>
               <Input
@@ -178,7 +217,7 @@ export function AccountSettings() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
               <Input
                 id="confirm-password"
                 type="password"
