@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
@@ -8,8 +8,9 @@ import { WordListDetail } from './pages/WordListDetail'
 import { PuzzleSolver } from './pages/PuzzleSolver'
 import { DailyReview } from './pages/DailyReview'
 import { Statistics } from './pages/Statistics'
-import { UserSettings } from './pages/UserSettings'
-import { SubscriptionManagement } from './pages/SubscriptionManagement'
+import { SettingsLayout } from './pages/Settings/SettingsLayout'
+import { AccountSettings } from './pages/Settings/AccountSettings'
+import { SubscriptionSettings } from './pages/Settings/SubscriptionSettings'
 
 function App() {
   return (
@@ -64,18 +65,14 @@ function App() {
         path="/settings"
         element={
           <ProtectedRoute>
-            <UserSettings />
+            <SettingsLayout />
           </ProtectedRoute>
         }
-      />
-      <Route
-        path="/subscription"
-        element={
-          <ProtectedRoute>
-            <SubscriptionManagement />
-          </ProtectedRoute>
-        }
-      />
+      >
+        <Route index element={<Navigate to="/settings/account" replace />} />
+        <Route path="account" element={<AccountSettings />} />
+        <Route path="subscription" element={<SubscriptionSettings />} />
+      </Route>
     </Routes>
   )
 }
