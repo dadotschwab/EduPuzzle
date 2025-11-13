@@ -39,7 +39,7 @@ export function WordListDetail() {
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="text-center py-12">
           <p className="text-destructive">Word list not found</p>
-          <Link to="/app/lists">
+          <Link to="/app">
             <Button className="mt-4">Go Back</Button>
           </Link>
         </div>
@@ -51,10 +51,10 @@ export function WordListDetail() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
-          <Link to="/app/lists">
+          <Link to="/app">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Lists
+              Back to Dashboard
             </Button>
           </Link>
         </div>
@@ -63,7 +63,7 @@ export function WordListDetail() {
           <div>
             <h1 className="text-3xl font-bold mb-2">{wordList.name}</h1>
             <p className="text-muted-foreground">
-              {wordList.sourceLanguage} → {wordList.targetLanguage}
+              {(wordList as any).source_language || wordList.sourceLanguage} → {(wordList as any).target_language || wordList.targetLanguage}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
               {words?.length || 0} {words?.length === 1 ? 'word' : 'words'}

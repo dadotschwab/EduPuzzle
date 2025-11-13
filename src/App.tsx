@@ -4,7 +4,6 @@ import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
 import { SignupPage } from './pages/SignupPage'
 import { Dashboard } from './pages/Dashboard'
-import { WordListsOverview } from './pages/WordListsOverview'
 import { WordListDetail } from './pages/WordListDetail'
 import { PuzzleSolver } from './pages/PuzzleSolver'
 import { DailyReview } from './pages/DailyReview'
@@ -26,14 +25,6 @@ function App() {
         element={
           <ProtectedRoute>
             <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/app/lists"
-        element={
-          <ProtectedRoute>
-            <WordListsOverview />
           </ProtectedRoute>
         }
       />
