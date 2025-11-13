@@ -102,6 +102,11 @@ export class Grid {
   canPlaceWord(word: Word, x: number, y: number, direction: Direction): boolean {
     const length = word.term.length
 
+    // Check for negative coordinates or out of bounds
+    if (x < 0 || y < 0 || x >= this.size || y >= this.size) {
+      return false
+    }
+
     // Check if word fits in grid
     if (direction === 'horizontal') {
       if (x + length > this.size) return false
@@ -185,7 +190,14 @@ export class Grid {
     for (let i = 0; i < word.term.length; i++) {
       const cellX = direction === 'horizontal' ? x + i : x
       const cellY = direction === 'horizontal' ? y : y + i
-      const cell = this.cells[cellY][cellX]
+      const cell = this.getCell(cellX, cellY)
+
+      // Safety check - should never happen if canPlaceWord worked correctly
+      if (!cell) {
+        console.error(`[Grid] Cell out of bounds at (${cellX}, ${cellY}) for word "${word.term}"`)
+        return null
+      }
+
       const letter = word.term[i]
 
       // If this position already has a letter, it's a crossing
@@ -257,7 +269,12 @@ export class Grid {
     for (let i = 0; i < word.length; i++) {
       const cellX = direction === 'horizontal' ? x + i : x
       const cellY = direction === 'horizontal' ? y : y + i
-      const cell = this.cells[cellY][cellX]
+      const cell = this.getCell(cellX, cellY)
+
+      if (!cell) {
+        console.error(`[Grid] Cell out of bounds during removal at (${cellX}, ${cellY})`)
+        continue
+      }
 
       cell.wordIds.delete(wordId)
 
