@@ -307,6 +307,12 @@ export function PuzzleGrid({
           }
         }
       }
+    } else if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
+      // If a letter key is pressed and cell already has a value, clear it first
+      const cellKey = `${x},${y}`
+      if (userInput[cellKey]) {
+        onCellChange(x, y, '')
+      }
     }
   }
 

@@ -18,7 +18,7 @@ import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
 import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCheck, Trophy } from 'lucide-react'
+import { ArrowRight, Trophy } from 'lucide-react'
 import type { Puzzle, PlacedWord } from '@/types'
 
 // TODO: Replace with actual puzzle data from API/database
@@ -237,9 +237,9 @@ export function PuzzleSolver() {
                         setHintsRemaining(3)
                       }}
                       variant="outline"
-                      className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                      className="flex-1"
                     >
-                      <CheckCheck className="w-4 h-4 mr-2" />
+                      <ArrowRight className="w-4 h-4 mr-2" />
                       Next Puzzle
                     </Button>
                   </div>
