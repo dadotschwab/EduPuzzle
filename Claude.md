@@ -222,6 +222,18 @@ Loading States: Every async operation
 Optimistic Updates: For better UX
 Accessibility: ARIA labels, keyboard navigation
 
+UI/UX Design Principles
+
+**Content Width Consistency**: All pages must use consistent maximum width
+  - Use `max-w-7xl mx-auto` for all page content containers
+  - Use responsive padding: `px-4 sm:px-6 lg:px-8 py-8`
+  - This ensures content aligns with the navbar width and maintains visual consistency
+  - Applies to: Dashboard, Word Lists, Settings, and all other pages
+
+**Sticky Navigation Elements**: Important navigation should remain visible
+  - Settings sidebar uses `sticky top-20 self-start` to stay visible on scroll
+  - Navbar is sticky with `sticky top-0` for consistent access to profile/settings
+
 Debugging Helpers
 Log Puzzle Generation
 typescriptif (process.env.NODE_ENV === 'development') {

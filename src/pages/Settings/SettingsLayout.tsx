@@ -28,7 +28,7 @@ export function SettingsLayout() {
 
         <div className="flex gap-8">
           {/* Sidebar */}
-          <aside className="w-64 flex-shrink-0">
+          <aside className="w-64 flex-shrink-0 sticky top-20 self-start">
             <nav className="space-y-1">
               {settingsNavItems.map((item) => {
                 const Icon = item.icon

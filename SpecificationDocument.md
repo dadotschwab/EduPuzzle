@@ -405,6 +405,30 @@ interface ReviewCriteria {
   }
 }
 3.3 User Interface Components
+
+3.3.0 UI/UX Design Principles
+All pages must follow these consistency guidelines:
+
+**Content Width Consistency**
+- All page content must use `max-w-7xl mx-auto` as the container width
+- Apply responsive padding: `px-4 sm:px-6 lg:px-8 py-8`
+- This ensures content aligns perfectly with the navbar and maintains visual consistency
+- Applies to all pages: Dashboard, Word Lists, Settings, Puzzle Solver, etc.
+
+**Sticky Navigation**
+- Main navbar: `sticky top-0` for persistent access to profile menu and branding
+- Settings sidebar: `sticky top-20 self-start` to remain visible during scroll
+- Ensures important navigation is always accessible without scrolling back up
+
+**Layout Pattern**
+```tsx
+<AppLayout>
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    {/* Page content here */}
+  </div>
+</AppLayout>
+```
+
 3.3.1 Main Views
 TypeScript
 
