@@ -99,19 +99,6 @@ export function PuzzleGrid({
   }
 
   /**
-   * Checks if a word is completely filled out
-   */
-  const isWordComplete = (word: PlacedWord): boolean => {
-    for (let i = 0; i < word.word.length; i++) {
-      const cellX = word.direction === 'horizontal' ? word.x + i : word.x
-      const cellY = word.direction === 'horizontal' ? word.y : word.y + i
-      const key = `${cellX},${cellY}`
-      if (!userInput[key]) return false
-    }
-    return true
-  }
-
-  /**
    * Gets the next word in the puzzle (by number)
    */
   const getNextWord = (currentWord: PlacedWord): PlacedWord | null => {
@@ -123,38 +110,56 @@ export function PuzzleGrid({
 
   /**
    * Moves to the next cell in the active word
+   * @param currentX - Current cell X coordinate
+   * @param currentY - Current cell Y coordinate
+   * @param justTypedLetter - Letter that was just typed (for completion check)
    */
-  const moveToNextCellInWord = (currentX: number, currentY: number) => {
+  const moveToNextCellInWord = (currentX: number, currentY: number, justTypedLetter?: string) => {
     if (!activeWord) return
+
+    // Check if word is complete (including the letter we just typed)
+    const checkWordComplete = (): boolean => {
+      for (let i = 0; i < activeWord.word.length; i++) {
+        const cellX = activeWord.direction === 'horizontal' ? activeWord.x + i : activeWord.x
+        const cellY = activeWord.direction === 'horizontal' ? activeWord.y : activeWord.y + i
+        const key = `${cellX},${cellY}`
+
+        // If this is the current cell and we just typed a letter, count it as filled
+        if (cellX === currentX && cellY === currentY && justTypedLetter) {
+          continue
+        }
+
+        if (!userInput[key]) return false
+      }
+      return true
+    }
 
     if (activeWord.direction === 'horizontal') {
       const nextX = currentX + 1
       if (nextX < activeWord.x + activeWord.word.length) {
+        // Still within the word - advance to next cell
         setFocusedCell({ x: nextX, y: currentY })
-      } else {
-        // Word complete - jump to next word
-        if (isWordComplete(activeWord)) {
-          const nextWord = getNextWord(activeWord)
-          if (nextWord) {
-            onWordSelect(nextWord)
-            setActiveWord(nextWord)
-            setFocusedCell({ x: nextWord.x, y: nextWord.y })
-          }
+      } else if (checkWordComplete()) {
+        // Reached end of word and it's complete - jump to next word
+        const nextWord = getNextWord(activeWord)
+        if (nextWord) {
+          onWordSelect(nextWord)
+          setActiveWord(nextWord)
+          setFocusedCell({ x: nextWord.x, y: nextWord.y })
         }
       }
     } else {
       const nextY = currentY + 1
       if (nextY < activeWord.y + activeWord.word.length) {
+        // Still within the word - advance to next cell
         setFocusedCell({ x: currentX, y: nextY })
-      } else {
-        // Word complete - jump to next word
-        if (isWordComplete(activeWord)) {
-          const nextWord = getNextWord(activeWord)
-          if (nextWord) {
-            onWordSelect(nextWord)
-            setActiveWord(nextWord)
-            setFocusedCell({ x: nextWord.x, y: nextWord.y })
-          }
+      } else if (checkWordComplete()) {
+        // Reached end of word and it's complete - jump to next word
+        const nextWord = getNextWord(activeWord)
+        if (nextWord) {
+          onWordSelect(nextWord)
+          setActiveWord(nextWord)
+          setFocusedCell({ x: nextWord.x, y: nextWord.y })
         }
       }
     }
@@ -186,10 +191,11 @@ export function PuzzleGrid({
     if (newX >= 0 && newX < puzzle.gridSize && newY >= 0 && newY < puzzle.gridSize) {
       if (puzzle.grid[newY][newX] !== null) {
         setFocusedCell({ x: newX, y: newY })
-        // Update selected word based on the new cell
+        // Update selected word and active word based on the new cell
         const word = getWordAtCell(newX, newY, activeWord?.direction)
         if (word) {
           onWordSelect(word)
+          setActiveWord(word)
         }
       }
     }
@@ -217,12 +223,15 @@ export function PuzzleGrid({
 
     if (letter) {
       onCellChange(x, y, letter)
-      // Set active word if not already set
+      // Set active word if not already set (first letter typed)
       if (!activeWord && selectedWord) {
         setActiveWord(selectedWord)
+        // Use selectedWord for auto-advance since we just set it as active
+        moveToNextCellInWord(x, y, letter)
+      } else if (activeWord) {
+        // Auto-advance to next cell in the active word
+        moveToNextCellInWord(x, y, letter)
       }
-      // Auto-advance to next cell in the active word
-      moveToNextCellInWord(x, y)
     } else if (value === '') {
       // User pressed backspace or deleted the letter
       onCellChange(x, y, '')
@@ -355,7 +364,6 @@ export function PuzzleGrid({
                   value={userLetter}
                   onChange={(e) => handleCellInput(x, y, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, x, y)}
-                  onFocus={() => handleCellClick(x, y)}
                   className={`
                     w-full h-full text-center font-bold
                     bg-transparent outline-none uppercase
