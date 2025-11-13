@@ -32,7 +32,9 @@ export function useCreateWord() {
   return useMutation({
     mutationFn: createWord,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['words', data.listId] })
+      // Supabase returns snake_case (list_id) but we cast to camelCase (listId)
+      const listId = (data as any).list_id || data.listId
+      queryClient.invalidateQueries({ queryKey: ['words', listId] })
       queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
     },
   })
@@ -48,7 +50,9 @@ export function useCreateWords() {
     mutationFn: createWords,
     onSuccess: (data) => {
       if (data.length > 0) {
-        queryClient.invalidateQueries({ queryKey: ['words', data[0].listId] })
+        // Supabase returns snake_case (list_id) but we cast to camelCase (listId)
+        const listId = (data[0] as any).list_id || data[0].listId
+        queryClient.invalidateQueries({ queryKey: ['words', listId] })
         queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
       }
     },
@@ -65,7 +69,9 @@ export function useUpdateWord() {
     mutationFn: ({ id, updates }: { id: string; updates: Parameters<typeof updateWord>[1] }) =>
       updateWord(id, updates),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['words', data.listId] })
+      // Supabase returns snake_case (list_id) but we cast to camelCase (listId)
+      const listId = (data as any).list_id || data.listId
+      queryClient.invalidateQueries({ queryKey: ['words', listId] })
       queryClient.invalidateQueries({ queryKey: ['words', 'single', data.id] })
     },
   })

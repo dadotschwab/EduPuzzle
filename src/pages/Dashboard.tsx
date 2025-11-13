@@ -6,6 +6,17 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreateWordListDialog } from '@/components/words/CreateWordListDialog'
 import { EditWordListDialog } from '@/components/words/EditWordListDialog'
+import { CreateWordDialog } from '@/components/words/CreateWordDialog'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,22 +31,20 @@ export function Dashboard() {
   const navigate = useNavigate()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [addWordDialogOpen, setAddWordDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedList, setSelectedList] = useState<WordList | null>(null)
+  const [listToDelete, setListToDelete] = useState<{ id: string; name: string } | null>(null)
   const { data: wordLists, isLoading } = useWordListsWithCounts()
   const deleteMutation = useDeleteWordList()
 
-  const handleEdit = (list: WordList) => {
-    setSelectedList(list)
-    setEditDialogOpen(true)
-  }
-
-  const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete "${name}"? This will also delete all words in this list.`)) {
-      try {
-        await deleteMutation.mutateAsync(id)
-      } catch (error) {
-        console.error('Failed to delete word list:', error)
-      }
+  const handleDeleteConfirm = async () => {
+    if (!listToDelete) return
+    try {
+      await deleteMutation.mutateAsync(listToDelete.id)
+      setListToDelete(null)
+    } catch (error) {
+      console.error('Failed to delete word list:', error)
     }
   }
 
@@ -102,85 +111,137 @@ export function Dashboard() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {wordLists?.map((list) => (
-              <Card
-                key={list.id}
-                className="hover:shadow-lg transition-shadow cursor-pointer relative"
-              >
-                {/* Card Header with Menu */}
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1" onClick={() => handleCardClick(list.id)}>
-                      <CardTitle className="mb-1">{list.name}</CardTitle>
-                      <CardDescription>
-                        {list.sourceLanguage} → {list.targetLanguage}
-                      </CardDescription>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {list.wordCount} {list.wordCount === 1 ? 'word' : 'words'}
-                      </p>
+            {wordLists?.map((list) => {
+              // Supabase returns snake_case, so access those fields directly
+              const sourceLanguage = (list as any).source_language || list.sourceLanguage
+              const targetLanguage = (list as any).target_language || list.targetLanguage
+
+              return (
+                <Card
+                  key={list.id}
+                  className="hover:shadow-lg transition-shadow cursor-pointer relative"
+                  onClick={() => handleCardClick(list.id)}
+                >
+                  {/* Card Header with Menu */}
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <CardTitle className="mb-1">{list.name}</CardTitle>
+                        <CardDescription>
+                          {sourceLanguage} → {targetLanguage}
+                        </CardDescription>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {list.wordCount} {list.wordCount === 1 ? 'word' : 'words'}
+                        </p>
+                      </div>
+
+                      {/* 3-Dot Menu */}
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedList(list)
+                                setEditDialogOpen(true)
+                              }}
+                            >
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit List
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setListToDelete({ id: list.id, name: list.name })
+                                setDeleteDialogOpen(true)
+                              }}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete List
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
+                  </CardHeader>
 
-                    {/* 3-Dot Menu */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(list)}>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit List
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(list.id, list.name)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete List
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-
-                {/* Card Actions */}
-                <CardContent>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => navigate(`/app/lists/${list.id}`)}
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add Word
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => navigate(`/app/puzzle/${list.id}`)}
-                    >
-                      <PuzzleIcon className="w-4 h-4 mr-1" />
-                      Start Puzzle
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  {/* Card Actions */}
+                  <CardContent>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedList(list)
+                          setAddWordDialogOpen(true)
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add Word
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/app/puzzle/${list.id}`)
+                        }}
+                      >
+                        <PuzzleIcon className="w-4 h-4 mr-1" />
+                        Start Puzzle
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
 
         {/* Dialogs */}
         <CreateWordListDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+
         {selectedList && (
-          <EditWordListDialog
-            open={editDialogOpen}
-            onOpenChange={setEditDialogOpen}
-            wordList={selectedList}
-          />
+          <>
+            <EditWordListDialog
+              open={editDialogOpen}
+              onOpenChange={setEditDialogOpen}
+              wordList={selectedList}
+            />
+            <CreateWordDialog
+              open={addWordDialogOpen}
+              onOpenChange={setAddWordDialogOpen}
+              listId={selectedList.id}
+            />
+          </>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Word List</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{listToDelete?.name}"? This will permanently delete
+                the list and all {wordLists?.find(l => l.id === listToDelete?.id)?.wordCount || 0} words in it.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteConfirm} variant="destructive">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )
