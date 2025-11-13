@@ -384,6 +384,70 @@ export function getClusteringStats(clusters: WordCluster[]): {
 }
 
 /**
+ * Redistributes failed words to remaining clusters based on compatibility
+ *
+ * @param failedWords - Words that couldn't be placed
+ * @param remainingClusters - Clusters that haven't been generated yet
+ * @returns Updated clusters with redistributed words
+ */
+export function redistributeFailedWords(
+  failedWords: Word[],
+  remainingClusters: WordCluster[]
+): WordCluster[] {
+  if (failedWords.length === 0 || remainingClusters.length === 0) {
+    return remainingClusters
+  }
+
+  // Build compatibility matrix for failed words vs cluster words
+  const allWords = [
+    ...failedWords,
+    ...remainingClusters.flatMap(c => c.words)
+  ]
+  const compatMatrix = buildCompatibilityMatrix(allWords)
+
+  // For each failed word, find best cluster
+  failedWords.forEach(failedWord => {
+    let bestClusterIndex = 0
+    let bestScore = -1
+
+    // Calculate compatibility with each cluster
+    remainingClusters.forEach((cluster, clusterIndex) => {
+      let totalScore = 0
+
+      // Calculate average compatibility with cluster members
+      cluster.words.forEach(clusterWord => {
+        totalScore += getScore(compatMatrix, failedWord, clusterWord)
+      })
+
+      const avgScore = cluster.words.length > 0 ? totalScore / cluster.words.length : 0
+
+      if (avgScore > bestScore) {
+        bestScore = avgScore
+        bestClusterIndex = clusterIndex
+      }
+    })
+
+    // Add failed word to best cluster
+    remainingClusters[bestClusterIndex].words.push(failedWord)
+  })
+
+  // Recalculate cluster metadata after redistribution
+  return remainingClusters.map(cluster => {
+    const compatMatrix = buildCompatibilityMatrix(cluster.words)
+    const clusterScore = calculateClusterScore(cluster.words, compatMatrix)
+    const avgOverlap = calculateAverageOverlap(cluster.words)
+    const difficulty = assessClusterDifficulty(cluster.words)
+
+    return {
+      words: cluster.words,
+      score: clusterScore,
+      avgLetterOverlap: avgOverlap,
+      difficulty,
+    }
+  })
+}
+
+/**
  * Optimizes cluster sizes by splitting large clusters
  * Ensures all clusters fit within 16x16 grid constraints
  *
