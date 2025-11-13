@@ -128,14 +128,12 @@ export function PuzzleSolver() {
     if (hintsRemaining <= 0 || !focusedCell) return
 
     // Get the correct letter for the focused cell
-    const correctLetter = puzzle.grid[focusedCell.y][focusedCell.x]
+    const correctLetter = puzzle?.grid[focusedCell.y][focusedCell.x]
     if (correctLetter) {
       handleCellChange(focusedCell.x, focusedCell.y, correctLetter)
       setHintsRemaining(prev => prev - 1)
     }
   }
-
-  const stats = getPuzzleStats()
 
   // Loading state
   if (isLoading) {
@@ -220,6 +218,9 @@ export function PuzzleSolver() {
       </AppLayout>
     )
   }
+
+  // At this point, puzzle is guaranteed to be non-null
+  const stats = getPuzzleStats()
 
   return (
     <AppLayout>
