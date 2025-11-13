@@ -22,6 +22,8 @@ interface PuzzleGridProps {
   onCellChange: (x: number, y: number, value: string) => void
   selectedWord: PlacedWord | null
   onWordSelect: (word: PlacedWord) => void
+  onFocusedCellChange: (cell: { x: number; y: number } | null) => void
+  checkedWords: Record<string, 'correct' | 'incorrect'>
 }
 
 /**
@@ -33,7 +35,9 @@ export function PuzzleGrid({
   userInput,
   onCellChange,
   selectedWord,
-  onWordSelect
+  onWordSelect,
+  onFocusedCellChange,
+  checkedWords
 }: PuzzleGridProps) {
   const gridRef = useRef<HTMLDivElement>(null)
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
@@ -55,6 +59,13 @@ export function PuzzleGrid({
   }, [focusedCell])
 
   /**
+   * Notify parent when focused cell changes
+   */
+  useEffect(() => {
+    onFocusedCellChange(focusedCell)
+  }, [focusedCell, onFocusedCellChange])
+
+  /**
    * Checks if a cell is part of the currently selected word
    */
   const isCellInSelectedWord = (x: number, y: number): boolean => {
@@ -73,6 +84,32 @@ export function PuzzleGrid({
   const getCellNumber = (x: number, y: number): number | null => {
     const word = puzzle.placedWords.find(w => w.x === x && w.y === y)
     return word ? word.number : null
+  }
+
+  /**
+   * Gets the status of a cell based on word checking
+   * Returns 'correct' if part of any correct word, 'incorrect' if only part of incorrect words
+   */
+  const getCellStatus = (x: number, y: number): 'correct' | 'incorrect' | null => {
+    const wordsAtCell = puzzle.placedWords.filter(w => {
+      if (w.direction === 'horizontal') {
+        return w.y === y && x >= w.x && x < w.x + w.word.length
+      } else {
+        return w.x === x && y >= w.y && y < w.y + w.word.length
+      }
+    })
+
+    if (wordsAtCell.length === 0) return null
+
+    // If any word at this cell is correct, the cell is correct (green takes priority)
+    const hasCorrect = wordsAtCell.some(w => checkedWords[w.id] === 'correct')
+    if (hasCorrect) return 'correct'
+
+    // If all words at this cell are incorrect, the cell is incorrect
+    const hasIncorrect = wordsAtCell.some(w => checkedWords[w.id] === 'incorrect')
+    if (hasIncorrect) return 'incorrect'
+
+    return null
   }
 
   /**
@@ -322,6 +359,7 @@ export function PuzzleGrid({
             const cellNumber = getCellNumber(x, y)
             const isSelected = isCellInSelectedWord(x, y)
             const isFocused = focusedCell?.x === x && focusedCell?.y === y
+            const cellStatus = getCellStatus(x, y)
 
             if (isBlackSquare) {
               return (
@@ -332,13 +370,22 @@ export function PuzzleGrid({
               )
             }
 
+            // Determine background color based on status
+            let bgColor = 'bg-white'
+            if (cellStatus === 'correct') {
+              bgColor = 'bg-green-100'
+            } else if (cellStatus === 'incorrect') {
+              bgColor = 'bg-red-100'
+            } else if (isSelected) {
+              bgColor = 'bg-blue-100'
+            }
+
             return (
               <div
                 key={cellKey}
                 className={`
-                  relative bg-white rounded-sm cursor-pointer
+                  relative ${bgColor} rounded-sm cursor-pointer
                   transition-colors duration-150
-                  ${isSelected ? 'bg-blue-100' : ''}
                   ${isFocused ? 'ring-2 ring-blue-500' : ''}
                 `}
                 onClick={() => handleCellClick(x, y)}

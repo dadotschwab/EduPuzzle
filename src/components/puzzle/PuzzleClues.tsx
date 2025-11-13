@@ -12,7 +12,7 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { CheckCircle, XCircle, Lightbulb } from 'lucide-react'
+import { CheckCircle, XCircle, Lightbulb, Check } from 'lucide-react'
 import type { PlacedWord } from '@/types'
 
 interface PuzzleCluesProps {
@@ -22,6 +22,8 @@ interface PuzzleCluesProps {
   onCheckPuzzle: () => void
   onEndPuzzle: () => void
   onGiveHint: () => void
+  hintsRemaining: number
+  checkedWords: Record<string, 'correct' | 'incorrect'>
 }
 
 /**
@@ -34,7 +36,9 @@ export function PuzzleClues({
   onWordSelect,
   onCheckPuzzle,
   onEndPuzzle,
-  onGiveHint
+  onGiveHint,
+  hintsRemaining,
+  checkedWords
 }: PuzzleCluesProps) {
   // Separate words into across and down, sorted by number
   const acrossWords = placedWords
@@ -50,20 +54,27 @@ export function PuzzleClues({
    */
   const ClueItem = ({ word }: { word: PlacedWord }) => {
     const isSelected = selectedWord?.id === word.id
+    const isCorrect = checkedWords[word.id] === 'correct'
 
     return (
       <button
         onClick={() => onWordSelect(word)}
         className={`
           w-full text-left px-3 py-2 rounded-md transition-colors
+          flex items-start gap-2
           ${isSelected
             ? 'bg-blue-100 text-blue-900 font-medium'
             : 'hover:bg-gray-100 text-gray-700'
           }
         `}
       >
-        <span className="font-bold mr-2">{word.number}.</span>
-        <span className="text-sm">{word.clue}</span>
+        <div className="flex items-center gap-2 flex-1">
+          <span className="font-bold">{word.number}.</span>
+          <span className="text-sm">{word.clue}</span>
+        </div>
+        {isCorrect && (
+          <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+        )}
       </button>
     )
   }
@@ -85,9 +96,10 @@ export function PuzzleClues({
             onClick={onGiveHint}
             variant="outline"
             className="flex-1"
+            disabled={hintsRemaining <= 0}
           >
             <Lightbulb className="w-4 h-4 mr-2" />
-            Hint
+            Hint ({hintsRemaining})
           </Button>
           <Button
             onClick={onEndPuzzle}

@@ -79,6 +79,9 @@ export function PuzzleSolver() {
   const [selectedWord, setSelectedWord] = useState<PlacedWord | null>(
     puzzle.placedWords[0] || null
   )
+  const [focusedCell, setFocusedCell] = useState<{ x: number; y: number } | null>(null)
+  const [hintsRemaining, setHintsRemaining] = useState(3)
+  const [checkedWords, setCheckedWords] = useState<Record<string, 'correct' | 'incorrect'>>({})
 
   /**
    * Handles user input in a cell
@@ -95,8 +98,26 @@ export function PuzzleSolver() {
    * Checks the puzzle and shows errors
    */
   const handleCheckPuzzle = () => {
-    // TODO: Implement check logic
-    console.log('Checking puzzle...')
+    const newCheckedWords: Record<string, 'correct' | 'incorrect'> = {}
+
+    puzzle.placedWords.forEach(word => {
+      let isCorrect = true
+      for (let i = 0; i < word.word.length; i++) {
+        const cellX = word.direction === 'horizontal' ? word.x + i : word.x
+        const cellY = word.direction === 'horizontal' ? word.y : word.y + i
+        const key = `${cellX},${cellY}`
+        const userLetter = userInput[key] || ''
+        const correctLetter = word.word[i]
+
+        if (userLetter !== correctLetter) {
+          isCorrect = false
+          break
+        }
+      }
+      newCheckedWords[word.id] = isCorrect ? 'correct' : 'incorrect'
+    })
+
+    setCheckedWords(newCheckedWords)
   }
 
   /**
@@ -111,8 +132,14 @@ export function PuzzleSolver() {
    * Reveals a letter as a hint
    */
   const handleGiveHint = () => {
-    // TODO: Implement hint logic
-    console.log('Giving hint...')
+    if (hintsRemaining <= 0 || !focusedCell) return
+
+    // Get the correct letter for the focused cell
+    const correctLetter = puzzle.grid[focusedCell.y][focusedCell.x]
+    if (correctLetter) {
+      handleCellChange(focusedCell.x, focusedCell.y, correctLetter)
+      setHintsRemaining(prev => prev - 1)
+    }
   }
 
   return (
@@ -133,6 +160,8 @@ export function PuzzleSolver() {
               onCellChange={handleCellChange}
               selectedWord={selectedWord}
               onWordSelect={setSelectedWord}
+              onFocusedCellChange={setFocusedCell}
+              checkedWords={checkedWords}
             />
           </div>
 
@@ -145,6 +174,8 @@ export function PuzzleSolver() {
               onCheckPuzzle={handleCheckPuzzle}
               onEndPuzzle={handleEndPuzzle}
               onGiveHint={handleGiveHint}
+              hintsRemaining={hintsRemaining}
+              checkedWords={checkedWords}
             />
           </div>
         </div>
