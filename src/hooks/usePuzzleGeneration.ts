@@ -89,8 +89,10 @@ export function usePuzzleGeneration(
       }
     },
     enabled: enabled && !!listId,
-    staleTime: 0, // Always fetch fresh puzzles
-    gcTime: 0, // Don't cache (was cacheTime in older versions)
+    staleTime: Infinity, // Keep puzzles fresh for entire session - never auto-refetch
+    gcTime: 1000 * 60 * 30, // Cache for 30 minutes
+    refetchOnMount: false, // Don't refetch when component remounts
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
     retry: false, // Don't retry on error
   })
 
