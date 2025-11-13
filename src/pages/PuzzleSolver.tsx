@@ -13,75 +13,31 @@
  */
 
 import { useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
 import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Trophy } from 'lucide-react'
+import { ArrowRight, Trophy, Loader2, AlertCircle } from 'lucide-react'
+import { usePuzzleGeneration, useCurrentPuzzle } from '@/hooks/usePuzzleGeneration'
 import type { Puzzle, PlacedWord } from '@/types'
-
-// TODO: Replace with actual puzzle data from API/database
-const mockPuzzle: Puzzle = {
-  id: 'mock-puzzle-1',
-  gridSize: 10,
-  placedWords: [
-    {
-      id: '1',
-      word: 'HELLO',
-      clue: 'A greeting',
-      x: 0,
-      y: 0,
-      direction: 'horizontal',
-      number: 1,
-      crossings: []
-    },
-    {
-      id: '2',
-      word: 'WORLD',
-      clue: 'Planet Earth',
-      x: 2,
-      y: 0,
-      direction: 'vertical',
-      number: 2,
-      crossings: []
-    },
-    {
-      id: '3',
-      word: 'HELP',
-      clue: 'Assistance',
-      x: 0,
-      y: 2,
-      direction: 'horizontal',
-      number: 3,
-      crossings: []
-    }
-  ],
-  grid: Array(10).fill(null).map((_, y) =>
-    Array(10).fill(null).map((_, x) => {
-      // HELLO at row 0
-      if (y === 0 && x < 5) return 'HELLO'[x]
-      // WORLD at column 2
-      if (x === 2 && y < 5) return 'WORLD'[y]
-      // HELP at row 2
-      if (y === 2 && x < 4) return 'HELP'[x]
-      return null
-    })
-  )
-}
 
 /**
  * Main puzzle solver page component
  */
 export function PuzzleSolver() {
-  // TODO: Use sessionId to load puzzle from API
-  // const { sessionId } = useParams<{ sessionId: string }>()
+  const { listId } = useParams<{ listId: string }>()
+  const navigate = useNavigate()
 
-  const [puzzle] = useState<Puzzle>(mockPuzzle) // TODO: Load from API
+  // Generate puzzle from database words (30 random words)
+  const { data: allPuzzles, isLoading, error } = usePuzzleGeneration(listId || '', 30, !!listId)
+
+  // For now, just show the first puzzle (Option A)
+  const [currentPuzzleIndex] = useState(0)
+  const puzzle = useCurrentPuzzle(allPuzzles, currentPuzzleIndex)
   const [userInput, setUserInput] = useState<Record<string, string>>({})
-  const [selectedWord, setSelectedWord] = useState<PlacedWord | null>(
-    puzzle.placedWords[0] || null
-  )
+  const [selectedWord, setSelectedWord] = useState<PlacedWord | null>(null)
   const [focusedCell, setFocusedCell] = useState<{ x: number; y: number } | null>(null)
   const [hintsRemaining, setHintsRemaining] = useState(3)
   const [checkedWords, setCheckedWords] = useState<Record<string, 'correct' | 'incorrect'>>({})
@@ -180,6 +136,90 @@ export function PuzzleSolver() {
   }
 
   const stats = getPuzzleStats()
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6 text-center space-y-4">
+              <Loader2 className="w-12 h-12 mx-auto animate-spin text-primary" />
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold">Generating Your Puzzle...</h2>
+                <p className="text-muted-foreground">
+                  Fetching words and creating crossword puzzle
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  This usually takes 2-5 seconds
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <AppLayout>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center">
+          <Card className="w-full max-w-md border-destructive">
+            <CardContent className="pt-6 text-center space-y-4">
+              <AlertCircle className="w-12 h-12 mx-auto text-destructive" />
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold">Failed to Generate Puzzle</h2>
+                <p className="text-muted-foreground">
+                  {error instanceof Error ? error.message : 'An unexpected error occurred'}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => navigate('/app')}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Back to Dashboard
+                </Button>
+                <Button
+                  onClick={() => window.location.reload()}
+                  className="flex-1"
+                >
+                  Try Again
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    )
+  }
+
+  // No puzzle state
+  if (!puzzle) {
+    return (
+      <AppLayout>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6 text-center space-y-4">
+              <AlertCircle className="w-12 h-12 mx-auto text-yellow-500" />
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold">No Puzzle Available</h2>
+                <p className="text-muted-foreground">
+                  Unable to load puzzle. The word list might be empty.
+                </p>
+              </div>
+              <Button onClick={() => navigate('/app')}>
+                Back to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    )
+  }
 
   return (
     <AppLayout>
