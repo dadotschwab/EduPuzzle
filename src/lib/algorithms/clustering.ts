@@ -142,8 +142,8 @@ function getScore(
 }
 
 /**
- * Greedy clustering algorithm
- * Creates clusters by selecting words with highest compatibility
+ * Balanced clustering algorithm
+ * Distributes words evenly across clusters to ensure all clusters have similar quality
  *
  * @param words - Words to cluster
  * @param config - Clustering configuration
@@ -154,65 +154,96 @@ export function clusterWords(
   config: Partial<ClusterConfig> = {}
 ): WordCluster[] {
   const fullConfig = { ...DEFAULT_CONFIG, ...config }
-  const clusters: WordCluster[] = []
-  const remaining = new Set(words.map(w => w.id))
+
+  // Calculate optimal number of clusters
+  const targetCount = Math.ceil(words.length / fullConfig.targetClusterSize)
   const compatMatrix = buildCompatibilityMatrix(words)
 
-  // Sort words by length (longest first - better anchors for clusters)
+  // Initialize empty clusters
+  const clusterArrays: Word[][] = Array(targetCount).fill(null).map(() => [])
+  const remaining = new Set(words.map(w => w.id))
+
+  // Sort words by length (mix of long and short in each cluster)
   const sortedWords = [...words].sort((a, b) => b.term.length - a.term.length)
 
-  while (remaining.size > 0) {
-    // Start new cluster with longest remaining word
+  // Phase 1: Seed each cluster with one long word (round-robin)
+  for (let i = 0; i < targetCount && remaining.size > 0; i++) {
     const seedWord = sortedWords.find(w => remaining.has(w.id))
     if (!seedWord) break
 
-    const cluster: Word[] = [seedWord]
+    clusterArrays[i].push(seedWord)
     remaining.delete(seedWord.id)
+  }
 
-    // Greedily add compatible words to cluster
-    while (cluster.length < fullConfig.maxClusterSize && remaining.size > 0) {
-      let bestWord: Word | null = null
-      let bestScore = 0
+  // Phase 2: Distribute remaining words round-robin, prioritizing compatibility
+  let currentClusterIndex = 0
 
-      // Find word with highest average compatibility to cluster
-      for (const word of sortedWords) {
-        if (!remaining.has(word.id)) continue
+  while (remaining.size > 0) {
+    // Skip clusters that are already at max size
+    while (clusterArrays[currentClusterIndex].length >= fullConfig.maxClusterSize) {
+      currentClusterIndex = (currentClusterIndex + 1) % targetCount
 
-        // Calculate average compatibility with cluster members
-        let totalScore = 0
-        for (const clusterWord of cluster) {
-          totalScore += getScore(compatMatrix, word, clusterWord)
-        }
-        const avgScore = totalScore / cluster.length
+      // If all clusters are full, break
+      const allFull = clusterArrays.every(c => c.length >= fullConfig.maxClusterSize)
+      if (allFull) break
+    }
 
-        if (avgScore > bestScore) {
-          bestScore = avgScore
-          bestWord = word
-        }
+    if (clusterArrays.every(c => c.length >= fullConfig.maxClusterSize)) break
+
+    const currentCluster = clusterArrays[currentClusterIndex]
+
+    // Find best word for this cluster
+    let bestWord: Word | null = null
+    let bestScore = 0
+
+    for (const word of sortedWords) {
+      if (!remaining.has(word.id)) continue
+
+      // Calculate average compatibility with current cluster
+      let totalScore = 0
+      for (const clusterWord of currentCluster) {
+        totalScore += getScore(compatMatrix, word, clusterWord)
       }
+      const avgScore = currentCluster.length > 0 ? totalScore / currentCluster.length : 0
 
-      // Add best word if compatibility is good enough
-      if (bestWord && bestScore >= fullConfig.minOverlap * 10) {
-        cluster.push(bestWord)
-        remaining.delete(bestWord.id)
-      } else {
-        // No more compatible words, finish this cluster
-        break
+      if (avgScore > bestScore) {
+        bestScore = avgScore
+        bestWord = word
       }
     }
 
-    // Calculate cluster quality metrics
-    const clusterScore = calculateClusterScore(cluster, compatMatrix)
-    const avgOverlap = calculateAverageOverlap(cluster)
-    const difficulty = assessClusterDifficulty(cluster)
+    // Add best word if found
+    if (bestWord) {
+      currentCluster.push(bestWord)
+      remaining.delete(bestWord.id)
+    } else {
+      // If no compatible word found, take any remaining word
+      const anyWord = sortedWords.find(w => remaining.has(w.id))
+      if (anyWord) {
+        currentCluster.push(anyWord)
+        remaining.delete(anyWord.id)
+      }
+    }
 
-    clusters.push({
-      words: cluster,
-      score: clusterScore,
-      avgLetterOverlap: avgOverlap,
-      difficulty,
-    })
+    // Move to next cluster
+    currentClusterIndex = (currentClusterIndex + 1) % targetCount
   }
+
+  // Phase 3: Build cluster objects with metadata
+  const clusters: WordCluster[] = clusterArrays
+    .filter(cluster => cluster.length > 0)
+    .map(cluster => {
+      const clusterScore = calculateClusterScore(cluster, compatMatrix)
+      const avgOverlap = calculateAverageOverlap(cluster)
+      const difficulty = assessClusterDifficulty(cluster)
+
+      return {
+        words: cluster,
+        score: clusterScore,
+        avgLetterOverlap: avgOverlap,
+        difficulty,
+      }
+    })
 
   return clusters
 }

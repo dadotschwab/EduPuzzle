@@ -32,33 +32,31 @@ const DEFAULT_CONFIG: GenerationConfig = {
 }
 
 /**
- * Generates a crossword puzzle from a list of words
- *
- * @param words - Array of words to place in the puzzle
- * @param config - Optional generation configuration
- * @returns Generated puzzle or null if generation failed
- *
- * @example
- * ```typescript
- * const words = generateMockSRSWords(EASY_DATASET.words)
- * const puzzle = await generatePuzzle(words)
- * ```
+ * Shuffles array using Fisher-Yates algorithm
  */
-export async function generatePuzzle(
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
+/**
+ * Generates a single puzzle attempt from ordered words
+ * Internal helper function - use generatePuzzle for public API
+ */
+function generatePuzzleAttempt(
   words: Word[],
-  config: Partial<GenerationConfig> = {}
-): Promise<Puzzle | null> {
-  const fullConfig = { ...DEFAULT_CONFIG, ...config }
-  const startTime = performance.now()
-
-  // Sort words by length (longest first - better for initial placement)
-  const sortedWords = [...words].sort((a, b) => b.term.length - a.term.length)
-
+  config: GenerationConfig,
+  silent: boolean = false
+): Puzzle | null {
   // Calculate initial grid size based on longest word
-  const longestWord = sortedWords[0].term.length
+  const longestWord = words[0].term.length
   const initialGridSize = Math.max(
-    fullConfig.minGridSize,
-    Math.min(fullConfig.maxGridSize, longestWord * 2)
+    config.minGridSize,
+    Math.min(config.maxGridSize, longestWord * 2)
   )
 
   // Create grid
@@ -69,9 +67,9 @@ export async function generatePuzzle(
   let attempts = 0
 
   // Place words one by one
-  for (const word of sortedWords) {
-    if (attempts >= fullConfig.maxAttemptsPerWord * words.length) {
-      console.warn('Max attempts reached, stopping generation')
+  for (const word of words) {
+    if (attempts >= config.maxAttemptsPerWord * words.length) {
+      if (!silent) console.warn('Max attempts reached, stopping generation')
       break
     }
 
@@ -79,7 +77,6 @@ export async function generatePuzzle(
     const placements = findPlacements(word, grid)
 
     if (placements.length === 0) {
-      console.warn(`No valid placements found for word: ${word.term}`)
       continue
     }
 
@@ -87,7 +84,6 @@ export async function generatePuzzle(
     const bestPlacement = getBestPlacement(placements, grid)
 
     if (!bestPlacement) {
-      console.warn(`Could not score placements for word: ${word.term}`)
       continue
     }
 
@@ -109,27 +105,105 @@ export async function generatePuzzle(
 
   // Check if we placed enough words
   if (placedCount === 0) {
-    console.error('Failed to place any words')
     return null
-  }
-
-  // Validate connectivity
-  if (!isConnected(grid)) {
-    console.warn('Warning: Generated puzzle has disconnected components')
   }
 
   // Convert to Puzzle format
   const puzzle = convertToPuzzle(grid)
+  return puzzle
+}
+
+/**
+ * Generates a crossword puzzle from a list of words
+ * Uses multiple attempts with different word orderings to maximize word placement
+ *
+ * @param words - Array of words to place in the puzzle
+ * @param config - Optional generation configuration
+ * @returns Generated puzzle or null if generation failed
+ *
+ * @example
+ * ```typescript
+ * const words = generateMockSRSWords(EASY_DATASET.words)
+ * const puzzle = await generatePuzzle(words)
+ * ```
+ */
+export async function generatePuzzle(
+  words: Word[],
+  config: Partial<GenerationConfig> = {}
+): Promise<Puzzle | null> {
+  const fullConfig = { ...DEFAULT_CONFIG, ...config }
+  const startTime = performance.now()
+
+  // Sort words by length (longest first - better for initial placement)
+  const sortedWords = [...words].sort((a, b) => b.term.length - a.term.length)
+
+  // Configuration for multiple attempts
+  const maxAttempts = 30 // Try up to 30 different orderings
+  const minAcceptableWords = Math.max(8, Math.floor(words.length * 0.8)) // At least 8 words or 80%
+
+  let bestPuzzle: Puzzle | null = null
+  let bestPlacedCount = 0
+
+  // Try multiple word orderings
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // For first attempt, use sorted order
+    // For subsequent attempts, shuffle words (except keep longest first)
+    const orderedWords = attempt === 0
+      ? sortedWords
+      : [sortedWords[0], ...shuffleArray(sortedWords.slice(1))]
+
+    // Generate puzzle with this ordering
+    const puzzle = generatePuzzleAttempt(orderedWords, fullConfig, true)
+
+    if (puzzle) {
+      const placedCount = puzzle.placedWords.length
+
+      // Keep track of best result
+      if (placedCount > bestPlacedCount) {
+        bestPlacedCount = placedCount
+        bestPuzzle = puzzle
+      }
+
+      // If we placed all words or met our target, we're done
+      if (placedCount === words.length || placedCount >= minAcceptableWords) {
+        if (placedCount === words.length) {
+          break // Perfect result, stop trying
+        }
+      }
+    }
+  }
+
+  if (!bestPuzzle) {
+    console.error('Failed to place any words after all attempts')
+    return null
+  }
+
+  // Validate connectivity
+  const grid = new Grid(bestPuzzle.gridSize)
+  // Reconstruct grid for connectivity check
+  for (const word of bestPuzzle.placedWords) {
+    grid.placeWord(
+      { id: word.id, term: word.word, clue: word.clue },
+      word.x,
+      word.y,
+      word.direction
+    )
+  }
+
+  const connected = isConnected(grid)
+  if (!connected) {
+    console.warn('Warning: Generated puzzle has disconnected components')
+  }
 
   const endTime = performance.now()
   const timeElapsed = endTime - startTime
 
   console.log(`Generated puzzle in ${timeElapsed.toFixed(0)}ms`)
-  console.log(`  Placed: ${placedCount}/${words.length} words`)
-  console.log(`  Grid size: ${puzzle.gridSize}x${puzzle.gridSize}`)
-  console.log(`  Connected: ${isConnected(grid)}`)
+  console.log(`  Placed: ${bestPlacedCount}/${words.length} words`)
+  console.log(`  Grid size: ${bestPuzzle.gridSize}x${bestPuzzle.gridSize}`)
+  console.log(`  Connected: ${connected}`)
 
-  return puzzle
+  return bestPuzzle
 }
 
 /**
