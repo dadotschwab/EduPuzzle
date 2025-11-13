@@ -95,22 +95,9 @@ export function CreateWordDialog({ open, onOpenChange, listId }: CreateWordDialo
 
   const hasValidWords = rows.some(row => row.term.trim() && row.translation.trim())
 
-  const handleInteractOutside = (e: Event) => {
-    // Only allow closing if all fields are empty
-    const hasAnyInput = rows.some(row =>
-      row.term.trim() || row.translation.trim() || row.exampleSentence.trim()
-    )
-    if (hasAnyInput) {
-      e.preventDefault()
-    }
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-4xl max-h-[80vh] overflow-y-auto"
-        onInteractOutside={handleInteractOutside}
-      >
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Words</DialogTitle>
           <DialogDescription>
