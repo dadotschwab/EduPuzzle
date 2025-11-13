@@ -60,10 +60,15 @@ EDU-PUZZLE helps users learn vocabulary through automatically generated crosswor
    pnpm supabase:init
    ```
 
-5. Run database migrations:
+5. Run database migrations and configure development settings:
    ```bash
    pnpm supabase:migrate
    ```
+
+   **Important**: For development, disable email confirmation in Supabase:
+   - See `DATABASE_SETUP.md` Step 2 for instructions
+   - See `DEVELOPMENT.md` for all dev-specific configurations
+   - ⚠️ Remember to re-enable before production!
 
 6. Start the development server:
    ```bash

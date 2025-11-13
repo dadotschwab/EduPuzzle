@@ -41,7 +41,22 @@ supabase link --project-ref your-project-ref
 supabase db push
 ```
 
-## Step 2: Verify Database Setup
+## Step 2: Configure Email Settings (DEVELOPMENT ONLY)
+
+⚠️ **For development/testing only** - Disable email confirmation:
+
+1. Go to **Authentication** → **Providers** in Supabase dashboard
+2. Find the **Email** provider section
+3. Scroll to **"Confirm email"** toggle
+4. **Turn it OFF** (disable)
+5. Click **Save**
+
+This allows you to test with mock emails like `test@test.de` without verification.
+
+> **🚨 CRITICAL**: Before production, you MUST re-enable email confirmation!
+> See `DEVELOPMENT.md` for the full production checklist.
+
+## Step 3: Verify Database Setup
 
 After running the migrations, verify your tables were created:
 
@@ -54,7 +69,7 @@ After running the migrations, verify your tables were created:
    - `puzzle_sessions`
    - `word_reviews`
 
-## Step 3: Understanding Row Level Security (RLS)
+## Step 4: Understanding Row Level Security (RLS)
 
 All tables have RLS enabled with these policies:
 
@@ -78,7 +93,7 @@ All tables have RLS enabled with these policies:
 - Users can only access their own sessions and reviews
 - Tied to `user_id`
 
-## Step 4: Test Authentication & RLS
+## Step 5: Test Authentication & RLS
 
 ### Create a test user:
 
@@ -98,7 +113,7 @@ Try creating a word list:
 3. Fill in the form and create a list
 4. Check **Table Editor** → **word_lists**: Your list should appear with your `user_id`
 
-## Step 5: Verify RLS is Working
+## Step 6: Verify RLS is Working
 
 To ensure RLS is properly protecting your data:
 
