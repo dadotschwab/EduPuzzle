@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { ProfileMenu } from './ProfileMenu'
 
 interface AppLayoutProps {
@@ -12,7 +13,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-primary">EDU-PUZZLE</h1>
+              <Link to="/app">
+                <h1 className="text-xl font-bold text-primary cursor-pointer hover:opacity-80 transition-opacity">
+                  EDU-PUZZLE
+                </h1>
+              </Link>
             </div>
             <ProfileMenu />
           </div>

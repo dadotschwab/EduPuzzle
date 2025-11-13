@@ -18,6 +18,7 @@ export function AccountSettings() {
   const { user } = useAuth()
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [passwordStep, setPasswordStep] = useState<1 | 2>(1) // Two-step password change
   const [newEmail, setNewEmail] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -48,7 +49,7 @@ export function AccountSettings() {
     }
   }
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
+  const handleVerifyCurrentPassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
@@ -59,6 +60,36 @@ export function AccountSettings() {
       setLoading(false)
       return
     }
+
+    try {
+      // Verify current password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: currentPassword,
+      })
+
+      if (signInError) {
+        setError('Current password is incorrect')
+        setLoading(false)
+        return
+      }
+
+      // Password verified, move to step 2
+      setPasswordStep(2)
+      setError('')
+      setSuccess('')
+    } catch (err: any) {
+      setError(err.message || 'Failed to verify password')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setSuccess('')
 
     if (newPassword !== confirmPassword) {
       setError('New passwords do not match')
@@ -79,18 +110,6 @@ export function AccountSettings() {
     }
 
     try {
-      // Verify current password by attempting to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user?.email || '',
-        password: currentPassword,
-      })
-
-      if (signInError) {
-        setError('Current password is incorrect')
-        setLoading(false)
-        return
-      }
-
       // Update to new password
       const { error } = await supabase.auth.updateUser({ password: newPassword })
       if (error) throw error
@@ -101,12 +120,26 @@ export function AccountSettings() {
       setConfirmPassword('')
       setTimeout(() => {
         setPasswordDialogOpen(false)
+        setPasswordStep(1)
         setSuccess('')
       }, 2000)
     } catch (err: any) {
       setError(err.message || 'Failed to update password')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handlePasswordDialogChange = (open: boolean) => {
+    setPasswordDialogOpen(open)
+    if (!open) {
+      // Reset everything when dialog is closed
+      setPasswordStep(1)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setError('')
+      setSuccess('')
     }
   }
 
@@ -185,64 +218,92 @@ export function AccountSettings() {
       </Dialog>
 
       {/* Change Password Dialog */}
-      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+      <Dialog open={passwordDialogOpen} onOpenChange={handlePasswordDialogChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
             <DialogDescription>
-              Enter your current password and choose a new one. Make sure it's at least 6 characters long.
+              {passwordStep === 1
+                ? 'First, verify your current password to continue.'
+                : 'Choose a new password. Make sure it\'s at least 6 characters long.'}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdatePassword} className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="current-password">Current Password</Label>
-              <Input
-                id="current-password"
-                type="password"
-                placeholder="Enter current password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
-              <Input
-                id="new-password"
-                type="password"
-                placeholder="Enter new password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm New Password</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            {success && <p className="text-sm text-green-600">{success}</p>}
-            <div className="flex gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setPasswordDialogOpen(false)}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Updating...' : 'Change Password'}
-              </Button>
-            </div>
-          </form>
+
+          {/* Step 1: Verify Current Password */}
+          {passwordStep === 1 && (
+            <form onSubmit={handleVerifyCurrentPassword} className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="current-password">Current Password</Label>
+                <Input
+                  id="current-password"
+                  type="password"
+                  placeholder="Enter current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handlePasswordDialogChange(false)}
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Verifying...' : 'Verify'}
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {/* Step 2: Enter New Password */}
+          {passwordStep === 2 && (
+            <form onSubmit={handleUpdatePassword} className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              {success && <p className="text-sm text-green-600">{success}</p>}
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPasswordStep(1)}
+                  disabled={loading}
+                >
+                  Back
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Updating...' : 'Change Password'}
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

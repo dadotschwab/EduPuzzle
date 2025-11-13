@@ -80,7 +80,7 @@ export function SubscriptionSettings() {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 gap-6">
           {/* Free Plan */}
           <Card className={currentPlan === 'free' ? 'border-2 border-primary relative' : ''}>
             {currentPlan === 'free' && (
@@ -189,56 +189,6 @@ export function SubscriptionSettings() {
                     {currentPlan === 'free' ? 'Upgrade' : 'Switch to Yearly'}
                   </Button>
                 )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Third card - show opposite plan when one is selected */}
-          {billingInterval === 'monthly' && (
-            <Card className="opacity-50">
-              <CardHeader>
-                <CardTitle>{plans.yearly.name}</CardTitle>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">${plans.yearly.price.yearly}</span>
-                  <span className="text-muted-foreground">/year</span>
-                </div>
-                <p className="text-sm text-green-600 font-medium">Save ${plans.yearly.savings}</p>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Switch to yearly billing to see this plan
-                </p>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setBillingInterval('yearly')}
-                >
-                  View Yearly Plans
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {billingInterval === 'yearly' && (
-            <Card className="opacity-50">
-              <CardHeader>
-                <CardTitle>{plans.monthly.name}</CardTitle>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">${plans.monthly.price.monthly}</span>
-                  <span className="text-muted-foreground">/month</span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Switch to monthly billing to see this plan
-                </p>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setBillingInterval('monthly')}
-                >
-                  View Monthly Plans
-                </Button>
               </CardContent>
             </Card>
           )}
