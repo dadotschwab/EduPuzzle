@@ -222,6 +222,32 @@ Loading States: Every async operation
 Optimistic Updates: For better UX
 Accessibility: ARIA labels, keyboard navigation
 
+**JSDoc Documentation Standards**: All code must be well-documented
+  - Every file MUST have a `@fileoverview` header explaining its purpose
+  - All exported functions MUST have JSDoc comments with:
+    - Description of what the function does
+    - `@param` tags for all parameters
+    - `@returns` tag describing return value
+    - `@throws` tag if function can throw errors
+  - Complex logic should have inline comments explaining the "why"
+  - Example:
+    ```typescript
+    /**
+     * @fileoverview Brief description of module purpose
+     * @module path/to/module
+     */
+
+    /**
+     * Fetches user data from the database
+     * @param userId - The unique user identifier
+     * @returns User object with profile data
+     * @throws Error if user not found
+     */
+    export async function getUser(userId: string): Promise<User> {
+      // Implementation
+    }
+    ```
+
 UI/UX Design Principles
 
 **Content Width Consistency**: All pages must use consistent maximum width
