@@ -1,5 +1,8 @@
 import { Routes, Route } from 'react-router-dom'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { LandingPage } from './pages/LandingPage'
+import { LoginPage } from './pages/LoginPage'
+import { SignupPage } from './pages/SignupPage'
 import { Dashboard } from './pages/Dashboard'
 import { WordListsOverview } from './pages/WordListsOverview'
 import { WordListDetail } from './pages/WordListDetail'
@@ -12,15 +15,76 @@ import { SubscriptionManagement } from './pages/SubscriptionManagement'
 function App() {
   return (
     <Routes>
+      {/* Public routes */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/app" element={<Dashboard />} />
-      <Route path="/app/lists" element={<WordListsOverview />} />
-      <Route path="/app/lists/:id" element={<WordListDetail />} />
-      <Route path="/app/puzzle/:sessionId" element={<PuzzleSolver />} />
-      <Route path="/app/review" element={<DailyReview />} />
-      <Route path="/app/stats" element={<Statistics />} />
-      <Route path="/settings" element={<UserSettings />} />
-      <Route path="/subscription" element={<SubscriptionManagement />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+
+      {/* Protected routes */}
+      <Route
+        path="/app"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/lists"
+        element={
+          <ProtectedRoute>
+            <WordListsOverview />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/lists/:id"
+        element={
+          <ProtectedRoute>
+            <WordListDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/puzzle/:sessionId"
+        element={
+          <ProtectedRoute>
+            <PuzzleSolver />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/review"
+        element={
+          <ProtectedRoute>
+            <DailyReview />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/stats"
+        element={
+          <ProtectedRoute>
+            <Statistics />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <UserSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/subscription"
+        element={
+          <ProtectedRoute>
+            <SubscriptionManagement />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   )
 }
