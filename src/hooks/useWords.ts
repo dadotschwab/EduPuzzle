@@ -33,6 +33,7 @@ export function useCreateWord() {
     mutationFn: createWord,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['words', data.listId] })
+      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
     },
   })
 }
@@ -48,6 +49,7 @@ export function useCreateWords() {
     onSuccess: (data) => {
       if (data.length > 0) {
         queryClient.invalidateQueries({ queryKey: ['words', data[0].listId] })
+        queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
       }
     },
   })
@@ -79,6 +81,7 @@ export function useDeleteWord() {
     mutationFn: deleteWord,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['words'] })
+      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
     },
   })
 }
@@ -93,6 +96,7 @@ export function useDeleteWords() {
     mutationFn: deleteWords,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['words'] })
+      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
     },
   })
 }

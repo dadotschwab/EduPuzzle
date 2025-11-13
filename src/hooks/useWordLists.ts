@@ -38,6 +38,7 @@ export function useCreateWordList() {
     mutationFn: createWordList,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wordLists'] })
+      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
     },
   })
 }
@@ -54,6 +55,7 @@ export function useUpdateWordList() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['wordLists'] })
       queryClient.invalidateQueries({ queryKey: ['wordLists', data.id] })
+      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
     },
   })
 }
@@ -68,6 +70,7 @@ export function useDeleteWordList() {
     mutationFn: deleteWordList,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wordLists'] })
+      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
     },
   })
 }

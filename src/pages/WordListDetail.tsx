@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useWordList } from '@/hooks/useWordLists'
 import { useWords, useDeleteWord } from '@/hooks/useWords'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { CreateWordDialog } from '@/components/words/CreateWordDialog'
 import { ArrowLeft, Plus, Trash2, BookOpen } from 'lucide-react'
 
@@ -90,38 +90,44 @@ export function WordListDetail() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {words?.map((word) => (
-              <Card key={word.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <CardTitle className="text-xl mb-2">{word.term}</CardTitle>
-                      <p className="text-muted-foreground">{word.translation}</p>
-                      {word.definition && (
-                        <p className="text-sm text-muted-foreground mt-2">
-                          <span className="font-medium">Definition:</span> {word.definition}
-                        </p>
-                      )}
-                      {word.exampleSentence && (
-                        <p className="text-sm text-muted-foreground mt-1 italic">
-                          "{word.exampleSentence}"
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => handleDelete(word.id, word.term)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="border-b bg-gray-50">
+                    <tr>
+                      <th className="text-left py-3 px-4 font-medium text-sm">Word</th>
+                      <th className="text-left py-3 px-4 font-medium text-sm">Translation</th>
+                      <th className="text-left py-3 px-4 font-medium text-sm">Example Sentence</th>
+                      <th className="w-20"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {words?.map((word) => (
+                      <tr key={word.id} className="border-b last:border-b-0 hover:bg-gray-50 transition-colors">
+                        <td className="py-3 px-4 font-medium">{word.term}</td>
+                        <td className="py-3 px-4 text-muted-foreground">{word.translation}</td>
+                        <td className="py-3 px-4 text-muted-foreground italic">
+                          {word.exampleSentence || '-'}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleDelete(word.id, word.term)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <CreateWordDialog

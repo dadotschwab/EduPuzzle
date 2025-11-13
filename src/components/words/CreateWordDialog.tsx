@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useCreateWord } from '@/hooks/useWords'
+import { useCreateWords } from '@/hooks/useWords'
+import { Trash2 } from 'lucide-react'
 
 interface CreateWordDialogProps {
   open: boolean
@@ -11,88 +11,147 @@ interface CreateWordDialogProps {
   listId: string
 }
 
+interface WordRow {
+  id: string
+  term: string
+  translation: string
+  exampleSentence: string
+}
+
+const MAX_ROWS = 10
+
 export function CreateWordDialog({ open, onOpenChange, listId }: CreateWordDialogProps) {
-  const [term, setTerm] = useState('')
-  const [translation, setTranslation] = useState('')
-  const [definition, setDefinition] = useState('')
-  const [exampleSentence, setExampleSentence] = useState('')
-  const createMutation = useCreateWord()
+  const [rows, setRows] = useState<WordRow[]>([
+    { id: '1', term: '', translation: '', exampleSentence: '' }
+  ])
+  const createMutation = useCreateWords()
+
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setRows([{ id: '1', term: '', translation: '', exampleSentence: '' }])
+    }
+  }, [open])
+
+  const handleInputChange = (id: string, field: keyof WordRow, value: string) => {
+    setRows(prevRows => {
+      const updatedRows = prevRows.map(row =>
+        row.id === id ? { ...row, [field]: value } : row
+      )
+
+      // Auto-add new row if current row has both term and translation filled
+      const currentRow = updatedRows.find(r => r.id === id)
+      const isLastRow = updatedRows[updatedRows.length - 1].id === id
+
+      if (
+        currentRow &&
+        currentRow.term.trim() &&
+        currentRow.translation.trim() &&
+        isLastRow &&
+        updatedRows.length < MAX_ROWS
+      ) {
+        updatedRows.push({
+          id: Date.now().toString(),
+          term: '',
+          translation: '',
+          exampleSentence: ''
+        })
+      }
+
+      return updatedRows
+    })
+  }
+
+  const handleRemoveRow = (id: string) => {
+    if (rows.length > 1) {
+      setRows(prevRows => prevRows.filter(row => row.id !== id))
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    try {
-      await createMutation.mutateAsync({
+    // Filter out empty rows (only include rows with both term and translation)
+    const validWords = rows
+      .filter(row => row.term.trim() && row.translation.trim())
+      .map(row => ({
         listId,
-        term,
-        translation,
-        definition: definition || undefined,
-        exampleSentence: exampleSentence || undefined,
-      })
+        term: row.term.trim(),
+        translation: row.translation.trim(),
+        exampleSentence: row.exampleSentence.trim() || undefined,
+      }))
 
-      // Reset form and close
-      setTerm('')
-      setTranslation('')
-      setDefinition('')
-      setExampleSentence('')
+    if (validWords.length === 0) {
+      return
+    }
+
+    try {
+      await createMutation.mutateAsync(validWords)
       onOpenChange(false)
     } catch (error) {
-      console.error('Failed to create word:', error)
+      console.error('Failed to create words:', error)
     }
   }
 
+  const hasValidWords = rows.some(row => row.term.trim() && row.translation.trim())
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Word</DialogTitle>
-          <DialogDescription>Add a new word to your vocabulary list</DialogDescription>
+          <DialogTitle>Add Words</DialogTitle>
+          <DialogDescription>
+            Add up to {MAX_ROWS} words at once. A new row will appear automatically when you fill in both word and translation.
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit} className="mt-4">
           <div className="space-y-2">
-            <Label htmlFor="term">Term (Word) *</Label>
-            <Input
-              id="term"
-              placeholder="e.g., Apple"
-              value={term}
-              onChange={(e) => setTerm(e.target.value)}
-              required
-            />
+            {/* Header Row */}
+            <div className="grid grid-cols-[1fr_1fr_1.5fr_40px] gap-2 pb-2 border-b font-medium text-sm text-muted-foreground">
+              <div>Word *</div>
+              <div>Translation *</div>
+              <div>Example Sentence</div>
+              <div></div>
+            </div>
+
+            {/* Data Rows */}
+            {rows.map((row) => (
+              <div key={row.id} className="grid grid-cols-[1fr_1fr_1.5fr_40px] gap-2 items-center">
+                <Input
+                  placeholder="e.g., Apple"
+                  value={row.term}
+                  onChange={(e) => handleInputChange(row.id, 'term', e.target.value)}
+                  className="h-9"
+                />
+                <Input
+                  placeholder="e.g., Apfel"
+                  value={row.translation}
+                  onChange={(e) => handleInputChange(row.id, 'translation', e.target.value)}
+                  className="h-9"
+                />
+                <Input
+                  placeholder="e.g., I ate an apple"
+                  value={row.exampleSentence}
+                  onChange={(e) => handleInputChange(row.id, 'exampleSentence', e.target.value)}
+                  className="h-9"
+                />
+                {rows.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => handleRemoveRow(row.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="translation">Translation (Clue) *</Label>
-            <Input
-              id="translation"
-              placeholder="e.g., A fruit"
-              value={translation}
-              onChange={(e) => setTranslation(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="definition">Definition (Optional)</Label>
-            <Input
-              id="definition"
-              placeholder="e.g., A round fruit with red or green skin"
-              value={definition}
-              onChange={(e) => setDefinition(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="exampleSentence">Example Sentence (Optional)</Label>
-            <Input
-              id="exampleSentence"
-              placeholder="e.g., I ate an apple for breakfast"
-              value={exampleSentence}
-              onChange={(e) => setExampleSentence(e.target.value)}
-            />
-          </div>
-
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 justify-end mt-6 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
@@ -101,8 +160,11 @@ export function CreateWordDialog({ open, onOpenChange, listId }: CreateWordDialo
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Adding...' : 'Add Word'}
+            <Button
+              type="submit"
+              disabled={createMutation.isPending || !hasValidWords}
+            >
+              {createMutation.isPending ? 'Adding...' : `Add ${rows.filter(r => r.term.trim() && r.translation.trim()).length} Word(s)`}
             </Button>
           </div>
         </form>
