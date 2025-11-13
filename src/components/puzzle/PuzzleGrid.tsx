@@ -364,12 +364,16 @@ export function PuzzleGrid({
                   value={userLetter}
                   onChange={(e) => handleCellInput(x, y, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(e, x, y)}
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
                   className={`
                     w-full h-full text-center font-bold
                     bg-transparent outline-none uppercase
                     ${isSelected ? 'text-blue-900' : 'text-gray-900'}
                   `}
-                  style={{ fontSize: 'clamp(1rem, 3vw, 2rem)' }}
+                  style={{ fontSize: 'clamp(1rem, 3vw, 2rem)', caretColor: 'transparent' }}
                 />
               </div>
             )
