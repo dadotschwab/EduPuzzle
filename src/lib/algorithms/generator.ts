@@ -1,12 +1,12 @@
 /**
- * @fileoverview Main crossword puzzle generator
+ * @fileoverview Main crossword puzzle generator with multi-puzzle support
  *
  * Orchestrates the complete puzzle generation process:
- * 1. Sorts words by length (longest first for better placement)
- * 2. Creates grid and places words incrementally
+ * 1. Clusters words by letter overlap
+ * 2. Generates multiple puzzles if needed for 100% coverage
  * 3. Uses scoring to choose optimal placements
  * 4. Validates connectivity throughout
- * 5. Returns complete puzzle ready for display
+ * 5. Keeps puzzles within 16x16 grid size
  *
  * @module lib/algorithms/generator
  */
@@ -17,13 +17,15 @@ import { Grid } from './grid'
 import { findPlacements } from './placement'
 import { getBestPlacement } from './scoring'
 import { isConnected } from './connectivity'
+import { clusterWords, validateClustering, getClusteringStats } from './clustering'
 
 /**
  * Default configuration for puzzle generation
+ * Updated for 16x16 grid constraint
  */
 const DEFAULT_CONFIG: GenerationConfig = {
-  maxGridSize: 25,
-  minGridSize: 15,
+  maxGridSize: 16,  // Reduced from 25 for UI requirements
+  minGridSize: 10,
   timeoutMs: 10000,
   minCrossingsPerWord: 1,
   maxAttemptsPerWord: 100,
@@ -166,26 +168,119 @@ function convertToPuzzle(grid: Grid): Puzzle {
 }
 
 /**
- * Generates multiple puzzles if needed to fit all words
- * (Future enhancement for handling large word sets)
+ * Generates multiple puzzles to ensure 100% word coverage
+ * Uses clustering to group compatible words
  *
  * @param words - Words to place
  * @param config - Generation configuration
- * @returns Array of puzzles
+ * @returns Array of puzzles (guaranteed to include all words)
+ *
+ * @example
+ * ```typescript
+ * const words = generateMockSRSWords(MIXED_DATASET.words, { minWords: 40, maxWords: 50 })
+ * const puzzles = await generatePuzzles(words)
+ * console.log(`Generated ${puzzles.length} puzzles covering ${words.length} words`)
+ * ```
  */
 export async function generatePuzzles(
   words: Word[],
   config?: Partial<GenerationConfig>
 ): Promise<Puzzle[]> {
-  // For now, just generate a single puzzle
-  // Future: split into multiple puzzles if all words don't fit
-  const puzzle = await generatePuzzle(words, config)
+  if (words.length === 0) return []
 
-  if (!puzzle) {
-    return []
+  console.log(`\n🔄 Generating puzzles for ${words.length} words...`)
+
+  // Step 1: Cluster words for optimal grouping
+  const clusters = clusterWords(words, {
+    minClusterSize: 8,
+    maxClusterSize: 15,
+    targetClusterSize: 12,
+  })
+
+  console.log(`📊 Created ${clusters.length} clusters`)
+
+  // Validate clustering covers all words
+  if (!validateClustering(clusters, words)) {
+    console.warn('⚠️  Warning: Clustering did not cover all words!')
   }
 
-  return [puzzle]
+  // Get clustering stats
+  const stats = getClusteringStats(clusters)
+  console.log(`   Avg cluster size: ${stats.avgClusterSize.toFixed(1)} words`)
+  console.log(`   Avg compatibility score: ${stats.avgScore.toFixed(1)}`)
+  console.log(`   Difficulty: ${stats.difficultyBreakdown.easy}E / ${stats.difficultyBreakdown.medium}M / ${stats.difficultyBreakdown.hard}H`)
+
+  // Step 2: Generate puzzle for each cluster
+  const puzzles: Puzzle[] = []
+  const failedWords: Word[] = []
+
+  for (let i = 0; i < clusters.length; i++) {
+    const cluster = clusters[i]
+    console.log(`\n   Puzzle ${i + 1}/${clusters.length}: ${cluster.words.length} words (${cluster.difficulty})`)
+
+    const puzzle = await generatePuzzle(cluster.words, config)
+
+    if (puzzle) {
+      puzzles.push(puzzle)
+
+      // Track any words that didn't make it into this puzzle
+      const placedIds = new Set(puzzle.placedWords.map(w => w.id))
+      const unplaced = cluster.words.filter(w => !placedIds.has(w.id))
+
+      if (unplaced.length > 0) {
+        console.log(`   ⚠️  ${unplaced.length} words not placed`)
+        failedWords.push(...unplaced)
+      }
+    } else {
+      console.log(`   ❌ Failed to generate puzzle`)
+      failedWords.push(...cluster.words)
+    }
+  }
+
+  // Step 3: Handle any remaining failed words
+  if (failedWords.length > 0) {
+    console.log(`\n🔄 Retry: ${failedWords.length} unplaced words`)
+
+    // Try smaller groups
+    const retryPuzzles = await retryFailedWords(failedWords, config)
+    puzzles.push(...retryPuzzles)
+  }
+
+  // Final validation
+  const totalPlaced = puzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
+  const coverage = (totalPlaced / words.length * 100).toFixed(1)
+
+  console.log(`\n✅ Generated ${puzzles.length} puzzles`)
+  console.log(`   Total words placed: ${totalPlaced}/${words.length} (${coverage}%)`)
+
+  return puzzles
+}
+
+/**
+ * Retries failed words in smaller groups
+ * Final attempt to achieve 100% coverage
+ */
+async function retryFailedWords(
+  words: Word[],
+  config?: Partial<GenerationConfig>
+): Promise<Puzzle[]> {
+  const puzzles: Puzzle[] = []
+
+  // Try in very small groups (5-8 words)
+  const smallClusters = clusterWords(words, {
+    minClusterSize: 3,
+    maxClusterSize: 8,
+    targetClusterSize: 6,
+  })
+
+  for (const cluster of smallClusters) {
+    const puzzle = await generatePuzzle(cluster.words, config)
+    if (puzzle) {
+      puzzles.push(puzzle)
+    }
+  }
+
+  return puzzles
 }
 
 /**
