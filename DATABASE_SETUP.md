@@ -41,20 +41,29 @@ supabase link --project-ref your-project-ref
 supabase db push
 ```
 
-## Step 2: Configure Email Settings (DEVELOPMENT ONLY)
+## Step 2: Disable Email Sending (DEVELOPMENT ONLY)
 
-⚠️ **For development/testing only** - Disable email confirmation:
+⚠️ **For development/testing only** - Completely disable email sending to avoid bounce notifications:
 
-1. Go to **Authentication** → **Providers** in Supabase dashboard
-2. Find the **Email** provider section
-3. Scroll to **"Confirm email"** toggle
-4. **Turn it OFF** (disable)
+### Recommended: Disable ALL Email Sending
+
+1. Go to **Project Settings** → **Authentication** in Supabase dashboard
+2. Scroll to **"SMTP Settings"**
+3. Toggle **"Enable Custom SMTP"** to **ON**
+4. Leave all SMTP fields **empty** (host, port, username, password)
 5. Click **Save**
 
-This allows you to test with mock emails like `test@test.de` without verification.
+This prevents Supabase from sending ANY emails, avoiding bounce issues with test emails.
 
-> **🚨 CRITICAL**: Before production, you MUST re-enable email confirmation!
-> See `DEVELOPMENT.md` for the full production checklist.
+### Alternative: Just Disable Confirmation (may still cause bounces)
+
+1. Go to **Authentication** → **Providers**
+2. Find **"Confirm email"** toggle
+3. **Turn it OFF**
+4. Click **Save**
+
+> **🚨 CRITICAL**: Before production, you MUST re-configure email properly!
+> See `DEVELOPMENT.md` for the complete production setup guide.
 
 ## Step 3: Verify Database Setup
 
