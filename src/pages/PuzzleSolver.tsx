@@ -13,7 +13,6 @@
  */
 
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
 import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
@@ -72,7 +71,9 @@ const mockPuzzle: Puzzle = {
  * Main puzzle solver page component
  */
 export function PuzzleSolver() {
-  const { sessionId } = useParams<{ sessionId: string }>()
+  // TODO: Use sessionId to load puzzle from API
+  // const { sessionId } = useParams<{ sessionId: string }>()
+
   const [puzzle] = useState<Puzzle>(mockPuzzle) // TODO: Load from API
   const [userInput, setUserInput] = useState<Record<string, string>>({})
   const [selectedWord, setSelectedWord] = useState<PlacedWord | null>(
@@ -119,10 +120,7 @@ export function PuzzleSolver() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Crossword Puzzle</h1>
-          <p className="text-muted-foreground">
-            Session ID: {sessionId || 'demo'}
-          </p>
+          <h1 className="text-3xl font-bold">Crossword Puzzle</h1>
         </div>
 
         {/* Main Puzzle Layout - Grid on Left, Clues on Right */}

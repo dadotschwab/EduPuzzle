@@ -2,8 +2,8 @@
  * @fileoverview Crossword clues panel with controls
  *
  * Displays:
- * - Puzzle control buttons (Check, End, Hint)
- * - Across and Down clues in two columns
+ * - Puzzle control buttons in horizontal layout (Check, Hint, End)
+ * - Across and Down clues in single container separated by vertical divider
  * - Up to 10 clues per column without scrolling
  * - Highlights currently selected clue
  *
@@ -11,7 +11,7 @@
  */
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { CheckCircle, XCircle, Lightbulb } from 'lucide-react'
 import type { PlacedWord } from '@/types'
 
@@ -70,71 +70,63 @@ export function PuzzleClues({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Control Buttons */}
+      {/* Control Buttons - Horizontal Layout */}
       <div className="mb-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Puzzle Controls</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <Button
-              onClick={onCheckPuzzle}
-              variant="outline"
-              className="w-full justify-start"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Check Puzzle
-            </Button>
-            <Button
-              onClick={onGiveHint}
-              variant="outline"
-              className="w-full justify-start"
-            >
-              <Lightbulb className="w-4 h-4 mr-2" />
-              Give Hint
-            </Button>
-            <Button
-              onClick={onEndPuzzle}
-              variant="destructive"
-              className="w-full justify-start"
-            >
-              <XCircle className="w-4 h-4 mr-2" />
-              End Puzzle
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex gap-2">
+          <Button
+            onClick={onCheckPuzzle}
+            variant="outline"
+            className="flex-1"
+          >
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Check
+          </Button>
+          <Button
+            onClick={onGiveHint}
+            variant="outline"
+            className="flex-1"
+          >
+            <Lightbulb className="w-4 h-4 mr-2" />
+            Hint
+          </Button>
+          <Button
+            onClick={onEndPuzzle}
+            variant="destructive"
+            className="flex-1"
+          >
+            <XCircle className="w-4 h-4 mr-2" />
+            End
+          </Button>
+        </div>
       </div>
 
-      {/* Clues - Two Column Layout */}
-      <div className="flex-1 grid grid-cols-2 gap-4 overflow-hidden">
-        {/* Across Clues */}
-        <Card className="flex flex-col">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Across</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto">
-            <div className="space-y-1">
+      {/* Clues - Single Container with Divider */}
+      <Card className="flex-1 flex flex-col overflow-hidden">
+        <CardContent className="flex-1 flex overflow-hidden p-6">
+          {/* Across Clues */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <h3 className="font-bold text-base mb-3">Across</h3>
+            <div className="flex-1 overflow-y-auto space-y-1">
               {acrossWords.map(word => (
                 <ClueItem key={word.id} word={word} />
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Down Clues */}
-        <Card className="flex flex-col">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Down</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto">
-            <div className="space-y-1">
+          {/* Vertical Divider */}
+          <div className="w-px bg-gray-200 mx-6 my-0" />
+
+          {/* Down Clues */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <h3 className="font-bold text-base mb-3">Down</h3>
+            <div className="flex-1 overflow-y-auto space-y-1">
               {downWords.map(word => (
                 <ClueItem key={word.id} word={word} />
               ))}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
