@@ -4,29 +4,9 @@ This document contains development-specific configurations that **MUST BE CHANGE
 
 ## ⚠️ Email Configuration (DEVELOPMENT ONLY)
 
-### Option 1: Disable ALL Email Sending (Recommended for Development)
+### Recommended Approach: Disable Email Confirmation
 
-To completely stop Supabase from sending emails and avoid bounce notifications:
-
-1. Go to your Supabase Dashboard
-2. Navigate to **Project Settings** → **Authentication**
-3. Scroll down to **"SMTP Settings"**
-4. Find the **"Enable Custom SMTP"** toggle
-5. **Turn it ON**
-6. Leave all SMTP fields **empty** (host, port, username, password)
-7. Click **Save**
-
-This will prevent Supabase from sending ANY emails, including:
-- Confirmation emails
-- Welcome emails
-- Password reset emails
-- Magic link emails
-
-**Result**: No more bounce notifications! Users can still sign up and log in normally.
-
-### Option 2: Just Disable Email Confirmation (Still Sends Other Emails)
-
-If you want to keep some email functionality but skip verification:
+**Note**: Supabase requires valid SMTP settings to use Custom SMTP, so the simplest approach for development is to disable email confirmation:
 
 1. Go to your Supabase Dashboard
 2. Navigate to **Authentication** → **Providers**
@@ -35,33 +15,38 @@ If you want to keep some email functionality but skip verification:
 5. **Turn it OFF** (disable it)
 6. Click **Save**
 
-⚠️ **Note**: This option still sends emails for other events (password resets, etc.) and may cause bounces with test emails.
+**What this does:**
+- ✅ Users can sign up without email verification
+- ✅ No confirmation emails sent (avoids bounces)
+- ⚠️ Other emails may still be sent (password resets, magic links if enabled)
+
+**For thorough testing later:** Use real email addresses when testing password resets and other auth features.
+
+### Alternative: Disable Email Confirmation (Practical for Development)
+
+### If You Need to Disable ALL Emails (Advanced)
+
+If you experience bounce issues even with confirmation disabled, you'll need to configure a test SMTP provider:
+
+**Option 1**: Use a free service like [Mailtrap.io](https://mailtrap.io) (development email testing)
+**Option 2**: Use SendGrid free tier (100 emails/day)
+
+For most development, just disabling confirmation is sufficient.
 
 ### 🚨 BEFORE PRODUCTION: Configure Email Properly
 
 **CRITICAL**: Before launching to production, you MUST:
 
-#### If you used Option 1 (Disabled ALL emails):
-
-1. Go to **Project Settings** → **Authentication** → **SMTP Settings**
-2. Either:
-   - **Option A**: Turn OFF "Enable Custom SMTP" to use Supabase's default email service
-   - **Option B**: Configure a real SMTP provider (recommended):
-     - Host: e.g., `smtp.sendgrid.net`
-     - Port: `587`
-     - Username: Your SMTP username
-     - Password: Your SMTP password
-3. Go to **Authentication** → **Providers**
-4. Enable **"Confirm email"**
-5. Configure email templates in **Authentication** → **Email Templates**
-
-#### If you used Option 2 (Just disabled confirmation):
-
 1. Go to **Authentication** → **Providers**
 2. Find **"Confirm email"** toggle
 3. **Turn it ON** (enable it)
 4. Configure your email templates in **Authentication** → **Email Templates**
-5. Set up a custom SMTP provider (optional but recommended)
+5. Set up a custom SMTP provider (highly recommended for production):
+   - Host: e.g., `smtp.sendgrid.net`
+   - Port: `587`
+   - Username: Your SMTP username
+   - Password: Your SMTP password
+   - Or use services like SendGrid, Mailgun, AWS SES
 
 ---
 
@@ -82,19 +67,15 @@ VITE_SUPABASE_ANON_KEY=your_dev_anon_key
 
 ## Testing with Mock Emails
 
-### With Option 1 (ALL emails disabled):
-You can use any email format without any bounce issues:
+With email confirmation disabled, you can use test emails for signup:
 - `test@test.de`
 - `user@example.com`
 - `demo@localhost`
-- Any fake email you want
 
-No emails are sent, no bounces occur.
-
-### With Option 2 (Only confirmation disabled):
-Be careful with fake emails - Supabase will still try to send password reset emails, etc., which may bounce.
-
-**Recommended**: Use Option 1 for development to avoid bounce issues entirely.
+**Tips:**
+- ✅ Signup works fine with any email
+- ⚠️ Avoid testing password resets with fake emails (may bounce)
+- 💡 For thorough auth testing later, use real email addresses
 
 ---
 
