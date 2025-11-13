@@ -371,7 +371,7 @@ export function PuzzleGrid({
               return (
                 <div
                   key={cellKey}
-                  className="bg-gray-900 rounded-sm"
+                  className="bg-gray-900 rounded-sm aspect-square"
                 />
               )
             }
@@ -392,6 +392,7 @@ export function PuzzleGrid({
                 className={`
                   relative ${bgColor} rounded-sm cursor-pointer
                   transition-colors duration-150
+                  aspect-square
                   ${isFocused ? 'ring-2 ring-blue-500' : ''}
                 `}
                 onClick={() => handleCellClick(x, y)}
