@@ -4,14 +4,16 @@
  * Displays a responsive crossword grid that:
  * - Adapts to different grid sizes (8x8 to 15x15)
  * - Always maintains consistent screen space
- * - Allows keyboard navigation and input
+ * - Advanced keyboard navigation (arrows, tab)
+ * - Smart auto-advance within words
+ * - Auto-jump to next word when complete
  * - Highlights selected word
  * - Shows cell numbers for clue references
  *
  * @module components/puzzle/PuzzleGrid
  */
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { Puzzle, PlacedWord } from '@/types'
 
 interface PuzzleGridProps {
@@ -34,7 +36,23 @@ export function PuzzleGrid({
   onWordSelect
 }: PuzzleGridProps) {
   const gridRef = useRef<HTMLDivElement>(null)
+  const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
   const [focusedCell, setFocusedCell] = useState<{ x: number; y: number } | null>(null)
+  // Track which word the user is actively working on (for auto-advance)
+  const [activeWord, setActiveWord] = useState<PlacedWord | null>(null)
+
+  /**
+   * Focus the input element for a specific cell
+   */
+  useEffect(() => {
+    if (focusedCell) {
+      const key = `${focusedCell.x},${focusedCell.y}`
+      const input = inputRefs.current.get(key)
+      if (input) {
+        input.focus()
+      }
+    }
+  }, [focusedCell])
 
   /**
    * Checks if a cell is part of the currently selected word
@@ -58,34 +76,190 @@ export function PuzzleGrid({
   }
 
   /**
+   * Finds the word at a specific cell position, preferring a specific direction
+   */
+  const getWordAtCell = (x: number, y: number, preferDirection?: 'horizontal' | 'vertical'): PlacedWord | null => {
+    const wordsAtCell = puzzle.placedWords.filter(w => {
+      if (w.direction === 'horizontal') {
+        return w.y === y && x >= w.x && x < w.x + w.word.length
+      } else {
+        return w.x === x && y >= w.y && y < w.y + w.word.length
+      }
+    })
+
+    if (wordsAtCell.length === 0) return null
+    if (wordsAtCell.length === 1) return wordsAtCell[0]
+
+    // Multiple words at this cell - prefer the specified direction
+    if (preferDirection) {
+      return wordsAtCell.find(w => w.direction === preferDirection) || wordsAtCell[0]
+    }
+
+    return wordsAtCell[0]
+  }
+
+  /**
+   * Checks if a word is completely filled out
+   */
+  const isWordComplete = (word: PlacedWord): boolean => {
+    for (let i = 0; i < word.word.length; i++) {
+      const cellX = word.direction === 'horizontal' ? word.x + i : word.x
+      const cellY = word.direction === 'horizontal' ? word.y : word.y + i
+      const key = `${cellX},${cellY}`
+      if (!userInput[key]) return false
+    }
+    return true
+  }
+
+  /**
+   * Gets the next word in the puzzle (by number)
+   */
+  const getNextWord = (currentWord: PlacedWord): PlacedWord | null => {
+    const sortedWords = [...puzzle.placedWords].sort((a, b) => a.number - b.number)
+    const currentIndex = sortedWords.findIndex(w => w.id === currentWord.id)
+    if (currentIndex === -1 || currentIndex === sortedWords.length - 1) return null
+    return sortedWords[currentIndex + 1]
+  }
+
+  /**
+   * Moves to the next cell in the active word
+   */
+  const moveToNextCellInWord = (currentX: number, currentY: number) => {
+    if (!activeWord) return
+
+    if (activeWord.direction === 'horizontal') {
+      const nextX = currentX + 1
+      if (nextX < activeWord.x + activeWord.word.length) {
+        setFocusedCell({ x: nextX, y: currentY })
+      } else {
+        // Word complete - jump to next word
+        if (isWordComplete(activeWord)) {
+          const nextWord = getNextWord(activeWord)
+          if (nextWord) {
+            onWordSelect(nextWord)
+            setActiveWord(nextWord)
+            setFocusedCell({ x: nextWord.x, y: nextWord.y })
+          }
+        }
+      }
+    } else {
+      const nextY = currentY + 1
+      if (nextY < activeWord.y + activeWord.word.length) {
+        setFocusedCell({ x: currentX, y: nextY })
+      } else {
+        // Word complete - jump to next word
+        if (isWordComplete(activeWord)) {
+          const nextWord = getNextWord(activeWord)
+          if (nextWord) {
+            onWordSelect(nextWord)
+            setActiveWord(nextWord)
+            setFocusedCell({ x: nextWord.x, y: nextWord.y })
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Moves to an adjacent cell based on arrow key direction
+   */
+  const moveToAdjacentCell = (currentX: number, currentY: number, direction: 'up' | 'down' | 'left' | 'right') => {
+    let newX = currentX
+    let newY = currentY
+
+    switch (direction) {
+      case 'up':
+        newY = currentY - 1
+        break
+      case 'down':
+        newY = currentY + 1
+        break
+      case 'left':
+        newX = currentX - 1
+        break
+      case 'right':
+        newX = currentX + 1
+        break
+    }
+
+    // Check if new position is valid and not a black square
+    if (newX >= 0 && newX < puzzle.gridSize && newY >= 0 && newY < puzzle.gridSize) {
+      if (puzzle.grid[newY][newX] !== null) {
+        setFocusedCell({ x: newX, y: newY })
+        // Update selected word based on the new cell
+        const word = getWordAtCell(newX, newY, activeWord?.direction)
+        if (word) {
+          onWordSelect(word)
+        }
+      }
+    }
+  }
+
+  /**
+   * Switches to the next word (tab key)
+   */
+  const switchToNextWord = () => {
+    if (!selectedWord) return
+    const nextWord = getNextWord(selectedWord)
+    if (nextWord) {
+      onWordSelect(nextWord)
+      setActiveWord(nextWord)
+      setFocusedCell({ x: nextWord.x, y: nextWord.y })
+    }
+  }
+
+  /**
    * Handles keyboard input for a cell
    */
   const handleCellInput = (x: number, y: number, value: string) => {
     // Only allow single letters
     const letter = value.toUpperCase().replace(/[^A-Z]/g, '').charAt(0)
-    onCellChange(x, y, letter)
 
-    // Auto-advance to next cell in selected word
-    if (letter && selectedWord) {
-      moveToNextCell(x, y)
+    if (letter) {
+      onCellChange(x, y, letter)
+      // Set active word if not already set
+      if (!activeWord && selectedWord) {
+        setActiveWord(selectedWord)
+      }
+      // Auto-advance to next cell in the active word
+      moveToNextCellInWord(x, y)
+    } else if (value === '') {
+      // User pressed backspace or deleted the letter
+      onCellChange(x, y, '')
     }
   }
 
   /**
-   * Moves focus to the next cell in the current word
+   * Handles keyboard navigation (arrows, tab, backspace)
    */
-  const moveToNextCell = (currentX: number, currentY: number) => {
-    if (!selectedWord) return
-
-    if (selectedWord.direction === 'horizontal') {
-      const nextX = currentX + 1
-      if (nextX < selectedWord.x + selectedWord.word.length) {
-        setFocusedCell({ x: nextX, y: currentY })
+  const handleKeyDown = (e: React.KeyboardEvent, x: number, y: number) => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault()
+      const directionMap = {
+        'ArrowUp': 'up' as const,
+        'ArrowDown': 'down' as const,
+        'ArrowLeft': 'left' as const,
+        'ArrowRight': 'right' as const,
       }
-    } else {
-      const nextY = currentY + 1
-      if (nextY < selectedWord.y + selectedWord.word.length) {
-        setFocusedCell({ x: currentX, y: nextY })
+      moveToAdjacentCell(x, y, directionMap[e.key])
+    } else if (e.key === 'Tab') {
+      e.preventDefault()
+      switchToNextWord()
+    } else if (e.key === 'Backspace' && !userInput[`${x},${y}`]) {
+      // If backspace on empty cell, move to previous cell in active word
+      e.preventDefault()
+      if (activeWord) {
+        if (activeWord.direction === 'horizontal') {
+          const prevX = x - 1
+          if (prevX >= activeWord.x) {
+            setFocusedCell({ x: prevX, y })
+          }
+        } else {
+          const prevY = y - 1
+          if (prevY >= activeWord.y) {
+            setFocusedCell({ x, y: prevY })
+          }
+        }
       }
     }
   }
@@ -94,17 +268,26 @@ export function PuzzleGrid({
    * Handles cell click - selects the word at that position
    */
   const handleCellClick = (x: number, y: number) => {
-    // Find word at this position
-    const word = puzzle.placedWords.find(w => {
-      if (w.direction === 'horizontal') {
-        return w.y === y && x >= w.x && x < w.x + w.word.length
-      } else {
-        return w.x === x && y >= w.y && y < w.y + w.word.length
+    // If clicking on the currently selected word, toggle direction if possible
+    if (selectedWord && isCellInSelectedWord(x, y)) {
+      const otherWord = getWordAtCell(
+        x,
+        y,
+        selectedWord.direction === 'horizontal' ? 'vertical' : 'horizontal'
+      )
+      if (otherWord && otherWord.id !== selectedWord.id) {
+        onWordSelect(otherWord)
+        setActiveWord(otherWord)
+        setFocusedCell({ x, y })
+        return
       }
-    })
+    }
 
+    // Find word at this position
+    const word = getWordAtCell(x, y, activeWord?.direction)
     if (word) {
       onWordSelect(word)
+      setActiveWord(word)
       setFocusedCell({ x, y })
     }
   }
@@ -160,10 +343,18 @@ export function PuzzleGrid({
 
                 {/* User input */}
                 <input
+                  ref={(el) => {
+                    if (el) {
+                      inputRefs.current.set(cellKey, el)
+                    } else {
+                      inputRefs.current.delete(cellKey)
+                    }
+                  }}
                   type="text"
                   maxLength={1}
                   value={userLetter}
                   onChange={(e) => handleCellInput(x, y, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, x, y)}
                   onFocus={() => handleCellClick(x, y)}
                   className={`
                     w-full h-full text-center font-bold
