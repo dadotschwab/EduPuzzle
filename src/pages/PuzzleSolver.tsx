@@ -43,8 +43,8 @@ export function PuzzleSolver() {
     puzzleCount: allPuzzles?.length
   })
 
-  // For now, just show the first puzzle (Option A)
-  const [currentPuzzleIndex] = useState(0)
+  // Track which puzzle we're showing
+  const [currentPuzzleIndex, setCurrentPuzzleIndex] = useState(0)
   const puzzle = useCurrentPuzzle(allPuzzles, currentPuzzleIndex)
 
   console.log('[PuzzleSolver] Current puzzle state:', {
@@ -262,6 +262,11 @@ export function PuzzleSolver() {
             {/* Title */}
             <div className="mb-6">
               <h1 className="text-3xl font-bold">Crossword Puzzle</h1>
+              {allPuzzles && allPuzzles.length > 1 && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Puzzle {currentPuzzleIndex + 1} of {allPuzzles.length}
+                </p>
+              )}
             </div>
 
             {!isPuzzleCompleted ? (
@@ -288,7 +293,12 @@ export function PuzzleSolver() {
                     </Button>
                     <Button
                       onClick={() => {
-                        // TODO: Load next puzzle from API
+                        // Move to next puzzle if available, otherwise loop back to first
+                        const nextIndex = allPuzzles && currentPuzzleIndex < allPuzzles.length - 1
+                          ? currentPuzzleIndex + 1
+                          : 0
+
+                        setCurrentPuzzleIndex(nextIndex)
                         setIsPuzzleCompleted(false)
                         setUserInput({})
                         setCheckedWords({})
