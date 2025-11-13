@@ -45,9 +45,21 @@ export function EditWordListDialog({ open, onOpenChange, wordList }: EditWordLis
     }
   }
 
+  const handleInteractOutside = (e: Event) => {
+    // Only allow closing if fields haven't been modified
+    const hasChanges =
+      name !== wordList.name ||
+      sourceLanguage !== wordList.sourceLanguage ||
+      targetLanguage !== wordList.targetLanguage
+
+    if (hasChanges) {
+      e.preventDefault()
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onInteractOutside={handleInteractOutside}>
         <DialogHeader>
           <DialogTitle>Edit Word List</DialogTitle>
           <DialogDescription>Update your vocabulary list details</DialogDescription>

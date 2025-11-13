@@ -10,11 +10,27 @@ interface DialogProps {
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
   if (!open) return null
 
+  const handleBackdropClick = () => {
+    // Check if there's a custom onInteractOutside handler
+    const interactOutsideHandler = (window as any).__dialogInteractOutside
+    if (interactOutsideHandler) {
+      const event = new Event('interact-outside')
+      interactOutsideHandler(event)
+      // Only close if event wasn't prevented
+      if (!event.defaultPrevented) {
+        onOpenChange(false)
+      }
+    } else {
+      // Default behavior: always close
+      onOpenChange(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50">
       <div
         className="fixed inset-0 bg-black/50"
-        onClick={() => onOpenChange(false)}
+        onClick={handleBackdropClick}
       />
       <div className="fixed inset-0 flex items-center justify-center p-4">
         {children}
@@ -23,13 +39,32 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   )
 }
 
-export function DialogContent({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
+  onInteractOutside?: (e: Event) => void
+}
+
+export function DialogContent({ className, children, onInteractOutside, ...props }: DialogContentProps) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+  }
+
+  // Store onInteractOutside callback in a ref so Dialog can access it
+  React.useEffect(() => {
+    if (onInteractOutside) {
+      (window as any).__dialogInteractOutside = onInteractOutside
+    }
+    return () => {
+      delete (window as any).__dialogInteractOutside
+    }
+  }, [onInteractOutside])
+
   return (
     <div
       className={cn(
         'relative z-50 w-full max-w-lg rounded-lg border bg-background p-6 shadow-lg',
         className
       )}
+      onClick={handleClick}
       {...props}
     >
       {children}

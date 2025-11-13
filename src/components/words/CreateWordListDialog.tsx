@@ -36,9 +36,16 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
     }
   }
 
+  const handleInteractOutside = (e: Event) => {
+    // Only allow closing if all fields are empty
+    if (name.trim() || sourceLanguage.trim() || targetLanguage.trim()) {
+      e.preventDefault()
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onInteractOutside={handleInteractOutside}>
         <DialogHeader>
           <DialogTitle>Create Word List</DialogTitle>
           <DialogDescription>
