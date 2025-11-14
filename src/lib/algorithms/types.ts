@@ -127,6 +127,7 @@ export interface ScoringWeights {
   gridDensity: number       // Weight for compact placement
   letterRarity: number      // Weight for rare letter usage
   symmetry: number          // Weight for symmetric placement
+  boundingBoxPenalty: number // Weight for penalizing bounding box expansion
 }
 
 /**
@@ -136,5 +137,6 @@ export const DEFAULT_WEIGHTS: ScoringWeights = {
   crossingCount: 100,
   gridDensity: 50,
   letterRarity: 10,
-  symmetry: 5,
+  symmetry: 25,
+  boundingBoxPenalty: 15,
 }

@@ -43,7 +43,8 @@ export const DEFAULT_WEIGHTS: ScoringWeights = {
   crossingCount: 100,   // Each crossing is very valuable
   gridDensity: 50,      // Compact placements are good
   letterRarity: 10,     // Slight bonus for rare letters
-  symmetry: 5,          // Minor bonus for balanced placement
+  symmetry: 25,         // Center proximity bonus (increased from 5)
+  boundingBoxPenalty: 15, // Penalty for expanding puzzle bounds
 }
 
 /**
@@ -73,9 +74,13 @@ export function scorePlacement(
   const rarityScore = calculateRarityScore(placement) * weights.letterRarity
   score += rarityScore
 
-  // 4. Center proximity score (slight preference for center placement)
+  // 4. Center proximity score (preference for center placement)
   const centerScore = calculateCenterScore(placement, grid) * weights.symmetry
   score += centerScore
+
+  // 5. Bounding box penalty (penalize expanding the puzzle bounds)
+  const boundingBoxPenalty = calculateBoundingBoxPenalty(placement, grid) * weights.boundingBoxPenalty
+  score -= boundingBoxPenalty
 
   return score
 }
@@ -158,7 +163,7 @@ function calculateRarityScore(placement: PlacementOption): number {
 
 /**
  * Calculates score based on proximity to grid center
- * Slight preference for centered placements
+ * Preference for centered placements
  */
 function calculateCenterScore(placement: PlacementOption, grid: Grid): number {
   const gridSize = grid.getSize()
@@ -186,6 +191,66 @@ function calculateCenterScore(placement: PlacementOption, grid: Grid): number {
   const normalizedScore = 1 - (distFromCenter / maxDist)
 
   return Math.max(0, normalizedScore)
+}
+
+/**
+ * Calculates penalty for expanding the current bounding box
+ * Encourages keeping puzzle compact by penalizing placements that
+ * significantly expand the puzzle's current bounds
+ */
+function calculateBoundingBoxPenalty(placement: PlacementOption, grid: Grid): number {
+  const placedWords = grid.getPlacedWords()
+
+  // If no words placed yet, no penalty
+  if (placedWords.length === 0) {
+    return 0
+  }
+
+  // Calculate current bounding box
+  let currentMinX = Infinity
+  let currentMinY = Infinity
+  let currentMaxX = -Infinity
+  let currentMaxY = -Infinity
+
+  placedWords.forEach(word => {
+    const startX = word.x
+    const startY = word.y
+    const endX = word.direction === 'horizontal' ? word.x + word.word.length - 1 : word.x
+    const endY = word.direction === 'vertical' ? word.y + word.word.length - 1 : word.y
+
+    currentMinX = Math.min(currentMinX, startX)
+    currentMinY = Math.min(currentMinY, startY)
+    currentMaxX = Math.max(currentMaxX, endX)
+    currentMaxY = Math.max(currentMaxY, endY)
+  })
+
+  // Calculate what the bounding box would be with this placement
+  const newMinX = Math.min(currentMinX, placement.x)
+  const newMinY = Math.min(currentMinY, placement.y)
+  const newMaxX = Math.max(
+    currentMaxX,
+    placement.direction === 'horizontal' ? placement.x + placement.word.term.length - 1 : placement.x
+  )
+  const newMaxY = Math.max(
+    currentMaxY,
+    placement.direction === 'vertical' ? placement.y + placement.word.term.length - 1 : placement.y
+  )
+
+  // Calculate expansion in each dimension
+  const currentWidth = currentMaxX - currentMinX + 1
+  const currentHeight = currentMaxY - currentMinY + 1
+  const newWidth = newMaxX - newMinX + 1
+  const newHeight = newMaxY - newMinY + 1
+
+  // Calculate expansion percentages
+  const widthExpansion = (newWidth - currentWidth) / currentWidth
+  const heightExpansion = (newHeight - currentHeight) / currentHeight
+
+  // Use the maximum expansion as penalty (0 to 1 scale)
+  // Words that keep the puzzle compact get lower penalty
+  const penalty = Math.max(0, Math.max(widthExpansion, heightExpansion))
+
+  return penalty
 }
 
 /**
@@ -251,6 +316,7 @@ export function analyzePlacements(
     density: number
     rarity: number
     center: number
+    boundingBoxPenalty: number
   }
 }> {
   return placements.map(placement => {
@@ -258,15 +324,17 @@ export function analyzePlacements(
     const densityScore = calculateDensityScore(placement, grid) * DEFAULT_WEIGHTS.gridDensity
     const rarityScore = calculateRarityScore(placement) * DEFAULT_WEIGHTS.letterRarity
     const centerScore = calculateCenterScore(placement, grid) * DEFAULT_WEIGHTS.symmetry
+    const boundingBoxPenaltyScore = calculateBoundingBoxPenalty(placement, grid) * DEFAULT_WEIGHTS.boundingBoxPenalty
 
     return {
       placement,
-      score: crossingScore + densityScore + rarityScore + centerScore,
+      score: crossingScore + densityScore + rarityScore + centerScore - boundingBoxPenaltyScore,
       breakdown: {
         crossings: crossingScore,
         density: densityScore,
         rarity: rarityScore,
         center: centerScore,
+        boundingBoxPenalty: boundingBoxPenaltyScore,
       }
     }
   })
