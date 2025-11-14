@@ -89,9 +89,9 @@ export function usePuzzleGeneration(
       }
     },
     enabled: enabled && !!listId,
-    staleTime: Infinity, // Keep puzzles fresh for entire session - never auto-refetch
-    gcTime: 1000 * 60 * 30, // Cache for 30 minutes
-    refetchOnMount: false, // Don't refetch when component remounts
+    staleTime: Infinity, // Keep puzzles fresh during session
+    gcTime: 0, // Don't cache - generate fresh puzzles each time
+    refetchOnMount: 'always', // Always generate new puzzles when component mounts
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
     retry: false, // Don't retry on error
   })

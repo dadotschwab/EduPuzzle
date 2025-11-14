@@ -291,25 +291,23 @@ export function PuzzleSolver() {
                     >
                       Dashboard
                     </Button>
-                    <Button
-                      onClick={() => {
-                        // Move to next puzzle if available, otherwise loop back to first
-                        const nextIndex = allPuzzles && currentPuzzleIndex < allPuzzles.length - 1
-                          ? currentPuzzleIndex + 1
-                          : 0
-
-                        setCurrentPuzzleIndex(nextIndex)
-                        setIsPuzzleCompleted(false)
-                        setUserInput({})
-                        setCheckedWords({})
-                        setHintsRemaining(3)
-                      }}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      <ArrowRight className="w-4 h-4 mr-2" />
-                      Next Puzzle
-                    </Button>
+                    {/* Only show Next Puzzle button if not on last puzzle */}
+                    {allPuzzles && currentPuzzleIndex < allPuzzles.length - 1 && (
+                      <Button
+                        onClick={() => {
+                          setCurrentPuzzleIndex(currentPuzzleIndex + 1)
+                          setIsPuzzleCompleted(false)
+                          setUserInput({})
+                          setCheckedWords({})
+                          setHintsRemaining(3)
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        <ArrowRight className="w-4 h-4 mr-2" />
+                        Next Puzzle
+                      </Button>
+                    )}
                   </div>
                 </div>
 
