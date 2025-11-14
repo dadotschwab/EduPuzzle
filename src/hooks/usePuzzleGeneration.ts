@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { getRandomWordsForPuzzle, savePuzzleSession } from '@/lib/api/puzzles'
 import { generatePuzzles } from '@/lib/algorithms/generator'
 import type { Puzzle } from '@/types'
+import { logger } from '@/lib/logger'
 
 /**
  * Hook to generate puzzles from a word list
@@ -46,45 +47,35 @@ export function usePuzzleGeneration(
 ) {
   const { user } = useAuth()
 
-  console.log('[usePuzzleGeneration] Hook called with:', { listId, wordCount, enabled, hasUser: !!user })
+  logger.debug(`[usePuzzleGeneration] Hook called - listId: ${listId}, wordCount: ${wordCount}`)
 
   const result = useQuery({
     queryKey: ['puzzles', listId, wordCount],
     queryFn: async () => {
-      console.log('[usePuzzleGeneration] Query function starting...')
-      console.log(`🎲 Fetching ${wordCount} random words from list ${listId}...`)
+      logger.info(`Fetching ${wordCount} words from list ${listId}`)
 
       try {
         // Step 1: Fetch random words from database
         const words = await getRandomWordsForPuzzle(listId, wordCount)
-
-        console.log(`✅ Fetched ${words.length} words`)
-        console.log('[usePuzzleGeneration] Sample words:', words.slice(0, 3))
-        console.log(`🔄 Generating puzzles...`)
+        logger.info(`Fetched ${words.length} words`)
+        logger.debug(`Sample words:`, words.slice(0, 3).map(w => w.term))
 
         // Step 2: Generate puzzles using our algorithm
         const puzzles = await generatePuzzles(words)
-
-        console.log(`✅ Generated ${puzzles.length} puzzles`)
-        console.log('[usePuzzleGeneration] Puzzle details:', puzzles.map(p => ({
-          id: p.id,
-          gridSize: p.gridSize,
-          wordCount: p.placedWords.length
-        })))
+        logger.info(`Generated ${puzzles.length} puzzles`)
 
         // Step 3: Save to database if user is authenticated
         if (user) {
-          console.log(`💾 Saving puzzle session for user ${user.id}...`)
+          logger.debug(`Saving puzzle session for user ${user.id}`)
           await savePuzzleSession(user.id, listId, puzzles)
-          console.log(`✅ Session saved`)
+          logger.debug(`Session saved`)
         } else {
-          console.warn('[usePuzzleGeneration] No user found, skipping session save')
+          logger.warn('No user found, skipping session save')
         }
 
-        console.log('[usePuzzleGeneration] Returning puzzles:', puzzles)
         return puzzles
       } catch (error) {
-        console.error('[usePuzzleGeneration] Error in query function:', error)
+        logger.error('Error generating puzzles:', error)
         throw error
       }
     },
@@ -96,14 +87,7 @@ export function usePuzzleGeneration(
     retry: false, // Don't retry on error
   })
 
-  console.log('[usePuzzleGeneration] Query result:', {
-    isLoading: result.isLoading,
-    isError: result.isError,
-    error: result.error,
-    dataExists: !!result.data,
-    dataLength: result.data?.length,
-    status: result.status
-  })
+  logger.debug(`[usePuzzleGeneration] Query status: ${result.status}, hasData: ${!!result.data}`)
 
   return result
 }
@@ -175,28 +159,16 @@ export function useCurrentPuzzle(
   puzzles: Puzzle[] | undefined,
   puzzleIndex: number = 0
 ): Puzzle | null {
-  console.log('[useCurrentPuzzle] Called with:', {
-    hasPuzzles: !!puzzles,
-    puzzlesLength: puzzles?.length,
-    puzzleIndex
-  })
-
   if (!puzzles || puzzles.length === 0) {
-    console.warn('[useCurrentPuzzle] No puzzles available, returning null')
+    logger.warn('No puzzles available')
     return null
   }
 
   if (puzzleIndex < 0 || puzzleIndex >= puzzles.length) {
-    console.warn(`[useCurrentPuzzle] Invalid puzzle index ${puzzleIndex}, using 0`)
+    logger.warn(`Invalid puzzle index ${puzzleIndex}, using 0`)
     return puzzles[0]
   }
 
-  const selectedPuzzle = puzzles[puzzleIndex]
-  console.log('[useCurrentPuzzle] Returning puzzle:', {
-    id: selectedPuzzle.id,
-    gridSize: selectedPuzzle.gridSize,
-    wordCount: selectedPuzzle.placedWords.length
-  })
-
-  return selectedPuzzle
+  logger.debug(`Returning puzzle ${puzzleIndex + 1}/${puzzles.length}`)
+  return puzzles[puzzleIndex]
 }

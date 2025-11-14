@@ -194,7 +194,6 @@ export class Grid {
 
       // Safety check - should never happen if canPlaceWord worked correctly
       if (!cell) {
-        console.error(`[Grid] Cell out of bounds at (${cellX}, ${cellY}) for word "${word.term}"`)
         return null
       }
 
@@ -272,7 +271,6 @@ export class Grid {
       const cell = this.getCell(cellX, cellY)
 
       if (!cell) {
-        console.error(`[Grid] Cell out of bounds during removal at (${cellX}, ${cellY})`)
         continue
       }
 
