@@ -270,7 +270,6 @@ function generateWithBacktracking(
 
 /**
  * Crops puzzle to the smallest square that contains all words
- * Adds 1 cell padding on all sides
  *
  * @param puzzle - The puzzle to crop
  * @returns Cropped puzzle with updated coordinates and grid
@@ -311,17 +310,14 @@ function cropToSquare(puzzle: {
   // Use the larger dimension to make it square
   const squareSize = Math.max(width, height)
 
-  // Add padding (1 cell on each side)
-  const paddedSize = squareSize + 2
-
   // Calculate offset to center the content in the square
-  const offsetX = Math.floor((squareSize - width) / 2) + 1 // +1 for padding
-  const offsetY = Math.floor((squareSize - height) / 2) + 1 // +1 for padding
+  const offsetX = Math.floor((squareSize - width) / 2)
+  const offsetY = Math.floor((squareSize - height) / 2)
 
   // Create new cropped grid
-  const croppedGrid: (string | null)[][] = Array(paddedSize)
+  const croppedGrid: (string | null)[][] = Array(squareSize)
     .fill(null)
-    .map(() => Array(paddedSize).fill(null))
+    .map(() => Array(squareSize).fill(null))
 
   // Copy letters to new grid with adjusted coordinates
   for (let y = 0; y < puzzle.gridSize; y++) {
@@ -346,7 +342,7 @@ function cropToSquare(puzzle: {
   }))
 
   return {
-    gridSize: paddedSize,
+    gridSize: squareSize,
     placedWords: croppedWords,
     grid: croppedGrid,
   }
