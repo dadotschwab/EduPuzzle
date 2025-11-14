@@ -200,7 +200,7 @@ export async function generatePuzzle(
 
   console.log(`Generated puzzle in ${timeElapsed.toFixed(0)}ms`)
   console.log(`  Placed: ${bestPlacedCount}/${words.length} words`)
-  console.log(`  Grid size: ${bestPuzzle.gridSize}x${bestPuzzle.gridSize}`)
+  console.log(`  Final grid size: ${bestPuzzle.gridSize}x${bestPuzzle.gridSize}`)
   console.log(`  Connected: ${connected}`)
 
   return bestPuzzle
@@ -269,6 +269,90 @@ function generateWithBacktracking(
 }
 
 /**
+ * Crops puzzle to the smallest square that contains all words
+ * Adds 1 cell padding on all sides
+ *
+ * @param puzzle - The puzzle to crop
+ * @returns Cropped puzzle with updated coordinates and grid
+ */
+function cropToSquare(puzzle: {
+  gridSize: number
+  placedWords: PlacedWord[]
+  grid: (string | null)[][]
+}): {
+  gridSize: number
+  placedWords: PlacedWord[]
+  grid: (string | null)[][]
+} {
+  if (puzzle.placedWords.length === 0) return puzzle
+
+  // Find bounding box of all placed words
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+
+  puzzle.placedWords.forEach(word => {
+    const startX = word.x
+    const startY = word.y
+    const endX = word.direction === 'horizontal' ? word.x + word.word.length - 1 : word.x
+    const endY = word.direction === 'vertical' ? word.y + word.word.length - 1 : word.y
+
+    minX = Math.min(minX, startX)
+    minY = Math.min(minY, startY)
+    maxX = Math.max(maxX, endX)
+    maxY = Math.max(maxY, endY)
+  })
+
+  // Calculate bounding box size
+  const width = maxX - minX + 1
+  const height = maxY - minY + 1
+
+  // Use the larger dimension to make it square
+  const squareSize = Math.max(width, height)
+
+  // Add padding (1 cell on each side)
+  const paddedSize = squareSize + 2
+
+  // Calculate offset to center the content in the square
+  const offsetX = Math.floor((squareSize - width) / 2) + 1 // +1 for padding
+  const offsetY = Math.floor((squareSize - height) / 2) + 1 // +1 for padding
+
+  // Create new cropped grid
+  const croppedGrid: (string | null)[][] = Array(paddedSize)
+    .fill(null)
+    .map(() => Array(paddedSize).fill(null))
+
+  // Copy letters to new grid with adjusted coordinates
+  for (let y = 0; y < puzzle.gridSize; y++) {
+    for (let x = 0; x < puzzle.gridSize; x++) {
+      const letter = puzzle.grid[y][x]
+      if (letter !== null) {
+        // Check if this cell is within the bounding box
+        if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+          const newX = x - minX + offsetX
+          const newY = y - minY + offsetY
+          croppedGrid[newY][newX] = letter
+        }
+      }
+    }
+  }
+
+  // Update word coordinates
+  const croppedWords: PlacedWord[] = puzzle.placedWords.map(word => ({
+    ...word,
+    x: word.x - minX + offsetX,
+    y: word.y - minY + offsetY,
+  }))
+
+  return {
+    gridSize: paddedSize,
+    placedWords: croppedWords,
+    grid: croppedGrid,
+  }
+}
+
+/**
  * Converts internal grid representation to public Puzzle type
  */
 function convertToPuzzle(grid: Grid): Puzzle {
@@ -295,11 +379,26 @@ function convertToPuzzle(grid: Grid): Puzzle {
     }
   })
 
-  return {
+  const uncropped = {
     id: `puzzle-${Date.now()}`,
     gridSize: grid.getSize(),
     placedWords: publicPlacedWords,
     grid: grid.exportGrid(),
+  }
+
+  // Crop to smallest square containing all words
+  const cropped = cropToSquare(uncropped)
+
+  // Log cropping results
+  if (cropped.gridSize < uncropped.gridSize) {
+    console.log(`  Cropped: ${uncropped.gridSize}x${uncropped.gridSize} → ${cropped.gridSize}x${cropped.gridSize}`)
+  }
+
+  return {
+    id: uncropped.id,
+    gridSize: cropped.gridSize,
+    placedWords: cropped.placedWords,
+    grid: cropped.grid,
   }
 }
 
