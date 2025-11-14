@@ -92,7 +92,6 @@ function findCrossingPlacements(
   placedWords: PlacedWordInternal[]
 ): PlacementOption[] {
   const placements: PlacementOption[] = []
-  const wordTerm = word.term
 
   // Try crossing with each placed word
   for (const placedWord of placedWords) {
@@ -210,92 +209,4 @@ function calculateCrossingPlacement(
     score: 0, // Will be calculated by scoring system
     crossings: [crossing],
   }
-}
-
-/**
- * Finds additional crossings a placement would create
- * (beyond the primary crossing used to generate the placement)
- *
- * @param placement - The placement to check
- * @param grid - The current grid
- * @returns Updated placement with all crossings
- */
-export function findAllCrossings(
-  placement: PlacementOption,
-  grid: Grid
-): PlacementOption {
-  const { word, x, y, direction } = placement
-  const crossings: CrossingPoint[] = [...placement.crossings]
-  const wordTerm = word.term
-
-  // Check each position of the word
-  for (let i = 0; i < wordTerm.length; i++) {
-    const cellX = direction === 'horizontal' ? x + i : x
-    const cellY = direction === 'horizontal' ? y : y + i
-    const letter = wordTerm[i]
-    const gridLetter = grid.getLetter(cellX, cellY)
-
-    // If this position has a letter and it matches, it's a crossing
-    if (gridLetter === letter) {
-      // Check if we already recorded this crossing
-      const alreadyRecorded = crossings.some(
-        c => c.gridX === cellX && c.gridY === cellY
-      )
-
-      if (!alreadyRecorded) {
-        // Find which word is here
-        const cell = grid.getCell(cellX, cellY)
-        if (cell) {
-          cell.wordIds.forEach(wordId => {
-            const placedWords = grid.getPlacedWords()
-            const otherWord = placedWords.find(w => w.id === wordId)
-
-            if (otherWord) {
-              // Calculate position in other word
-              let otherPosition: number
-              if (otherWord.direction === 'horizontal') {
-                otherPosition = cellX - otherWord.x
-              } else {
-                otherPosition = cellY - otherWord.y
-              }
-
-              crossings.push({
-                position: i,
-                otherWordId: otherWord.id,
-                otherWordPosition: otherPosition,
-                gridX: cellX,
-                gridY: cellY,
-              })
-            }
-          })
-        }
-      }
-    }
-  }
-
-  return {
-    ...placement,
-    crossings,
-  }
-}
-
-/**
- * Validates that a placement doesn't create invalid word fragments
- *
- * @param placement - The placement to validate
- * @param grid - The current grid
- * @returns true if placement is fully valid
- */
-export function validatePlacement(
-  placement: PlacementOption,
-  grid: Grid
-): boolean {
-  // For now, canPlaceWord in Grid handles most validation
-  // This function can be extended with additional checks
-  return grid.canPlaceWord(
-    placement.word,
-    placement.x,
-    placement.y,
-    placement.direction
-  )
 }

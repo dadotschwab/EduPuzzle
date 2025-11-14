@@ -7,7 +7,7 @@
  * @module lib/algorithms/grid
  */
 
-import type { GridCell, Position, Direction, PlacedWordInternal } from './types'
+import type { GridCell, Direction, PlacedWordInternal } from './types'
 import type { Word } from '@/types'
 
 /**
@@ -352,64 +352,5 @@ export class Grid {
     }
 
     return { grid: compactGrid, size }
-  }
-
-  /**
-   * Counts filled cells in the grid
-   */
-  getFilledCellCount(): number {
-    let count = 0
-    for (let y = 0; y < this.size; y++) {
-      for (let x = 0; x < this.size; x++) {
-        if (this.cells[y][x].letter !== null) {
-          count++
-        }
-      }
-    }
-    return count
-  }
-
-  /**
-   * Calculates grid density (filled cells / total cells)
-   */
-  getDensity(): number {
-    const filled = this.getFilledCellCount()
-    const total = this.size * this.size
-    return filled / total
-  }
-
-  /**
-   * Creates a visual representation of the grid for debugging
-   */
-  toString(): string {
-    const lines: string[] = []
-
-    for (let y = 0; y < this.size; y++) {
-      const row = this.cells[y]
-        .map(cell => cell.letter || '·')
-        .join(' ')
-      lines.push(row)
-    }
-
-    return lines.join('\n')
-  }
-
-  /**
-   * Clones the grid for testing different placements
-   */
-  clone(): Grid {
-    const newGrid = new Grid(this.size)
-
-    // Copy all placed words
-    this.placedWords.forEach((word) => {
-      newGrid.placeWord(
-        { id: word.wordId, term: word.word, translation: word.clue } as Word,
-        word.x,
-        word.y,
-        word.direction
-      )
-    })
-
-    return newGrid
   }
 }

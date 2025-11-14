@@ -11,7 +11,6 @@
  */
 
 import type { PlacementOption, ScoringWeights } from './types'
-import type { Word } from '@/types'
 import { Grid } from './grid'
 
 /**

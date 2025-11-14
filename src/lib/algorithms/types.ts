@@ -7,7 +7,7 @@
  * @module lib/algorithms/types
  */
 
-import type { Word, PlacedWord, Puzzle } from '@/types'
+import type { Word, Puzzle } from '@/types'
 
 /**
  * Direction a word can be placed in the grid

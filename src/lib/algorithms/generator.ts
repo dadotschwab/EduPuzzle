@@ -183,7 +183,7 @@ export async function generatePuzzle(
   // Reconstruct grid for connectivity check
   for (const word of bestPuzzle.placedWords) {
     grid.placeWord(
-      { id: word.id, term: word.word, clue: word.clue },
+      { id: word.id, term: word.word, translation: word.clue, listId: '', createdAt: '' },
       word.x,
       word.y,
       word.direction
@@ -210,7 +210,6 @@ export async function generatePuzzle(
  * Attempts to place words using limited backtracking
  * Removes last N words and tries different placement orders
  *
- * @param words - All words to place (including failed ones)
  * @param alreadyPlaced - Words successfully placed so far
  * @param failedWords - Words that couldn't be placed
  * @param config - Generation configuration
@@ -218,7 +217,6 @@ export async function generatePuzzle(
  * @returns Best puzzle found or null
  */
 function generateWithBacktracking(
-  words: Word[],
   alreadyPlaced: Word[],
   failedWords: Word[],
   config: GenerationConfig,
@@ -498,7 +496,6 @@ export async function generatePuzzles(
 
         const placed = cluster.words.filter(w => placedIds.has(w.id))
         const betterPuzzle = generateWithBacktracking(
-          cluster.words,
           placed,
           failed,
           { ...DEFAULT_CONFIG, ...config },
