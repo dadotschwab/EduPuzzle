@@ -56,6 +56,7 @@ export function PuzzleSolver() {
   const [hintsRemaining, setHintsRemaining] = useState(3)
   const [checkedWords, setCheckedWords] = useState<Record<string, 'correct' | 'incorrect'>>({})
   const [isPuzzleCompleted, setIsPuzzleCompleted] = useState(false)
+  const [showCorrectAnswers, setShowCorrectAnswers] = useState(false)
 
   /**
    * Validates all words in the puzzle and returns their status
@@ -112,6 +113,7 @@ export function PuzzleSolver() {
     const validationResults = validateAllWords()
     setCheckedWords(validationResults)
     setIsPuzzleCompleted(true)
+    setShowCorrectAnswers(true) // Default to showing correct answers
     // TODO: Apply SRS logic based on results
   }
 
@@ -243,6 +245,8 @@ export function PuzzleSolver() {
               onWordSelect={setSelectedWord}
               onFocusedCellChange={setFocusedCell}
               checkedWords={checkedWords}
+              isPuzzleCompleted={isPuzzleCompleted}
+              showCorrectAnswers={showCorrectAnswers}
             />
           </div>
 
@@ -289,6 +293,7 @@ export function PuzzleSolver() {
                           setUserInput({})
                           setCheckedWords({})
                           setHintsRemaining(3)
+                          setShowCorrectAnswers(false)
                         }}
                         variant="outline"
                         className="flex-1"
@@ -307,6 +312,26 @@ export function PuzzleSolver() {
                       <Trophy className="w-12 h-12 text-yellow-500" />
                     </div>
                     <CardTitle className="text-xl">Puzzle Completed!</CardTitle>
+
+                    {/* Toggle between My Answers and Correct Answers */}
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        onClick={() => setShowCorrectAnswers(false)}
+                        variant={!showCorrectAnswers ? "default" : "outline"}
+                        size="sm"
+                        className="flex-1"
+                      >
+                        My Answers
+                      </Button>
+                      <Button
+                        onClick={() => setShowCorrectAnswers(true)}
+                        variant={showCorrectAnswers ? "default" : "outline"}
+                        size="sm"
+                        className="flex-1"
+                      >
+                        Correct Answers
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="flex-1 overflow-y-auto space-y-4">
                     {/* Statistics */}

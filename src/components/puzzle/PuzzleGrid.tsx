@@ -24,6 +24,8 @@ interface PuzzleGridProps {
   onWordSelect: (word: PlacedWord) => void
   onFocusedCellChange: (cell: { x: number; y: number } | null) => void
   checkedWords: Record<string, 'correct' | 'incorrect'>
+  isPuzzleCompleted: boolean
+  showCorrectAnswers: boolean
 }
 
 /**
@@ -38,7 +40,9 @@ export const PuzzleGrid = memo(function PuzzleGrid({
   selectedWord,
   onWordSelect,
   onFocusedCellChange,
-  checkedWords
+  checkedWords,
+  isPuzzleCompleted,
+  showCorrectAnswers
 }: PuzzleGridProps) {
   const gridRef = useRef<HTMLDivElement>(null)
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
@@ -128,6 +132,81 @@ export const PuzzleGrid = memo(function PuzzleGrid({
 
     return map
   }, [puzzle.placedWords, checkedWords])
+
+  /**
+   * Memoized map of correct answers for each cell
+   * Maps cell coordinate to the correct letter
+   */
+  const correctAnswersMap = useMemo(() => {
+    const map = new Map<string, string>()
+
+    puzzle.placedWords.forEach(word => {
+      if (word.direction === 'horizontal') {
+        for (let i = 0; i < word.word.length; i++) {
+          const key = `${word.x + i},${word.y}`
+          map.set(key, word.word[i])
+        }
+      } else {
+        for (let i = 0; i < word.word.length; i++) {
+          const key = `${word.x},${word.y + i}`
+          map.set(key, word.word[i])
+        }
+      }
+    })
+
+    return map
+  }, [puzzle.placedWords])
+
+  /**
+   * Gets the display value for a cell based on current view mode
+   * - My Answers: show user's input (or empty)
+   * - Correct Answers: show correct answer
+   */
+  const getCellDisplayValue = useCallback((x: number, y: number): string => {
+    const key = `${x},${y}`
+
+    if (showCorrectAnswers) {
+      // Show correct answer
+      return correctAnswersMap.get(key) || ''
+    } else {
+      // Show user's input
+      return userInput[key] || ''
+    }
+  }, [showCorrectAnswers, correctAnswersMap, userInput])
+
+  /**
+   * Gets the cell background color class based on view mode and status
+   * - My Answers: green for correct, red for incorrect, empty stays empty
+   * - Correct Answers: green for correct, amber/yellow for incorrect/empty
+   */
+  const getCellColorClass = useCallback((x: number, y: number): string => {
+    const key = `${x},${y}`
+    const status = cellStatusMap.get(key)
+    const userValue = userInput[key]
+
+    if (!isPuzzleCompleted) {
+      // During puzzle solving - use normal status colors
+      if (status === 'correct') return 'bg-green-100 border-green-300'
+      if (status === 'incorrect') return 'bg-red-100 border-red-300'
+      return 'bg-white border-gray-300'
+    }
+
+    // Puzzle completed
+    if (showCorrectAnswers) {
+      // Correct Answers view: green for correct, amber for wrong/empty
+      if (status === 'correct') {
+        return 'bg-green-100 border-green-300'
+      } else {
+        // Wrong or empty - use amber/yellow
+        return 'bg-amber-100 border-amber-300'
+      }
+    } else {
+      // My Answers view: green for correct, red for wrong, white for empty
+      if (status === 'correct') return 'bg-green-100 border-green-300'
+      if (status === 'incorrect') return 'bg-red-100 border-red-300'
+      return 'bg-white border-gray-300'
+    }
+  }, [cellStatusMap, userInput, isPuzzleCompleted, showCorrectAnswers])
 
   /**
    * Focus the input element for a specific cell
@@ -423,11 +502,10 @@ export const PuzzleGrid = memo(function PuzzleGrid({
             const cellKey = `${x},${y}`
             const letter = puzzle.grid[y][x]
             const isBlackSquare = letter === null
-            const userLetter = userInput[cellKey] || ''
+            const displayValue = getCellDisplayValue(x, y)
             const cellNumber = getCellNumber(x, y)
             const isSelected = isCellInSelectedWord(x, y)
             const isFocused = focusedCell?.x === x && focusedCell?.y === y
-            const cellStatus = getCellStatus(x, y)
 
             if (isBlackSquare) {
               return (
@@ -438,26 +516,24 @@ export const PuzzleGrid = memo(function PuzzleGrid({
               )
             }
 
-            // Determine background color based on status
-            let bgColor = 'bg-white'
-            if (cellStatus === 'correct') {
-              bgColor = 'bg-green-100'
-            } else if (cellStatus === 'incorrect') {
-              bgColor = 'bg-red-100'
-            } else if (isSelected) {
-              bgColor = 'bg-blue-100'
+            // Get background color class based on view mode and status
+            let bgColor = getCellColorClass(x, y)
+
+            // Override with selection highlight if not completed and selected
+            if (!isPuzzleCompleted && isSelected) {
+              bgColor = 'bg-blue-100 border-blue-300'
             }
 
             return (
               <div
                 key={cellKey}
                 className={`
-                  relative ${bgColor} rounded-sm cursor-pointer
+                  relative ${bgColor} border rounded-sm cursor-pointer
                   transition-colors duration-150
                   aspect-square
                   ${isFocused ? 'ring-2 ring-blue-500' : ''}
                 `}
-                onClick={() => handleCellClick(x, y)}
+                onClick={() => !isPuzzleCompleted && handleCellClick(x, y)}
               >
                 {/* Cell number */}
                 {cellNumber && (
@@ -477,9 +553,10 @@ export const PuzzleGrid = memo(function PuzzleGrid({
                   }}
                   type="text"
                   maxLength={1}
-                  value={userLetter}
-                  onChange={(e) => handleCellInput(x, y, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(e, x, y)}
+                  value={displayValue}
+                  onChange={(e) => !isPuzzleCompleted && handleCellInput(x, y, e.target.value)}
+                  onKeyDown={(e) => !isPuzzleCompleted && handleKeyDown(e, x, y)}
+                  disabled={isPuzzleCompleted}
                   spellCheck={false}
                   autoComplete="off"
                   autoCorrect="off"
@@ -487,7 +564,8 @@ export const PuzzleGrid = memo(function PuzzleGrid({
                   className={`
                     w-full h-full text-center font-bold
                     bg-transparent outline-none uppercase
-                    ${isSelected ? 'text-blue-900' : 'text-gray-900'}
+                    ${isSelected && !isPuzzleCompleted ? 'text-blue-900' : 'text-gray-900'}
+                    ${isPuzzleCompleted ? 'cursor-default' : ''}
                   `}
                   style={{ fontSize: 'clamp(1rem, 3vw, 2rem)', caretColor: 'transparent' }}
                 />
