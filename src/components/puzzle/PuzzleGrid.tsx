@@ -13,7 +13,7 @@
  * @module components/puzzle/PuzzleGrid
  */
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback, memo } from 'react'
 import type { Puzzle, PlacedWord } from '@/types'
 
 interface PuzzleGridProps {
@@ -29,8 +29,9 @@ interface PuzzleGridProps {
 /**
  * Renders the interactive crossword puzzle grid
  * Grid size is responsive and scales to fill available space
+ * Optimized with React.memo to prevent unnecessary re-renders
  */
-export function PuzzleGrid({
+export const PuzzleGrid = memo(function PuzzleGrid({
   puzzle,
   userInput,
   onCellChange,
@@ -44,6 +45,89 @@ export function PuzzleGrid({
   const [focusedCell, setFocusedCell] = useState<{ x: number; y: number } | null>(null)
   // Track which word the user is actively working on (for auto-advance)
   const [activeWord, setActiveWord] = useState<PlacedWord | null>(null)
+
+  /**
+   * Memoized map of cells in the selected word
+   * Only recalculates when selectedWord changes
+   * Reduces 256 function calls per render to a single Map lookup
+   */
+  const selectedWordCellsMap = useMemo(() => {
+    const map = new Map<string, boolean>()
+    if (!selectedWord) return map
+
+    if (selectedWord.direction === 'horizontal') {
+      for (let i = 0; i < selectedWord.word.length; i++) {
+        const key = `${selectedWord.x + i},${selectedWord.y}`
+        map.set(key, true)
+      }
+    } else {
+      for (let i = 0; i < selectedWord.word.length; i++) {
+        const key = `${selectedWord.x},${selectedWord.y + i}`
+        map.set(key, true)
+      }
+    }
+    return map
+  }, [selectedWord])
+
+  /**
+   * Memoized map of cell numbers
+   * Only recalculates when puzzle changes
+   */
+  const cellNumbersMap = useMemo(() => {
+    const map = new Map<string, number>()
+    puzzle.placedWords.forEach(word => {
+      const key = `${word.x},${word.y}`
+      map.set(key, word.number)
+    })
+    return map
+  }, [puzzle.placedWords])
+
+  /**
+   * Memoized map of cell statuses (correct/incorrect)
+   * Only recalculates when checkedWords or puzzle changes
+   */
+  const cellStatusMap = useMemo(() => {
+    const map = new Map<string, 'correct' | 'incorrect' | null>()
+
+    // Build a map of which words occupy each cell
+    const cellToWords = new Map<string, string[]>()
+    puzzle.placedWords.forEach(word => {
+      if (word.direction === 'horizontal') {
+        for (let i = 0; i < word.word.length; i++) {
+          const key = `${word.x + i},${word.y}`
+          if (!cellToWords.has(key)) cellToWords.set(key, [])
+          cellToWords.get(key)!.push(word.id)
+        }
+      } else {
+        for (let i = 0; i < word.word.length; i++) {
+          const key = `${word.x},${word.y + i}`
+          if (!cellToWords.has(key)) cellToWords.set(key, [])
+          cellToWords.get(key)!.push(word.id)
+        }
+      }
+    })
+
+    // Determine status for each cell
+    cellToWords.forEach((wordIds, cellKey) => {
+      // If any word at this cell is correct, the cell is correct
+      const hasCorrect = wordIds.some(id => checkedWords[id] === 'correct')
+      if (hasCorrect) {
+        map.set(cellKey, 'correct')
+        return
+      }
+
+      // If any word at this cell is incorrect, the cell is incorrect
+      const hasIncorrect = wordIds.some(id => checkedWords[id] === 'incorrect')
+      if (hasIncorrect) {
+        map.set(cellKey, 'incorrect')
+        return
+      }
+
+      map.set(cellKey, null)
+    })
+
+    return map
+  }, [puzzle.placedWords, checkedWords])
 
   /**
    * Focus the input element for a specific cell
@@ -67,55 +151,33 @@ export function PuzzleGrid({
 
   /**
    * Checks if a cell is part of the currently selected word
+   * Optimized: O(1) lookup instead of O(n) calculation
    */
-  const isCellInSelectedWord = (x: number, y: number): boolean => {
-    if (!selectedWord) return false
-
-    if (selectedWord.direction === 'horizontal') {
-      return y === selectedWord.y && x >= selectedWord.x && x < selectedWord.x + selectedWord.word.length
-    } else {
-      return x === selectedWord.x && y >= selectedWord.y && y < selectedWord.y + selectedWord.word.length
-    }
-  }
+  const isCellInSelectedWord = useCallback((x: number, y: number): boolean => {
+    return selectedWordCellsMap.get(`${x},${y}`) ?? false
+  }, [selectedWordCellsMap])
 
   /**
    * Gets the clue number for a cell, if it's the start of a word
+   * Optimized: O(1) lookup instead of O(n) search
    */
-  const getCellNumber = (x: number, y: number): number | null => {
-    const word = puzzle.placedWords.find(w => w.x === x && w.y === y)
-    return word ? word.number : null
-  }
+  const getCellNumber = useCallback((x: number, y: number): number | null => {
+    return cellNumbersMap.get(`${x},${y}`) ?? null
+  }, [cellNumbersMap])
 
   /**
    * Gets the status of a cell based on word checking
    * Returns 'correct' if part of any correct word, 'incorrect' if only part of incorrect words
+   * Optimized: Pre-calculated map lookup
    */
-  const getCellStatus = (x: number, y: number): 'correct' | 'incorrect' | null => {
-    const wordsAtCell = puzzle.placedWords.filter(w => {
-      if (w.direction === 'horizontal') {
-        return w.y === y && x >= w.x && x < w.x + w.word.length
-      } else {
-        return w.x === x && y >= w.y && y < w.y + w.word.length
-      }
-    })
-
-    if (wordsAtCell.length === 0) return null
-
-    // If any word at this cell is correct, the cell is correct (green takes priority)
-    const hasCorrect = wordsAtCell.some(w => checkedWords[w.id] === 'correct')
-    if (hasCorrect) return 'correct'
-
-    // If all words at this cell are incorrect, the cell is incorrect
-    const hasIncorrect = wordsAtCell.some(w => checkedWords[w.id] === 'incorrect')
-    if (hasIncorrect) return 'incorrect'
-
-    return null
-  }
+  const getCellStatus = useCallback((x: number, y: number): 'correct' | 'incorrect' | null => {
+    return cellStatusMap.get(`${x},${y}`) ?? null
+  }, [cellStatusMap])
 
   /**
    * Finds the word at a specific cell position, preferring a specific direction
    */
-  const getWordAtCell = (x: number, y: number, preferDirection?: 'horizontal' | 'vertical'): PlacedWord | null => {
+  const getWordAtCell = useCallback((x: number, y: number, preferDirection?: 'horizontal' | 'vertical'): PlacedWord | null => {
     const wordsAtCell = puzzle.placedWords.filter(w => {
       if (w.direction === 'horizontal') {
         return w.y === y && x >= w.x && x < w.x + w.word.length
@@ -133,17 +195,17 @@ export function PuzzleGrid({
     }
 
     return wordsAtCell[0]
-  }
+  }, [puzzle.placedWords])
 
   /**
    * Gets the next word in the puzzle (by number)
    */
-  const getNextWord = (currentWord: PlacedWord): PlacedWord | null => {
+  const getNextWord = useCallback((currentWord: PlacedWord): PlacedWord | null => {
     const sortedWords = [...puzzle.placedWords].sort((a, b) => a.number - b.number)
     const currentIndex = sortedWords.findIndex(w => w.id === currentWord.id)
     if (currentIndex === -1 || currentIndex === sortedWords.length - 1) return null
     return sortedWords[currentIndex + 1]
-  }
+  }, [puzzle.placedWords])
 
   /**
    * Moves to the next cell in the active word
@@ -151,7 +213,7 @@ export function PuzzleGrid({
    * @param currentY - Current cell Y coordinate
    * @param justTypedLetter - Letter that was just typed (for completion check)
    */
-  const moveToNextCellInWord = (currentX: number, currentY: number, justTypedLetter?: string) => {
+  const moveToNextCellInWord = useCallback((currentX: number, currentY: number, justTypedLetter?: string) => {
     if (!activeWord) return
 
     // Check if word is complete (including the letter we just typed)
@@ -200,12 +262,12 @@ export function PuzzleGrid({
         }
       }
     }
-  }
+  }, [activeWord, userInput, getNextWord, onWordSelect])
 
   /**
    * Moves to an adjacent cell based on arrow key direction
    */
-  const moveToAdjacentCell = (currentX: number, currentY: number, direction: 'up' | 'down' | 'left' | 'right') => {
+  const moveToAdjacentCell = useCallback((currentX: number, currentY: number, direction: 'up' | 'down' | 'left' | 'right') => {
     let newX = currentX
     let newY = currentY
 
@@ -236,12 +298,12 @@ export function PuzzleGrid({
         }
       }
     }
-  }
+  }, [puzzle.gridSize, puzzle.grid, activeWord, getWordAtCell, onWordSelect])
 
   /**
    * Switches to the next word (tab key)
    */
-  const switchToNextWord = () => {
+  const switchToNextWord = useCallback(() => {
     if (!selectedWord) return
     const nextWord = getNextWord(selectedWord)
     if (nextWord) {
@@ -249,12 +311,12 @@ export function PuzzleGrid({
       setActiveWord(nextWord)
       setFocusedCell({ x: nextWord.x, y: nextWord.y })
     }
-  }
+  }, [selectedWord, getNextWord, onWordSelect])
 
   /**
    * Handles keyboard input for a cell
    */
-  const handleCellInput = (x: number, y: number, value: string) => {
+  const handleCellInput = useCallback((x: number, y: number, value: string) => {
     // Only allow single letters
     const letter = value.toUpperCase().replace(/[^A-Z]/g, '').charAt(0)
 
@@ -273,12 +335,12 @@ export function PuzzleGrid({
       // User pressed backspace or deleted the letter
       onCellChange(x, y, '')
     }
-  }
+  }, [activeWord, selectedWord, onCellChange, moveToNextCellInWord])
 
   /**
    * Handles keyboard navigation (arrows, tab, backspace)
    */
-  const handleKeyDown = (e: React.KeyboardEvent, x: number, y: number) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent, x: number, y: number) => {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       e.preventDefault()
       const directionMap = {
@@ -314,12 +376,12 @@ export function PuzzleGrid({
         onCellChange(x, y, '')
       }
     }
-  }
+  }, [moveToAdjacentCell, switchToNextWord, userInput, activeWord, onCellChange])
 
   /**
    * Handles cell click - selects the word at that position
    */
-  const handleCellClick = (x: number, y: number) => {
+  const handleCellClick = useCallback((x: number, y: number) => {
     // If clicking on the currently selected word, toggle direction if possible
     if (selectedWord && isCellInSelectedWord(x, y)) {
       const otherWord = getWordAtCell(
@@ -342,7 +404,7 @@ export function PuzzleGrid({
       setActiveWord(word)
       setFocusedCell({ x, y })
     }
-  }
+  }, [selectedWord, isCellInSelectedWord, getWordAtCell, activeWord, onWordSelect])
 
   return (
     <div
@@ -436,4 +498,4 @@ export function PuzzleGrid({
       </div>
     </div>
   )
-}
+})

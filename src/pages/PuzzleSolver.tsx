@@ -58,6 +58,34 @@ export function PuzzleSolver() {
   const [isPuzzleCompleted, setIsPuzzleCompleted] = useState(false)
 
   /**
+   * Validates all words in the puzzle and returns their status
+   * Extracted to avoid code duplication
+   * @returns Record mapping word IDs to their correctness status
+   */
+  const validateAllWords = (): Record<string, 'correct' | 'incorrect'> => {
+    const results: Record<string, 'correct' | 'incorrect'> = {}
+
+    puzzle.placedWords.forEach(word => {
+      let isCorrect = true
+      for (let i = 0; i < word.word.length; i++) {
+        const cellX = word.direction === 'horizontal' ? word.x + i : word.x
+        const cellY = word.direction === 'horizontal' ? word.y : word.y + i
+        const key = `${cellX},${cellY}`
+        const userLetter = userInput[key] || ''
+        const correctLetter = word.word[i]
+
+        if (userLetter !== correctLetter) {
+          isCorrect = false
+          break
+        }
+      }
+      results[word.id] = isCorrect ? 'correct' : 'incorrect'
+    })
+
+    return results
+  }
+
+  /**
    * Handles user input in a cell
    */
   const handleCellChange = (x: number, y: number, value: string) => {
@@ -72,53 +100,17 @@ export function PuzzleSolver() {
    * Checks the puzzle and shows errors
    */
   const handleCheckPuzzle = () => {
-    const newCheckedWords: Record<string, 'correct' | 'incorrect'> = {}
-
-    puzzle.placedWords.forEach(word => {
-      let isCorrect = true
-      for (let i = 0; i < word.word.length; i++) {
-        const cellX = word.direction === 'horizontal' ? word.x + i : word.x
-        const cellY = word.direction === 'horizontal' ? word.y : word.y + i
-        const key = `${cellX},${cellY}`
-        const userLetter = userInput[key] || ''
-        const correctLetter = word.word[i]
-
-        if (userLetter !== correctLetter) {
-          isCorrect = false
-          break
-        }
-      }
-      newCheckedWords[word.id] = isCorrect ? 'correct' : 'incorrect'
-    })
-
-    setCheckedWords(newCheckedWords)
+    const validationResults = validateAllWords()
+    setCheckedWords(validationResults)
   }
 
   /**
    * Ends the puzzle and shows results
    */
   const handleEndPuzzle = () => {
-    // First check the puzzle to get final results
-    const newCheckedWords: Record<string, 'correct' | 'incorrect'> = {}
-
-    puzzle.placedWords.forEach(word => {
-      let isCorrect = true
-      for (let i = 0; i < word.word.length; i++) {
-        const cellX = word.direction === 'horizontal' ? word.x + i : word.x
-        const cellY = word.direction === 'horizontal' ? word.y : word.y + i
-        const key = `${cellX},${cellY}`
-        const userLetter = userInput[key] || ''
-        const correctLetter = word.word[i]
-
-        if (userLetter !== correctLetter) {
-          isCorrect = false
-          break
-        }
-      }
-      newCheckedWords[word.id] = isCorrect ? 'correct' : 'incorrect'
-    })
-
-    setCheckedWords(newCheckedWords)
+    // Validate all words and show final results
+    const validationResults = validateAllWords()
+    setCheckedWords(validationResults)
     setIsPuzzleCompleted(true)
     // TODO: Apply SRS logic based on results
   }

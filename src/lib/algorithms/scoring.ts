@@ -85,31 +85,62 @@ export function scorePlacement(
 }
 
 /**
+ * Cache for filled cell positions to avoid repeated grid scanning
+ * Key: grid object reference, Value: array of filled cell coordinates
+ */
+const filledCellsCache = new WeakMap<Grid, Array<{ x: number; y: number }>>()
+
+/**
+ * Gets all filled cells in the grid (cached for performance)
+ * @param grid - The grid to scan
+ * @returns Array of filled cell coordinates
+ */
+function getFilledCells(grid: Grid): Array<{ x: number; y: number }> {
+  // Check cache first
+  const cached = filledCellsCache.get(grid)
+  if (cached) return cached
+
+  // Build filled cells list
+  const gridSize = grid.getSize()
+  const filled: Array<{ x: number; y: number }> = []
+
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      if (grid.getLetter(x, y) !== null) {
+        filled.push({ x, y })
+      }
+    }
+  }
+
+  // Cache the result
+  filledCellsCache.set(grid, filled)
+  return filled
+}
+
+/**
  * Calculates density score based on proximity to existing words
  * Tighter placement = higher score
+ * Optimized: Uses cached filled cells to avoid O(m²) grid scanning
  */
 function calculateDensityScore(placement: PlacementOption, grid: Grid): number {
   const { x, y, direction, word } = placement
   const gridSize = grid.getSize()
 
+  // Get filled cells (cached for performance)
+  const filledCells = getFilledCells(grid)
+
+  if (filledCells.length === 0) return 0
+
   // Calculate average distance to filled cells
   let totalDistance = 0
-  let filledCells = 0
 
-  for (let gy = 0; gy < gridSize; gy++) {
-    for (let gx = 0; gx < gridSize; gx++) {
-      if (grid.getLetter(gx, gy) !== null) {
-        // Calculate Manhattan distance to word
-        const dist = getDistanceToWord(gx, gy, x, y, word.term.length, direction)
-        totalDistance += dist
-        filledCells++
-      }
-    }
+  for (const cell of filledCells) {
+    // Calculate Manhattan distance to word
+    const dist = getDistanceToWord(cell.x, cell.y, x, y, word.term.length, direction)
+    totalDistance += dist
   }
 
-  if (filledCells === 0) return 0
-
-  const avgDistance = totalDistance / filledCells
+  const avgDistance = totalDistance / filledCells.length
 
   // Invert so closer = higher score (max distance is ~grid size)
   const normalizedScore = 1 - (avgDistance / gridSize)

@@ -14,6 +14,15 @@ import { supabase } from '@/lib/supabase'
 import type { WordList } from '@/types'
 
 /**
+ * Database update object for word lists (snake_case for Supabase)
+ */
+interface WordListUpdateData {
+  name?: string
+  source_language?: string
+  target_language?: string
+}
+
+/**
  * Fetches all word lists for the current user
  * @returns Array of word lists, sorted by creation date (newest first)
  * @throws Error if database query fails
@@ -95,7 +104,7 @@ export async function updateWordList(
   }
 ) {
   // Build update object with only defined fields, converting to snake_case
-  const updateData: any = {}
+  const updateData: WordListUpdateData = {}
   if (updates.name !== undefined) updateData.name = updates.name
   if (updates.sourceLanguage !== undefined)
     updateData.source_language = updates.sourceLanguage

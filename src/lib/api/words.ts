@@ -16,6 +16,16 @@ import { supabase } from '@/lib/supabase'
 import type { Word } from '@/types'
 
 /**
+ * Database update object for words (snake_case for Supabase)
+ */
+interface WordUpdateData {
+  term?: string
+  translation?: string
+  definition?: string
+  example_sentence?: string
+}
+
+/**
  * Fetches all words for a specific word list
  * @param listId - The word list ID
  * @returns Array of words, sorted by creation date (oldest first)
@@ -109,7 +119,7 @@ export async function updateWord(
     exampleSentence?: string
   }
 ) {
-  const updateData: any = {}
+  const updateData: WordUpdateData = {}
   if (updates.term !== undefined) updateData.term = updates.term
   if (updates.translation !== undefined) updateData.translation = updates.translation
   if (updates.definition !== undefined) updateData.definition = updates.definition
