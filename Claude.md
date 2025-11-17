@@ -773,6 +773,73 @@ Key Indexes:
 
 ---
 
+# Database Naming Conventions (MANDATORY)
+
+## Use snake_case for Database Fields
+
+**ALWAYS use snake_case in TypeScript interfaces that map to database tables**. This prevents conversion overhead and maintains consistency with Supabase/PostgreSQL conventions.
+
+### ❌ BAD: Using camelCase (requires conversion)
+```typescript
+interface WordList {
+  id: string
+  userId: string           // Database has user_id
+  sourceLanguage: string   // Database has source_language
+  targetLanguage: string   // Database has target_language
+  createdAt: string        // Database has created_at
+}
+
+// Requires conversion layer
+function rowToWordList(row: any): WordList {
+  return {
+    id: row.id,
+    userId: row.user_id,           // Manual conversion
+    sourceLanguage: row.source_language,  // Manual conversion
+    targetLanguage: row.target_language,  // Manual conversion
+    createdAt: row.created_at      // Manual conversion
+  }
+}
+```
+
+### ✅ GOOD: Using snake_case (direct mapping)
+```typescript
+interface WordList {
+  id: string
+  user_id: string          // Matches database exactly
+  source_language: string  // Matches database exactly
+  target_language: string  // Matches database exactly
+  created_at: string       // Matches database exactly
+}
+
+// No conversion needed - data flows directly
+const { data } = await supabase.from('word_lists').select('*')
+return data as WordList[]  // Direct type assertion, no conversion
+```
+
+## Benefits of snake_case Convention
+
+1. **No conversion overhead** - Data flows directly from database to app
+2. **Fewer bugs** - Eliminates potential for conversion errors
+3. **Simpler code** - No need for mapping functions
+4. **Consistency** - Matches PostgreSQL and Supabase conventions
+5. **Better DX** - Database queries and TypeScript types match exactly
+
+## When to Use snake_case
+
+- ✅ All TypeScript interfaces for database tables
+- ✅ API function parameters that map to database columns
+- ✅ React component props when passing database fields
+- ✅ State variables that hold database records
+
+## When camelCase is Acceptable
+
+- ✅ Internal component state (not from database)
+- ✅ Computed/derived values
+- ✅ Event handlers and callbacks
+- ✅ Local variables and functions
+
+---
+
 # Algorithm Specifications
 
 ## Crossword Generation Core Logic
