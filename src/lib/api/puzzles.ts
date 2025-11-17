@@ -14,6 +14,33 @@ import type { Word, Puzzle, PuzzleSession } from '@/types'
 import { logger } from '@/lib/logger'
 
 /**
+ * Database row type for words table
+ */
+interface WordRow {
+  id: string
+  list_id: string
+  term: string
+  translation: string
+  definition: string | null
+  example_sentence: string | null
+  created_at: string
+}
+
+/**
+ * Database row type for puzzle_sessions table
+ */
+interface PuzzleSessionRow {
+  id: string
+  user_id: string
+  list_id: string
+  started_at: string
+  completed_at: string | null
+  puzzle_data: Puzzle[]
+  total_words: number
+  correct_words: number
+}
+
+/**
  * Fetches random words from a word list for puzzle generation
  *
  * @param listId - The word list ID to fetch words from
@@ -56,7 +83,7 @@ export async function getRandomWordsForPuzzle(
   // Fetch random words using PostgreSQL's random() function
   const { data, error } = await supabase
     .from('words')
-    .select('*')
+    .select<'*', WordRow>('*')
     .eq('list_id', listId)
     .limit(Math.min(count, totalWords))
     .order('id', { ascending: false }) // Use consistent ordering
@@ -99,7 +126,7 @@ export async function getRandomWordsForPuzzle(
 export async function getAllWordsFromList(listId: string): Promise<Word[]> {
   const { data, error } = await supabase
     .from('words')
-    .select('*')
+    .select<'*', WordRow>('*')
     .eq('list_id', listId)
 
   if (error) {
@@ -143,8 +170,10 @@ export async function savePuzzleSession(
 ): Promise<PuzzleSession> {
   const totalWords = puzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
 
-  const { data, error } = await supabase
-    .from('puzzle_sessions')
+  // Cast to any to work around Supabase type inference issues when database types are not available
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = (await (supabase
+    .from('puzzle_sessions') as any)
     .insert({
       user_id: userId,
       list_id: listId,
@@ -154,10 +183,14 @@ export async function savePuzzleSession(
       started_at: new Date().toISOString(),
     })
     .select()
-    .single()
+    .single()) as { data: PuzzleSessionRow | null; error: any }
 
   if (error) {
     throw new Error(`Failed to save puzzle session: ${error.message}`)
+  }
+
+  if (!data) {
+    throw new Error('No data returned from puzzle session insert')
   }
 
   return {
@@ -182,7 +215,7 @@ export async function savePuzzleSession(
 export async function getPuzzleSession(sessionId: string): Promise<PuzzleSession> {
   const { data, error } = await supabase
     .from('puzzle_sessions')
-    .select('*')
+    .select<'*', PuzzleSessionRow>('*')
     .eq('id', sessionId)
     .single()
 
@@ -214,18 +247,24 @@ export async function completePuzzleSession(
   sessionId: string,
   correctWords: number
 ): Promise<PuzzleSession> {
-  const { data, error } = await supabase
-    .from('puzzle_sessions')
+  // Cast to any to work around Supabase type inference issues when database types are not available
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = (await (supabase
+    .from('puzzle_sessions') as any)
     .update({
       completed_at: new Date().toISOString(),
       correct_words: correctWords,
     })
     .eq('id', sessionId)
     .select()
-    .single()
+    .single()) as { data: PuzzleSessionRow | null; error: any }
 
   if (error) {
     throw new Error(`Failed to complete puzzle session: ${error.message}`)
+  }
+
+  if (!data) {
+    throw new Error('No data returned from puzzle session update')
   }
 
   return {

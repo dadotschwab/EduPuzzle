@@ -115,7 +115,7 @@ export interface PuzzleSession {
   listId?: string               // Optional: the word list this puzzle is from
   startedAt: string
   completedAt?: string
-  puzzleData: Puzzle            // The actual puzzle being solved
+  puzzleData: Puzzle[]          // Array of puzzles in this session
   totalWords: number
   correctWords: number
 }

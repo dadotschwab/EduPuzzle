@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Trophy, Loader2, AlertCircle } from 'lucide-react'
 import { usePuzzleGeneration, useCurrentPuzzle } from '@/hooks/usePuzzleGeneration'
-import type { Puzzle, PlacedWord } from '@/types'
+import type { PlacedWord } from '@/types'
 
 /**
  * Main puzzle solver page component
@@ -34,22 +34,9 @@ export function PuzzleSolver() {
   // Generate puzzle from database words (30 random words)
   const { data: allPuzzles, isLoading, error } = usePuzzleGeneration(listId || '', 30, !!listId)
 
-    isLoading,
-    hasError: !!error,
-    errorMessage: error?.message,
-    hasPuzzles: !!allPuzzles,
-    puzzleCount: allPuzzles?.length
-  })
-
   // Track which puzzle we're showing
   const [currentPuzzleIndex, setCurrentPuzzleIndex] = useState(0)
   const puzzle = useCurrentPuzzle(allPuzzles, currentPuzzleIndex)
-
-    hasPuzzle: !!puzzle,
-    puzzleId: puzzle?.id,
-    gridSize: puzzle?.gridSize,
-    wordCount: puzzle?.placedWords?.length
-  })
   const [userInput, setUserInput] = useState<Record<string, string>>({})
   const [selectedWord, setSelectedWord] = useState<PlacedWord | null>(null)
   const [focusedCell, setFocusedCell] = useState<{ x: number; y: number } | null>(null)
@@ -64,6 +51,8 @@ export function PuzzleSolver() {
    * @returns Record mapping word IDs to their correctness status
    */
   const validateAllWords = (): Record<string, 'correct' | 'incorrect'> => {
+    if (!puzzle) return {}
+
     const results: Record<string, 'correct' | 'incorrect'> = {}
 
     puzzle.placedWords.forEach(word => {
@@ -121,6 +110,8 @@ export function PuzzleSolver() {
    * Calculates puzzle statistics
    */
   const getPuzzleStats = () => {
+    if (!puzzle) return { totalWords: 0, correctWords: 0, incorrectWords: 0, hintsUsed: 0 }
+
     const totalWords = puzzle.placedWords.length
     const correctWords = Object.values(checkedWords).filter(status => status === 'correct').length
     const incorrectWords = Object.values(checkedWords).filter(status => status === 'incorrect').length
