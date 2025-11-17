@@ -6,6 +6,7 @@ import { SignupPage } from './pages/SignupPage'
 import { Dashboard } from './pages/Dashboard'
 import { WordListDetail } from './pages/WordListDetail'
 import { PuzzleSolver } from './pages/PuzzleSolver'
+import { TodaysPuzzles } from './pages/TodaysPuzzles'
 import { DailyReview } from './pages/DailyReview'
 import { Statistics } from './pages/Statistics'
 import { SettingsLayout } from './pages/Settings/SettingsLayout'
@@ -26,6 +27,22 @@ function App() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/todays-puzzles"
+        element={
+          <ProtectedRoute>
+            <TodaysPuzzles />
           </ProtectedRoute>
         }
       />

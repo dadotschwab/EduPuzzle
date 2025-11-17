@@ -18,6 +18,7 @@
 /**
  * SRS learning stages based on SM-2 algorithm
  * Determines review intervals and progression through the learning curve
+ * New → Learning → Young → Mature / Relearning
  */
 export enum SRSStage {
   New = 0,         // Never studied
@@ -53,12 +54,31 @@ export interface WordProgress {
   updatedAt?: string             // Last update timestamp
 }
 
+// ============================================================================
+// Vocabulary Management Types
+// ============================================================================
+
 /**
- * Word with its SRS progress data combined
- * Used for displaying words with their learning status
+ * Represents a single vocabulary word with translation and example
+ */
+export interface Word {
+  id: string
+  listId: string
+  term: string                  // The word to learn (e.g., "Apple")
+  translation: string           // Translation or definition (e.g., "A fruit")
+  definition?: string           // Optional detailed definition
+  exampleSentence?: string      // Optional example usage
+  createdAt: string
+}
+
+/**
+ * Word with its SRS progress data and language information
+ * Used for displaying words with their learning status and for today's puzzles
  */
 export interface WordWithProgress extends Word {
-  progress?: WordProgress
+  sourceLanguage: string        // Language being learned
+  targetLanguage: string        // User's native language
+  progress?: WordProgress       // Optional SRS progress data
 }
 
 /**
@@ -76,23 +96,6 @@ export interface DueWordsSummary {
     wordCount: number
     words: WordWithProgress[]
   }>
-}
-
-// ============================================================================
-// Vocabulary Management Types
-// ============================================================================
-
-/**
- * Represents a single vocabulary word with translation and example
- */
-export interface Word {
-  id: string
-  listId: string
-  term: string                  // The word to learn (e.g., "Apple")
-  translation: string           // Translation or definition (e.g., "A fruit")
-  definition?: string           // Optional detailed definition
-  exampleSentence?: string      // Optional example usage
-  createdAt: string
 }
 
 /**

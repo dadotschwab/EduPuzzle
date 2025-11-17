@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWordListsWithCounts } from '@/hooks/useWordListsWithCounts'
 import { useDeleteWordList } from '@/hooks/useWordLists'
+import { useDueWordsCount } from '@/hooks/useTodaysPuzzles'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,6 +39,7 @@ export function Dashboard() {
   const [listToDelete, setListToDelete] = useState<{ id: string; name: string } | null>(null)
   const { data: wordLists, isLoading } = useWordListsWithCounts()
   const deleteMutation = useDeleteWordList()
+  const { data: dueCount } = useDueWordsCount()
 
   const handleDeleteConfirm = async () => {
     if (!listToDelete) return
@@ -78,9 +80,9 @@ export function Dashboard() {
 
         {/* Action Buttons */}
         <div className="flex gap-4 mb-8">
-          <Button size="lg" onClick={() => navigate('/app/review')} className="flex-1 md:flex-none">
+          <Button size="lg" onClick={() => navigate('/app/todays-puzzles')} className="flex-1 md:flex-none">
             <PlayCircle className="w-5 h-5 mr-2" />
-            Play Today's Puzzles
+            Play Today's Puzzles{dueCount && dueCount > 0 ? ` (${dueCount})` : ''}
           </Button>
           <Button
             size="lg"

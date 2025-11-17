@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { LanguageSelector } from '@/components/words/LanguageSelector'
 import { useUpdateWordList } from '@/hooks/useWordLists'
 import type { WordList } from '@/types'
 
@@ -67,23 +68,19 @@ export function EditWordListDialog({ open, onOpenChange, wordList }: EditWordLis
 
           <div className="space-y-2">
             <Label htmlFor="sourceLanguage">Source Language</Label>
-            <Input
-              id="sourceLanguage"
-              placeholder="e.g., English"
+            <LanguageSelector
               value={sourceLanguage}
-              onChange={(e) => setSourceLanguage(e.target.value)}
-              required
+              onChange={setSourceLanguage}
+              placeholder="Select source language..."
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="targetLanguage">Target Language</Label>
-            <Input
-              id="targetLanguage"
-              placeholder="e.g., Spanish"
+            <LanguageSelector
               value={targetLanguage}
-              onChange={(e) => setTargetLanguage(e.target.value)}
-              required
+              onChange={setTargetLanguage}
+              placeholder="Select target language..."
             />
           </div>
 

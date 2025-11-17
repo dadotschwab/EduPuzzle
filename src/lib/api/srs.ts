@@ -1,403 +1,248 @@
 /**
- * @fileoverview Spaced Repetition System (SRS) API functions
+ * @fileoverview SRS (Spaced Repetition System) API using SM-2 algorithm
  *
- * Implements the SM-2 algorithm for optimal spaced repetition learning.
- * Handles:
- * - Fetching due words for review
- * - Updating word progress after reviews
- * - Calculating next review intervals
- * - Grouping words by language for puzzle generation
+ * Implements SuperMemo SM-2 algorithm for optimal vocabulary retention:
+ * - Ease factors: 1.3-2.5
+ * - Intervals calculated based on performance
+ * - Stage progression: New → Learning → Young → Mature / Relearning
  *
  * @module lib/api/srs
  */
 
 import { supabase } from '@/lib/supabase'
-import type { WordProgress, WordWithProgress, DueWordsSummary, SRSStage } from '@/types'
-import { logger } from '@/lib/logger'
+import type { WordWithProgress, WordProgress, SRSStage } from '@/types'
 
 /**
- * Database row type for word_progress table
- */
-interface WordProgressRow {
-  id: string
-  user_id: string
-  word_id: string
-  stage: number
-  ease_factor: number
-  interval_days: number
-  next_review_date: string
-  last_reviewed_at: string | null
-  total_reviews: number
-  correct_reviews: number
-  incorrect_reviews: number
-  current_streak: number
-  updated_at: string
-}
-
-/**
- * Fetches all words due for review today for a specific user
- *
- * @param userId - The user ID
- * @returns Array of words with their progress data
- * @throws Error if fetch fails
+ * Fetches all words due for review today (including new words)
  */
 export async function fetchDueWords(userId: string): Promise<WordWithProgress[]> {
-  logger.debug(`Fetching due words for user ${userId}`)
+  const today = new Date().toISOString().split('T')[0]
 
-  const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
-
-  // Cast to any to work around Supabase type inference issues
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = (await (supabase
-    .from('word_progress') as any)
+  const { data, error } = await supabase
+    .from('words')
     .select(`
-      *,
-      words:word_id (
+      id,
+      list_id,
+      term,
+      translation,
+      definition,
+      example_sentence,
+      created_at,
+      word_lists!inner (
         id,
-        list_id,
-        term,
-        translation,
-        definition,
-        example_sentence,
-        created_at,
-        word_lists:list_id (
-          id,
-          name,
-          source_language,
-          target_language
-        )
+        name,
+        source_language,
+        target_language,
+        user_id
+      ),
+      word_progress (
+        id,
+        user_id,
+        word_id,
+        stage,
+        ease_factor,
+        interval_days,
+        next_review_date,
+        last_reviewed_at,
+        total_reviews,
+        correct_reviews,
+        incorrect_reviews,
+        current_streak,
+        updated_at
       )
     `)
-    .eq('user_id', userId)
-    .lte('next_review_date', today)
-    .order('next_review_date', { ascending: true })) as { data: any[] | null; error: any }
+    .eq('word_lists.user_id', userId)
+    .or(`next_review_date.lte.${today},next_review_date.is.null`, { foreignTable: 'word_progress' })
 
-  if (error) {
-    logger.error('Error fetching due words:', error)
-    throw new Error(`Failed to fetch due words: ${error.message}`)
-  }
+  if (error) throw error
 
-  if (!data || data.length === 0) {
-    logger.debug('No words due for review')
-    return []
-  }
+  // Transform to WordWithProgress format
+  const words: WordWithProgress[] = (data || []).map((row: any) => {
+    const wordList = row.word_lists
+    const progress = row.word_progress?.[0]
 
-  // Map database rows to WordWithProgress objects
-  const wordsWithProgress: WordWithProgress[] = data.map(row => ({
-    id: row.words.id,
-    listId: row.words.list_id,
-    term: row.words.term,
-    translation: row.words.translation,
-    definition: row.words.definition || undefined,
-    exampleSentence: row.words.example_sentence || undefined,
-    createdAt: row.words.created_at,
-    progress: {
+    return {
       id: row.id,
-      userId: row.user_id,
-      wordId: row.word_id,
-      stage: row.stage as SRSStage,
-      easeFactor: parseFloat(row.ease_factor),
-      intervalDays: row.interval_days,
-      nextReviewDate: row.next_review_date,
-      lastReviewedAt: row.last_reviewed_at || undefined,
-      totalReviews: row.total_reviews,
-      correctReviews: row.correct_reviews,
-      incorrectReviews: row.incorrect_reviews,
-      currentStreak: row.current_streak,
-      updatedAt: row.updated_at,
-    },
-  }))
+      listId: row.list_id,
+      term: row.term,
+      translation: row.translation,
+      definition: row.definition,
+      example_sentence: row.example_sentence,
+      createdAt: row.created_at,
+      sourceLanguage: wordList.source_language,
+      targetLanguage: wordList.target_language,
+      progress: progress
+        ? {
+            id: progress.id,
+            userId: progress.user_id,
+            wordId: progress.word_id,
+            stage: progress.stage as SRSStage,
+            easeFactor: progress.ease_factor,
+            intervalDays: progress.interval_days,
+            nextReviewDate: progress.next_review_date,
+            lastReviewedAt: progress.last_reviewed_at,
+            totalReviews: progress.total_reviews,
+            correctReviews: progress.correct_reviews,
+            incorrectReviews: progress.incorrect_reviews,
+            currentStreak: progress.current_streak,
+            updatedAt: progress.updated_at,
+          }
+        : undefined,
+    }
+  })
 
-  logger.debug(`Found ${wordsWithProgress.length} words due for review`)
-  return wordsWithProgress
+  return words
 }
 
 /**
- * Fetches count of words due today for a user
- *
- * @param userId - The user ID
- * @returns Number of words due
+ * Gets count of due words for dashboard badge
  */
 export async function fetchDueWordsCount(userId: string): Promise<number> {
   const today = new Date().toISOString().split('T')[0]
 
   const { count, error } = await supabase
-    .from('word_progress')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .lte('next_review_date', today)
+    .from('words')
+    .select('id', { count: 'exact', head: true })
+    .eq('word_lists.user_id', userId)
+    .or(`next_review_date.lte.${today},next_review_date.is.null`, { foreignTable: 'word_progress' })
 
-  if (error) {
-    logger.error('Error fetching due words count:', error)
-    return 0
-  }
-
+  if (error) throw error
   return count || 0
 }
 
 /**
- * Groups due words by language pair and list for smart puzzle generation
+ * SM-2 Algorithm: Calculate next review date and ease factor
  *
- * @param userId - The user ID
- * @returns Summary of due words grouped by language and list
- */
-export async function fetchDueWordsSummary(userId: string): Promise<DueWordsSummary[]> {
-  const dueWords = await fetchDueWords(userId)
-
-  if (dueWords.length === 0) {
-    return []
-  }
-
-  // Group by language pair
-  const byLanguagePair = new Map<string, WordWithProgress[]>()
-
-  for (const word of dueWords) {
-    // Fetch list info to get languages
-    const { data: listData, error } = await supabase
-      .from('word_lists')
-      .select('source_language, target_language')
-      .eq('id', word.listId)
-      .single()
-
-    if (error || !listData) continue
-
-    const langPair = `${listData.source_language}-${listData.target_language}`
-
-    if (!byLanguagePair.has(langPair)) {
-      byLanguagePair.set(langPair, [])
-    }
-    byLanguagePair.get(langPair)!.push(word)
-  }
-
-  // Build summary
-  const summaries: DueWordsSummary[] = []
-
-  for (const [langPair, words] of byLanguagePair) {
-    const [source, target] = langPair.split('-')
-
-    // Group by list
-    const byList = new Map<string, WordWithProgress[]>()
-
-    for (const word of words) {
-      if (!byList.has(word.listId)) {
-        byList.set(word.listId, [])
-      }
-      byList.get(word.listId)!.push(word)
-    }
-
-    // Get list names
-    const listSummaries = []
-    for (const [listId, listWords] of byList) {
-      const { data: listData } = await supabase
-        .from('word_lists')
-        .select('name')
-        .eq('id', listId)
-        .single()
-
-      listSummaries.push({
-        listId,
-        listName: listData?.name || 'Unknown List',
-        wordCount: listWords.length,
-        words: listWords,
-      })
-    }
-
-    summaries.push({
-      languagePair: langPair,
-      sourceLanguage: source,
-      targetLanguage: target,
-      totalDue: words.length,
-      byList: listSummaries,
-    })
-  }
-
-  return summaries
-}
-
-/**
- * Calculates the next interval and stage based on SM-2 algorithm
- *
- * @param progress - Current word progress
- * @param wasCorrect - Whether the answer was correct
- * @returns Updated progress fields
+ * Progression thresholds:
+ * - Learning (stage 1): interval ≥ 7 days → Young (stage 2)
+ * - Young (stage 2): interval ≥ 30 days → Mature (stage 3)
+ * - Mature (stage 3): incorrect → Relearning (stage 4)
+ * - Relearning (stage 4): correct with interval ≥ 7 → Young (stage 2)
  */
 function calculateNextReview(
   progress: WordProgress,
   wasCorrect: boolean
 ): Partial<WordProgress> {
   const updates: Partial<WordProgress> = {
-    totalReviews: progress.totalReviews + 1,
     lastReviewedAt: new Date().toISOString(),
+    totalReviews: progress.totalReviews + 1,
   }
 
   if (wasCorrect) {
-    // Correct answer
+    // Correct answer: increase interval and ease factor
     updates.correctReviews = progress.correctReviews + 1
     updates.currentStreak = progress.currentStreak + 1
 
+    // Calculate new interval
     let newInterval: number
-    let newStage = progress.stage
-
-    if (progress.stage === 0) {
-      // New → Learning (1 day)
-      newInterval = 1
-      newStage = 1
-    } else if (progress.stage === 4) {
-      // Relearning → Learning (1 day)
-      newInterval = 1
-      newStage = 1
+    if (progress.intervalDays === 0) {
+      newInterval = 1 // First review: 1 day
+    } else if (progress.intervalDays === 1) {
+      newInterval = 6 // Second review: 6 days
     } else {
-      // Apply SM-2 formula: new_interval = old_interval * ease_factor
+      // Subsequent reviews: interval × easeFactor
       newInterval = Math.round(progress.intervalDays * progress.easeFactor)
-
-      // Minimum interval of 1 day
-      if (newInterval < 1) newInterval = 1
-
-      // Promote stage based on interval
-      if (newInterval >= 7 && progress.stage === 1) {
-        // Learning → Young (1 week)
-        newStage = 2
-      } else if (newInterval >= 30 && progress.stage === 2) {
-        // Young → Mature (1 month)
-        newStage = 3
-      }
     }
 
     updates.intervalDays = newInterval
-    updates.stage = newStage
-    updates.nextReviewDate = addDays(new Date(), newInterval)
-
-    // Increase ease factor slightly (max 2.5)
     updates.easeFactor = Math.min(2.5, progress.easeFactor + 0.1)
+
+    // Stage progression based on interval
+    if (progress.stage === 0) {
+      // New → Learning
+      updates.stage = 1
+    } else if (progress.stage === 1 && newInterval >= 7) {
+      // Learning → Young (7+ days)
+      updates.stage = 2
+    } else if (progress.stage === 2 && newInterval >= 30) {
+      // Young → Mature (30+ days)
+      updates.stage = 3
+    } else if (progress.stage === 4 && newInterval >= 7) {
+      // Relearning → Young (recovered with 7+ days)
+      updates.stage = 2
+    }
   } else {
-    // Incorrect answer
+    // Incorrect answer: reset interval, decrease ease factor
     updates.incorrectReviews = progress.incorrectReviews + 1
     updates.currentStreak = 0
-
-    // Reset interval
-    updates.intervalDays = 1
-
-    // Demote stage if mature
-    if (progress.stage === 3) {
-      // Mature → Relearning
-      updates.stage = 4
-    } else {
-      // Stay in current stage but reset interval
-      updates.stage = progress.stage
-    }
-
-    updates.nextReviewDate = addDays(new Date(), 1)
-
-    // Decrease ease factor (min 1.3)
+    updates.intervalDays = 1 // Reset to 1 day
     updates.easeFactor = Math.max(1.3, progress.easeFactor - 0.2)
+
+    // Demote mature words to relearning
+    if (progress.stage === 3) {
+      updates.stage = 4 // Mature → Relearning
+    }
   }
+
+  // Calculate next review date
+  const nextDate = new Date()
+  nextDate.setDate(nextDate.getDate() + (updates.intervalDays || 1))
+  updates.nextReviewDate = nextDate.toISOString().split('T')[0]
 
   return updates
 }
 
 /**
- * Helper function to add days to a date
- */
-function addDays(date: Date, days: number): string {
-  const result = new Date(date)
-  result.setDate(result.getDate() + days)
-  return result.toISOString().split('T')[0] // Return YYYY-MM-DD
-}
-
-/**
- * Updates word progress after a review
- *
- * @param wordId - The word ID
- * @param userId - The user ID
- * @param wasCorrect - Whether the answer was correct
- * @throws Error if update fails
+ * Updates a single word's SRS progress
  */
 export async function updateWordProgress(
   wordId: string,
   userId: string,
   wasCorrect: boolean
 ): Promise<void> {
-  logger.debug(`Updating progress for word ${wordId}, correct: ${wasCorrect}`)
-
   // Fetch current progress
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: progressData, error: fetchError } = (await (supabase
-    .from('word_progress') as any)
+  const { data: progressData, error: fetchError } = await supabase
+    .from('word_progress')
     .select('*')
-    .eq('user_id', userId)
     .eq('word_id', wordId)
-    .single()) as { data: WordProgressRow | null; error: any }
+    .eq('user_id', userId)
+    .single()
 
-  if (fetchError || !progressData) {
-    logger.error('Error fetching word progress:', fetchError)
-    throw new Error(`Failed to fetch word progress: ${fetchError?.message}`)
-  }
+  if (fetchError) throw fetchError
+  if (!progressData) throw new Error('Word progress not found')
 
-  // Convert to WordProgress type
   const currentProgress: WordProgress = {
     id: progressData.id,
     userId: progressData.user_id,
     wordId: progressData.word_id,
     stage: progressData.stage as SRSStage,
-    easeFactor: parseFloat(progressData.ease_factor.toString()),
+    easeFactor: progressData.ease_factor,
     intervalDays: progressData.interval_days,
     nextReviewDate: progressData.next_review_date,
-    lastReviewedAt: progressData.last_reviewed_at || undefined,
+    lastReviewedAt: progressData.last_reviewed_at,
     totalReviews: progressData.total_reviews,
     correctReviews: progressData.correct_reviews,
     incorrectReviews: progressData.incorrect_reviews,
     currentStreak: progressData.current_streak,
+    updatedAt: progressData.updated_at,
   }
 
-  // Calculate new values
+  // Calculate updates using SM-2
   const updates = calculateNextReview(currentProgress, wasCorrect)
 
   // Update database
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: updateError } = (await (supabase
-    .from('word_progress') as any)
-    .update({
-      stage: updates.stage,
-      ease_factor: updates.easeFactor,
-      interval_days: updates.intervalDays,
-      next_review_date: updates.nextReviewDate,
-      last_reviewed_at: updates.lastReviewedAt,
-      total_reviews: updates.totalReviews,
-      correct_reviews: updates.correctReviews,
-      incorrect_reviews: updates.incorrectReviews,
-      current_streak: updates.currentStreak,
-    })
-    .eq('id', progressData.id)) as { error: any }
+  const { error: updateError } = await supabase
+    .from('word_progress')
+    .update(updates)
+    .eq('id', progressData.id)
 
-  if (updateError) {
-    logger.error('Error updating word progress:', updateError)
-    throw new Error(`Failed to update word progress: ${updateError.message}`)
-  }
-
-  logger.debug(`Successfully updated progress for word ${wordId}`)
+  if (updateError) throw updateError
 }
 
 /**
- * Batch updates word progress for multiple words (e.g., after puzzle completion)
- *
- * @param updates - Array of word IDs and their correctness
- * @param userId - The user ID
+ * Batch update word progress after puzzle completion
  */
 export async function batchUpdateWordProgress(
   updates: Array<{ wordId: string; wasCorrect: boolean }>,
   userId: string
 ): Promise<void> {
-  logger.debug(`Batch updating ${updates.length} word progress records`)
-
-  // Process updates sequentially to avoid race conditions
-  for (const update of updates) {
+  // Process each update sequentially to ensure proper SRS calculations
+  for (const { wordId, wasCorrect } of updates) {
     try {
-      await updateWordProgress(update.wordId, userId, update.wasCorrect)
+      await updateWordProgress(wordId, userId, wasCorrect)
     } catch (error) {
-      logger.error(`Failed to update word ${update.wordId}:`, error)
+      console.error(`Failed to update progress for word ${wordId}:`, error)
       // Continue with other updates even if one fails
     }
   }
-
-  logger.debug('Batch update completed')
 }
