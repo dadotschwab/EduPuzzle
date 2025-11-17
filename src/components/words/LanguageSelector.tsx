@@ -88,8 +88,8 @@ interface LanguageSelectorProps {
 /**
  * Language selector with search functionality
  *
- * @param value - Current selected language code (e.g., "en", "de")
- * @param onChange - Callback when language is selected
+ * @param value - Current selected language code (e.g., "en", "de") or name (e.g., "English", "German")
+ * @param onChange - Callback when language is selected (returns ISO code)
  * @param placeholder - Placeholder text (default: "Select language...")
  * @param className - Optional CSS class
  */
@@ -101,11 +101,18 @@ export function LanguageSelector({
 }: LanguageSelectorProps) {
   const [open, setOpen] = useState(false)
 
-  // Find the selected language object
-  const selectedLanguage = useMemo(
-    () => LANGUAGES.find(lang => lang.code === value),
-    [value]
-  )
+  // Find the selected language object - support both code and name for backwards compatibility
+  const selectedLanguage = useMemo(() => {
+    // Try to match by code first (e.g., "en")
+    let lang = LANGUAGES.find(l => l.code === value)
+
+    // If not found, try to match by name (e.g., "English") for backwards compatibility
+    if (!lang) {
+      lang = LANGUAGES.find(l => l.name.toLowerCase() === value.toLowerCase())
+    }
+
+    return lang
+  }, [value])
 
   const handleSelect = (languageCode: string) => {
     onChange(languageCode)
@@ -136,11 +143,12 @@ export function LanguageSelector({
                   key={language.code}
                   value={`${language.name} ${language.code}`}
                   onSelect={() => handleSelect(language.code)}
+                  className="cursor-pointer"
                 >
                   <Check
                     className={cn(
                       'mr-2 h-4 w-4',
-                      value === language.code ? 'opacity-100' : 'opacity-0'
+                      selectedLanguage?.code === language.code ? 'opacity-100' : 'opacity-0'
                     )}
                   />
                   {language.name}
@@ -172,4 +180,22 @@ export function getLanguageName(code: string): string {
  */
 export function isValidLanguageCode(code: string): boolean {
   return LANGUAGES.some(lang => lang.code === code)
+}
+
+/**
+ * Helper function to convert language name to code
+ * @param nameOrCode - Language name or code
+ * @returns ISO 639-1 code or the input if not found
+ */
+export function normalizeLanguageToCode(nameOrCode: string): string {
+  // Try exact code match first
+  const byCode = LANGUAGES.find(lang => lang.code === nameOrCode)
+  if (byCode) return byCode.code
+
+  // Try name match (case-insensitive)
+  const byName = LANGUAGES.find(lang => lang.name.toLowerCase() === nameOrCode.toLowerCase())
+  if (byName) return byName.code
+
+  // Return original if not found
+  return nameOrCode
 }
