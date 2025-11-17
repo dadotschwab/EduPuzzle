@@ -165,6 +165,62 @@ Watch out for these patterns:
 
 ---
 
+# Feature Transition Protocol (MANDATORY)
+
+## When Switching Between Features
+
+Before moving from one feature to another, **ALWAYS** perform a codebase health check and refactor if needed.
+
+### Pre-Transition Checklist
+
+1. **Review Related Code**: Examine all files touched by the current feature
+2. **Check for Duplication**: Look for code patterns that appear in multiple places
+3. **Identify Shared Logic**: Find opportunities to extract common functionality
+4. **Refactor Before Proceeding**: Clean up duplication before adding new complexity
+
+### Why This Matters
+
+- **Prevents Technical Debt**: Small duplications compound into maintenance nightmares
+- **Easier Feature Development**: Clean code is faster to extend
+- **Maintains Code Quality**: Consistent quality standards across features
+- **Better Performance**: Shared code can be optimized once for all uses
+
+### Example Workflow
+
+```typescript
+// ❌ BAD: Moving to new feature without checking
+User: "Now let's work on the settings page"
+Assistant: *Immediately starts building settings page*
+// Result: Leaves duplicated code in puzzle pages
+
+// ✅ GOOD: Check and refactor first
+User: "Now let's work on the settings page"
+Assistant: "Before we proceed, let me check if the puzzle pages need refactoring..."
+Assistant: *Identifies duplicated puzzle solver logic*
+Assistant: *Extracts shared hook and components*
+Assistant: "The codebase is now clean. Let's proceed with settings."
+// Result: Clean foundation for new feature
+```
+
+### Red Flags That Require Refactoring
+
+- Same function exists in 2+ files
+- Similar UI components with minor differences
+- Copy-pasted event handlers
+- Duplicated validation or business logic
+- State management repeated across components
+
+### How to Refactor
+
+1. **Extract Shared Hooks**: Move common state/logic to custom hooks
+2. **Create Reusable Components**: Extract UI patterns into shared components
+3. **Build Utility Functions**: Move pure functions to lib/utils
+4. **Consolidate Types**: Ensure types are defined once in types/index.ts
+
+**Remember**: A few minutes of refactoring now saves hours of debugging later.
+
+---
+
 # Code Reuse & DRY Principle (MANDATORY)
 
 ## Duplication Rules

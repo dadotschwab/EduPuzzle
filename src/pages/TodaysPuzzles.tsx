@@ -14,11 +14,12 @@ import { useNavigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
 import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
+import { PuzzleCompletionCard } from '@/components/puzzle/PuzzleCompletionCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Trophy, Loader2, AlertCircle, Calendar } from 'lucide-react'
+import { Loader2, AlertCircle, Calendar } from 'lucide-react'
 import { useTodaysPuzzles, useCompletePuzzle, useCurrentPuzzle } from '@/hooks/useTodaysPuzzles'
-import type { PlacedWord } from '@/types'
+import { usePuzzleSolver } from '@/hooks/usePuzzleSolver'
 
 /**
  * Today's Puzzles page component - SRS-driven puzzle practice
@@ -33,114 +34,25 @@ export function TodaysPuzzles() {
   // Track which puzzle we're showing
   const [currentPuzzleIndex, setCurrentPuzzleIndex] = useState(0)
   const puzzle = useCurrentPuzzle(puzzleData?.puzzles ?? undefined, currentPuzzleIndex)
-  const [userInput, setUserInput] = useState<Record<string, string>>({})
-  const [selectedWord, setSelectedWord] = useState<PlacedWord | null>(null)
-  const [focusedCell, setFocusedCell] = useState<{ x: number; y: number } | null>(null)
-  const [hintsRemaining, setHintsRemaining] = useState(3)
-  const [checkedWords, setCheckedWords] = useState<Record<string, 'correct' | 'incorrect'>>({})
-  const [isPuzzleCompleted, setIsPuzzleCompleted] = useState(false)
-  const [showCorrectAnswers, setShowCorrectAnswers] = useState(false)
 
-  /**
-   * Validates all words in the puzzle and returns their status
-   */
-  const validateAllWords = (): Record<string, 'correct' | 'incorrect'> => {
-    if (!puzzle) return {}
-
-    const results: Record<string, 'correct' | 'incorrect'> = {}
-
-    puzzle.placedWords.forEach(word => {
-      let isCorrect = true
-      for (let i = 0; i < word.word.length; i++) {
-        const cellX = word.direction === 'horizontal' ? word.x + i : word.x
-        const cellY = word.direction === 'horizontal' ? word.y : word.y + i
-        const key = `${cellX},${cellY}`
-        const userLetter = userInput[key] || ''
-        const correctLetter = word.word[i]
-
-        if (userLetter !== correctLetter) {
-          isCorrect = false
-          break
-        }
-      }
-      results[word.id] = isCorrect ? 'correct' : 'incorrect'
-    })
-
-    return results
-  }
-
-  /**
-   * Checks the current word only
-   */
-  const handleCheckPuzzle = () => {
-    const validationResults = validateAllWords()
-    setCheckedWords(validationResults)
-  }
+  // Use shared puzzle solver logic
+  const solver = usePuzzleSolver(puzzle)
 
   /**
    * Ends the puzzle, validates all words, and updates SRS progress
    */
   const handleEndPuzzle = () => {
-    if (!puzzle) return
+    solver.handleEndPuzzle((validationResults) => {
+      if (!puzzle) return
 
-    // Validate all words and show final results
-    const validationResults = validateAllWords()
-    setCheckedWords(validationResults)
-    setIsPuzzleCompleted(true)
-    setShowCorrectAnswers(true)
+      // Update SRS progress for all words in this puzzle
+      const srsUpdates = puzzle.placedWords.map(word => ({
+        wordId: word.id,
+        wasCorrect: validationResults[word.id] === 'correct',
+      }))
 
-    // Update SRS progress for all words in this puzzle
-    const srsUpdates = puzzle.placedWords.map(word => ({
-      wordId: word.id,
-      wasCorrect: validationResults[word.id] === 'correct',
-    }))
-
-    completePuzzle.mutate(srsUpdates)
-  }
-
-  /**
-   * Calculates puzzle statistics
-   */
-  const getPuzzleStats = () => {
-    if (!puzzle) return { totalWords: 0, correctWords: 0, incorrectWords: 0, hintsUsed: 0 }
-
-    const totalWords = puzzle.placedWords.length
-    const correctWords = Object.values(checkedWords).filter(status => status === 'correct').length
-    const incorrectWords = Object.values(checkedWords).filter(status => status === 'incorrect').length
-    const hintsUsed = 3 - hintsRemaining
-
-    return { totalWords, correctWords, incorrectWords, hintsUsed }
-  }
-
-  /**
-   * Reveals a letter as a hint
-   */
-  const handleGiveHint = () => {
-    if (!puzzle || !selectedWord || hintsRemaining <= 0) return
-
-    // Find first empty or incorrect cell in selected word
-    for (let i = 0; i < selectedWord.word.length; i++) {
-      const cellX = selectedWord.direction === 'horizontal' ? selectedWord.x + i : selectedWord.x
-      const cellY = selectedWord.direction === 'horizontal' ? selectedWord.y : selectedWord.y + i
-      const key = `${cellX},${cellY}`
-      const userLetter = userInput[key] || ''
-      const correctLetter = selectedWord.word[i]
-
-      if (userLetter !== correctLetter) {
-        // Reveal this letter
-        setUserInput(prev => ({ ...prev, [key]: correctLetter }))
-        setHintsRemaining(prev => prev - 1)
-        break
-      }
-    }
-  }
-
-  /**
-   * Handles cell value changes from the puzzle grid
-   */
-  const handleCellChange = (x: number, y: number, value: string) => {
-    const key = `${x},${y}`
-    setUserInput(prev => ({ ...prev, [key]: value.toUpperCase() }))
+      completePuzzle.mutate(srsUpdates)
+    })
   }
 
   /**
@@ -151,13 +63,7 @@ export function TodaysPuzzles() {
 
     if (currentPuzzleIndex < puzzleData.puzzles.length - 1) {
       setCurrentPuzzleIndex(prev => prev + 1)
-      setUserInput({})
-      setSelectedWord(null)
-      setFocusedCell(null)
-      setCheckedWords({})
-      setHintsRemaining(3)
-      setIsPuzzleCompleted(false)
-      setShowCorrectAnswers(false)
+      solver.resetPuzzle()
     } else {
       // All puzzles completed - go back to dashboard
       navigate('/app/dashboard')
@@ -268,7 +174,7 @@ export function TodaysPuzzles() {
   }
 
   // At this point, puzzle is guaranteed to be non-null
-  const stats = getPuzzleStats()
+  const stats = solver.getPuzzleStats()
   const isLastPuzzle = currentPuzzleIndex === (puzzleData.puzzles?.length || 1) - 1
 
   return (
@@ -287,116 +193,38 @@ export function TodaysPuzzles() {
           <div className="flex items-start justify-center">
             <PuzzleGrid
               puzzle={puzzle}
-              userInput={userInput}
-              onCellChange={handleCellChange}
-              selectedWord={selectedWord}
-              onWordSelect={setSelectedWord}
-              onFocusedCellChange={setFocusedCell}
-              checkedWords={checkedWords}
+              userInput={solver.userInput}
+              onCellChange={solver.handleCellChange}
+              selectedWord={solver.selectedWord}
+              onWordSelect={solver.setSelectedWord}
+              onFocusedCellChange={solver.setFocusedCell}
+              checkedWords={solver.checkedWords}
             />
           </div>
 
           {/* Right: Clues/Controls or Completion Stats */}
           <div className="lg:sticky lg:top-24 lg:self-start">
-            {!isPuzzleCompleted ? (
+            {!solver.isPuzzleCompleted ? (
               /* Clues Panel */
               <PuzzleClues
                 placedWords={puzzle.placedWords}
-                selectedWord={selectedWord}
-                onWordSelect={setSelectedWord}
-                onCheckPuzzle={handleCheckPuzzle}
+                selectedWord={solver.selectedWord}
+                onWordSelect={solver.setSelectedWord}
+                onCheckPuzzle={solver.handleCheckPuzzle}
                 onEndPuzzle={handleEndPuzzle}
-                onGiveHint={handleGiveHint}
-                hintsRemaining={hintsRemaining}
-                checkedWords={checkedWords}
+                onGiveHint={solver.handleGiveHint}
+                hintsRemaining={solver.hintsRemaining}
+                checkedWords={solver.checkedWords}
               />
             ) : (
               /* Completion Card */
-              <div className="space-y-6">
-                {/* Completion Card */}
-                <Card className="flex-1 flex flex-col overflow-hidden">
-                  <CardHeader className="text-center pb-4">
-                    <div className="flex justify-center mb-2">
-                      <Trophy className="w-12 h-12 text-yellow-500" />
-                    </div>
-                    <CardTitle className="text-xl">Puzzle Completed!</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-1 overflow-y-auto space-y-4">
-                    {/* Statistics */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-blue-50 rounded-lg p-3 text-center">
-                        <div className="text-2xl font-bold text-blue-700">{stats.totalWords}</div>
-                        <div className="text-xs text-blue-600 mt-1">Total Words</div>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-3 text-center">
-                        <div className="text-2xl font-bold text-green-700">{stats.correctWords}</div>
-                        <div className="text-xs text-green-600 mt-1">Correct</div>
-                      </div>
-                      <div className="bg-red-50 rounded-lg p-3 text-center">
-                        <div className="text-2xl font-bold text-red-700">{stats.incorrectWords}</div>
-                        <div className="text-xs text-red-600 mt-1">Incorrect</div>
-                      </div>
-                      <div className="bg-purple-50 rounded-lg p-3 text-center">
-                        <div className="text-2xl font-bold text-purple-700">{stats.hintsUsed}</div>
-                        <div className="text-xs text-purple-600 mt-1">Hints Used</div>
-                      </div>
-                    </div>
-
-                    {/* Performance Message */}
-                    <div className="text-center py-4">
-                      {stats.incorrectWords === 0 ? (
-                        <div className="text-green-700 font-semibold">
-                          Perfect! All words correct! 🎉
-                        </div>
-                      ) : stats.correctWords > stats.incorrectWords ? (
-                        <div className="text-blue-700 font-semibold">
-                          Great job! Keep it up! 👏
-                        </div>
-                      ) : (
-                        <div className="text-orange-700 font-semibold">
-                          Good effort! Try the next one! 💪
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Toggle View Buttons */}
-                    <div className="flex gap-2 mt-4">
-                      <Button
-                        onClick={() => setShowCorrectAnswers(false)}
-                        variant={!showCorrectAnswers ? "default" : "outline"}
-                        size="sm"
-                        className="flex-1"
-                      >
-                        My Answers
-                      </Button>
-                      <Button
-                        onClick={() => setShowCorrectAnswers(true)}
-                        variant={showCorrectAnswers ? "default" : "outline"}
-                        size="sm"
-                        className="flex-1"
-                      >
-                        Correct Answers
-                      </Button>
-                    </div>
-
-                    {/* Next Puzzle Button */}
-                    <Button
-                      onClick={handleNextPuzzle}
-                      className="w-full mt-4"
-                      size="lg"
-                    >
-                      {isLastPuzzle ? (
-                        <>Back to Dashboard</>
-                      ) : (
-                        <>
-                          Next Puzzle
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </>
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
+              <PuzzleCompletionCard
+                stats={stats}
+                showCorrectAnswers={solver.showCorrectAnswers}
+                onToggleAnswersView={solver.setShowCorrectAnswers}
+                onNext={handleNextPuzzle}
+                nextButtonLabel={isLastPuzzle ? 'Back to Dashboard' : 'Next Puzzle'}
+              />
             )}
           </div>
         </div>
