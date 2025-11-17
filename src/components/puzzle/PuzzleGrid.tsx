@@ -177,12 +177,11 @@ export const PuzzleGrid = memo(function PuzzleGrid({
   /**
    * Gets the cell background color class based on view mode and status
    * - My Answers: green for correct, red for incorrect, empty stays empty
-   * - Correct Answers: green for correct, amber/yellow for incorrect/empty
+   * - Correct Answers: green for correct, red for incorrect/empty
    */
   const getCellColorClass = useCallback((x: number, y: number): string => {
     const key = `${x},${y}`
     const status = cellStatusMap.get(key)
-    const userValue = userInput[key]
 
     if (!isPuzzleCompleted) {
       // During puzzle solving - use normal status colors
@@ -193,12 +192,12 @@ export const PuzzleGrid = memo(function PuzzleGrid({
 
     // Puzzle completed
     if (showCorrectAnswers) {
-      // Correct Answers view: green for correct, amber for wrong/empty
+      // Correct Answers view: green for correct, red for wrong/empty
       if (status === 'correct') {
         return 'bg-green-100 border-green-300'
       } else {
-        // Wrong or empty - use amber/yellow
-        return 'bg-amber-100 border-amber-300'
+        // Wrong or empty - use red
+        return 'bg-red-100 border-red-300'
       }
     } else {
       // My Answers view: green for correct, red for wrong, white for empty
@@ -243,15 +242,6 @@ export const PuzzleGrid = memo(function PuzzleGrid({
   const getCellNumber = useCallback((x: number, y: number): number | null => {
     return cellNumbersMap.get(`${x},${y}`) ?? null
   }, [cellNumbersMap])
-
-  /**
-   * Gets the status of a cell based on word checking
-   * Returns 'correct' if part of any correct word, 'incorrect' if only part of incorrect words
-   * Optimized: Pre-calculated map lookup
-   */
-  const getCellStatus = useCallback((x: number, y: number): 'correct' | 'incorrect' | null => {
-    return cellStatusMap.get(`${x},${y}`) ?? null
-  }, [cellStatusMap])
 
   /**
    * Finds the word at a specific cell position, preferring a specific direction
