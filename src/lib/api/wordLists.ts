@@ -23,6 +23,34 @@ interface WordListUpdateData {
 }
 
 /**
+ * Database row object (snake_case from Supabase)
+ */
+interface WordListRow {
+  id: string
+  user_id: string
+  name: string
+  source_language: string
+  target_language: string
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * Converts a database row to a WordList object (snake_case to camelCase)
+ */
+function rowToWordList(row: WordListRow): WordList {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    sourceLanguage: row.source_language,
+    targetLanguage: row.target_language,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+/**
  * Fetches all word lists for the current user
  * @returns Array of word lists, sorted by creation date (newest first)
  * @throws Error if database query fails
@@ -34,7 +62,7 @@ export async function getWordLists() {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return data as WordList[]
+  return (data as WordListRow[]).map(rowToWordList)
 }
 
 /**
@@ -51,7 +79,7 @@ export async function getWordList(id: string) {
     .single()
 
   if (error) throw error
-  return data as WordList
+  return rowToWordList(data as WordListRow)
 }
 
 /**
@@ -84,7 +112,7 @@ export async function createWordList(wordList: {
     .single()
 
   if (error) throw error
-  return data as WordList
+  return rowToWordList(data as WordListRow)
 }
 
 /**
@@ -119,7 +147,7 @@ export async function updateWordList(
     .single()
 
   if (error) throw error
-  return data as WordList
+  return rowToWordList(data as WordListRow)
 }
 
 /**
