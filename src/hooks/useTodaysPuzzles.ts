@@ -11,8 +11,8 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchDueWords, fetchDueWordsCount, batchUpdateWordProgress } from '@/lib/api/srs'
-import { generatePuzzle } from '@/lib/puzzleGenerator'
-import type { WordWithProgress, Puzzle } from '@/types'
+import { generatePuzzles } from '@/lib/algorithms/generator'
+import type { WordWithProgress, Puzzle, Word } from '@/types'
 import { useAuth } from '@/hooks/useAuth'
 
 const MIN_WORDS_FOR_PUZZLE = 10
@@ -30,7 +30,6 @@ interface PuzzleGroup {
 interface TodaysPuzzlesData {
   puzzles: Puzzle[]
   totalWords: number
-  hasMore: boolean // Indicates if more puzzles can be generated
   message?: string
 }
 
@@ -168,19 +167,34 @@ export function useTodaysPuzzles() {
       })
 
       // Generate puzzles for each group
+      // Use generatePuzzles (plural) to get all clustered puzzles, not just the first one
       const puzzles: Puzzle[] = []
       for (const group of groups) {
         try {
-          console.log(`[TodaysPuzzles] Generating puzzle for ${group.languagePair} (${group.words.length} words)...`)
-          const puzzle = await generatePuzzle(group.words)
-          if (puzzle) {
-            puzzles.push(puzzle)
-            console.log(`  ✓ Generated puzzle with ${puzzle.placedWords.length} words`)
+          console.log(`[TodaysPuzzles] Generating puzzles for ${group.languagePair} (${group.words.length} words)...`)
+
+          // Convert WordWithProgress to Word format
+          const words: Word[] = group.words.map(w => ({
+            id: w.id,
+            listId: w.listId,
+            term: w.term,
+            translation: w.translation,
+            definition: w.definition,
+            exampleSentence: w.example_sentence,
+            createdAt: w.createdAt,
+          }))
+
+          // Generate multiple puzzles via clustering
+          const groupPuzzles = await generatePuzzles(words)
+
+          if (groupPuzzles.length > 0) {
+            puzzles.push(...groupPuzzles)
+            console.log(`  ✓ Generated ${groupPuzzles.length} puzzle(s) with ${groupPuzzles.reduce((sum, p) => sum + p.placedWords.length, 0)} total words`)
           } else {
-            console.log(`  ✗ Puzzle generation returned null`)
+            console.log(`  ✗ No puzzles generated`)
           }
         } catch (error) {
-          console.error(`  ✗ Failed to generate puzzle for ${group.languagePair}:`, error)
+          console.error(`  ✗ Failed to generate puzzles for ${group.languagePair}:`, error)
         }
       }
 

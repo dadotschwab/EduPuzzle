@@ -14,6 +14,7 @@ import type { WordWithProgress, WordProgress, SRSStage } from '@/types'
 
 /**
  * Fetches all words due for review today (including new words)
+ * Excludes words that have already been reviewed today
  */
 export async function fetchDueWords(userId: string): Promise<WordWithProgress[]> {
   const today = new Date().toISOString().split('T')[0]
@@ -58,7 +59,7 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
   if (error) throw error
 
   // Transform to WordWithProgress format
-  const words: WordWithProgress[] = (data || []).map((row: any) => {
+  const allWords: WordWithProgress[] = (data || []).map((row: any) => {
     const wordList = row.word_lists
     const progress = row.word_progress?.[0]
 
@@ -92,7 +93,18 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
     }
   })
 
-  console.log(`[SRS API] Found ${words.length} due words`)
+  // Filter out words that have already been reviewed today
+  const words = allWords.filter(word => {
+    if (!word.progress?.lastReviewedAt) return true // Include new words
+
+    const lastReviewedDate = word.progress.lastReviewedAt.split('T')[0]
+    const wasReviewedToday = lastReviewedDate === today
+
+    return !wasReviewedToday
+  })
+
+  console.log(`[SRS API] Found ${allWords.length} words due (${allWords.length - words.length} already reviewed today)`)
+  console.log(`[SRS API] Returning ${words.length} words to practice`)
   console.log(`[SRS API] Sample word IDs:`, words.slice(0, 5).map(w => `${w.id}:${w.term}`))
 
   return words
@@ -100,18 +112,13 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
 
 /**
  * Gets count of due words for dashboard badge
+ * Excludes words that have already been reviewed today
  */
 export async function fetchDueWordsCount(userId: string): Promise<number> {
-  const today = new Date().toISOString().split('T')[0]
-
-  const { count, error } = await supabase
-    .from('words')
-    .select('id', { count: 'exact', head: true })
-    .eq('word_lists.user_id', userId)
-    .or(`next_review_date.lte.${today},next_review_date.is.null`, { foreignTable: 'word_progress' })
-
-  if (error) throw error
-  return count || 0
+  // For accurate count, we need to fetch and filter client-side
+  // since we can't efficiently filter by date portion of timestamp in the query
+  const dueWords = await fetchDueWords(userId)
+  return dueWords.length
 }
 
 /**
