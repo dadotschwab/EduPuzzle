@@ -38,7 +38,7 @@ function App() {
         }
       />
       <Route
-        path="/app/puzzle/:sessionId"
+        path="/app/puzzle/:listId"
         element={
           <ProtectedRoute>
             <PuzzleSolver />
