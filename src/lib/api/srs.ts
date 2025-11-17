@@ -17,6 +17,7 @@ import type { WordWithProgress, WordProgress, SRSStage } from '@/types'
  */
 export async function fetchDueWords(userId: string): Promise<WordWithProgress[]> {
   const today = new Date().toISOString().split('T')[0]
+  console.log(`[SRS API] Fetching due words for user ${userId} (today: ${today})`)
 
   const { data, error } = await supabase
     .from('words')
@@ -90,6 +91,9 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
         : undefined,
     }
   })
+
+  console.log(`[SRS API] Found ${words.length} due words`)
+  console.log(`[SRS API] Sample word IDs:`, words.slice(0, 5).map(w => `${w.id}:${w.term}`))
 
   return words
 }
@@ -220,6 +224,10 @@ export async function updateWordProgress(
   // Calculate updates using SM-2
   const updates = calculateNextReview(currentProgress, wasCorrect)
 
+  console.log(`[SRS API] Updating word ${wordId}: ${wasCorrect ? 'correct' : 'incorrect'}`)
+  console.log(`  Previous: next_review=${currentProgress.nextReviewDate}, interval=${currentProgress.intervalDays}, stage=${currentProgress.stage}`)
+  console.log(`  New: next_review=${updates.nextReviewDate}, interval=${updates.intervalDays}, stage=${updates.stage}`)
+
   // Update database
   const { error: updateError } = await supabase
     .from('word_progress')
@@ -236,6 +244,8 @@ export async function batchUpdateWordProgress(
   updates: Array<{ wordId: string; wasCorrect: boolean }>,
   userId: string
 ): Promise<void> {
+  console.log(`[SRS API] Starting batch update for ${updates.length} words`)
+
   // Process each update sequentially to ensure proper SRS calculations
   for (const { wordId, wasCorrect } of updates) {
     try {
@@ -245,4 +255,6 @@ export async function batchUpdateWordProgress(
       // Continue with other updates even if one fails
     }
   }
+
+  console.log(`[SRS API] Batch update completed`)
 }

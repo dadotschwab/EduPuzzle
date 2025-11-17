@@ -149,6 +149,7 @@ export function useTodaysPuzzles() {
 
       // Fetch all due words (including new words with stage 0)
       const dueWords = await fetchDueWords(user.id)
+      console.log(`[TodaysPuzzles] Fetched ${dueWords.length} due words`)
 
       // No words due
       if (dueWords.length === 0) {
@@ -161,19 +162,29 @@ export function useTodaysPuzzles() {
 
       // Apply smart grouping
       const groups = await smartGroupWords(dueWords)
+      console.log(`[TodaysPuzzles] Created ${groups.length} puzzle groups:`)
+      groups.forEach((group, index) => {
+        console.log(`  Group ${index + 1}: ${group.languagePair}, ${group.words.length} words, lists: ${group.listIds.join(', ')}`)
+      })
 
       // Generate puzzles for each group
       const puzzles: Puzzle[] = []
       for (const group of groups) {
         try {
+          console.log(`[TodaysPuzzles] Generating puzzle for ${group.languagePair} (${group.words.length} words)...`)
           const puzzle = await generatePuzzle(group.words)
           if (puzzle) {
             puzzles.push(puzzle)
+            console.log(`  ✓ Generated puzzle with ${puzzle.placedWords.length} words`)
+          } else {
+            console.log(`  ✗ Puzzle generation returned null`)
           }
         } catch (error) {
-          console.error(`Failed to generate puzzle for ${group.languagePair}:`, error)
+          console.error(`  ✗ Failed to generate puzzle for ${group.languagePair}:`, error)
         }
       }
+
+      console.log(`[TodaysPuzzles] Successfully generated ${puzzles.length} puzzles from ${dueWords.length} words`)
 
       // Not enough words to create any puzzles
       if (puzzles.length === 0) {
