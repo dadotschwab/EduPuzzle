@@ -69,8 +69,8 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
       definition: row.definition,
       example_sentence: row.example_sentence,
       createdAt: row.created_at,
-      sourceLanguage: wordList.source_language,
-      targetLanguage: wordList.target_language,
+      source_language: wordList.source_language,
+      target_language: wordList.target_language,
       progress: progress
         ? {
             id: progress.id,

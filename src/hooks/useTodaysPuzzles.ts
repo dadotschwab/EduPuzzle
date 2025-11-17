@@ -20,8 +20,8 @@ const LARGE_LIST_THRESHOLD = 15
 
 interface PuzzleGroup {
   languagePair: string
-  sourceLanguage: string
-  targetLanguage: string
+  source_language: string
+  target_language: string
   words: WordWithProgress[]
   listIds: string[]
 }
@@ -48,7 +48,7 @@ async function smartGroupWords(dueWords: WordWithProgress[]): Promise<PuzzleGrou
   const byLanguagePair = new Map<string, Map<string, WordWithProgress[]>>()
 
   for (const word of dueWords) {
-    const languagePair = `${word.sourceLanguage}-${word.targetLanguage}`
+    const languagePair = `${word.source_language}-${word.target_language}`
 
     if (!byLanguagePair.has(languagePair)) {
       byLanguagePair.set(languagePair, new Map())
@@ -64,7 +64,7 @@ async function smartGroupWords(dueWords: WordWithProgress[]): Promise<PuzzleGrou
 
   // Process each language pair
   for (const [languagePair, listsMap] of byLanguagePair) {
-    const [sourceLanguage, targetLanguage] = languagePair.split('-')
+    const [source_language, target_language] = languagePair.split('-')
     const largeLists: { listId: string; words: WordWithProgress[] }[] = []
     const smallLists: { listId: string; words: WordWithProgress[] }[] = []
 
@@ -81,8 +81,8 @@ async function smartGroupWords(dueWords: WordWithProgress[]): Promise<PuzzleGrou
     for (const { listId, words } of largeLists) {
       groups.push({
         languagePair,
-        sourceLanguage,
-        targetLanguage,
+        source_language,
+        target_language,
         words,
         listIds: [listId],
       })
@@ -102,8 +102,8 @@ async function smartGroupWords(dueWords: WordWithProgress[]): Promise<PuzzleGrou
       if (combinedWords.length >= MIN_WORDS_FOR_PUZZLE) {
         groups.push({
           languagePair,
-          sourceLanguage,
-          targetLanguage,
+          source_language,
+          target_language,
           words: combinedWords,
           listIds: combinedListIds,
         })

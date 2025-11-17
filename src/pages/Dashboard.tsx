@@ -117,10 +117,6 @@ export function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {wordLists?.map((list) => {
-              // Supabase returns snake_case, so access those fields directly
-              const sourceLanguage = (list as any).source_language || list.sourceLanguage
-              const targetLanguage = (list as any).target_language || list.targetLanguage
-
               return (
                 <Card
                   key={list.id}
@@ -133,7 +129,7 @@ export function Dashboard() {
                       <div className="flex-1">
                         <CardTitle className="mb-1">{list.name}</CardTitle>
                         <CardDescription>
-                          {sourceLanguage} → {targetLanguage}
+                          {list.source_language} → {list.target_language}
                         </CardDescription>
                         <p className="text-sm text-muted-foreground mt-1">
                           {list.wordCount} {list.wordCount === 1 ? 'word' : 'words'}

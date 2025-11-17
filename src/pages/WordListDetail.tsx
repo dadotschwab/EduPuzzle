@@ -68,7 +68,7 @@ export function WordListDetail() {
           <div>
             <h1 className="text-3xl font-bold mb-2">{wordList.name}</h1>
             <p className="text-muted-foreground">
-              {(wordList as any).source_language || wordList.sourceLanguage} → {(wordList as any).target_language || wordList.targetLanguage}
+              {wordList.source_language} → {wordList.target_language}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
               {words?.length || 0} {words?.length === 1 ? 'word' : 'words'}

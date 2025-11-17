@@ -13,8 +13,8 @@ interface CreateWordListDialogProps {
 
 export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialogProps) {
   const [name, setName] = useState('')
-  const [sourceLanguage, setSourceLanguage] = useState('')
-  const [targetLanguage, setTargetLanguage] = useState('')
+  const [source_language, setSourceLanguage] = useState('')
+  const [target_language, setTargetLanguage] = useState('')
   const createMutation = useCreateWordList()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,8 +23,8 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
     try {
       await createMutation.mutateAsync({
         name,
-        sourceLanguage,
-        targetLanguage,
+        source_language,
+        target_language,
       })
 
       // Reset form and close
@@ -62,7 +62,7 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
           <div className="space-y-2">
             <Label htmlFor="sourceLanguage">Source Language</Label>
             <LanguageSelector
-              value={sourceLanguage}
+              value={source_language}
               onChange={setSourceLanguage}
               placeholder="Select source language..."
             />
@@ -71,7 +71,7 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
           <div className="space-y-2">
             <Label htmlFor="targetLanguage">Target Language</Label>
             <LanguageSelector
-              value={targetLanguage}
+              value={target_language}
               onChange={setTargetLanguage}
               placeholder="Select target language..."
             />

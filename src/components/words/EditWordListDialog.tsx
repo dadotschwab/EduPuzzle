@@ -15,15 +15,15 @@ interface EditWordListDialogProps {
 
 export function EditWordListDialog({ open, onOpenChange, wordList }: EditWordListDialogProps) {
   const [name, setName] = useState(wordList.name)
-  const [sourceLanguage, setSourceLanguage] = useState(wordList.sourceLanguage)
-  const [targetLanguage, setTargetLanguage] = useState(wordList.targetLanguage)
+  const [source_language, setSourceLanguage] = useState(wordList.source_language)
+  const [target_language, setTargetLanguage] = useState(wordList.target_language)
   const updateMutation = useUpdateWordList()
 
   useEffect(() => {
     if (open) {
       setName(wordList.name)
-      setSourceLanguage(wordList.sourceLanguage)
-      setTargetLanguage(wordList.targetLanguage)
+      setSourceLanguage(wordList.source_language)
+      setTargetLanguage(wordList.target_language)
     }
   }, [open, wordList])
 
@@ -35,8 +35,8 @@ export function EditWordListDialog({ open, onOpenChange, wordList }: EditWordLis
         id: wordList.id,
         updates: {
           name,
-          sourceLanguage,
-          targetLanguage,
+          source_language,
+          target_language,
         },
       })
 
@@ -69,7 +69,7 @@ export function EditWordListDialog({ open, onOpenChange, wordList }: EditWordLis
           <div className="space-y-2">
             <Label htmlFor="sourceLanguage">Source Language</Label>
             <LanguageSelector
-              value={sourceLanguage}
+              value={source_language}
               onChange={setSourceLanguage}
               placeholder="Select source language..."
             />
@@ -78,7 +78,7 @@ export function EditWordListDialog({ open, onOpenChange, wordList }: EditWordLis
           <div className="space-y-2">
             <Label htmlFor="targetLanguage">Target Language</Label>
             <LanguageSelector
-              value={targetLanguage}
+              value={target_language}
               onChange={setTargetLanguage}
               placeholder="Select target language..."
             />

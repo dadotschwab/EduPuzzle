@@ -14,43 +14,6 @@ import { supabase } from '@/lib/supabase'
 import type { WordList } from '@/types'
 
 /**
- * Database update object for word lists (snake_case for Supabase)
- */
-interface WordListUpdateData {
-  name?: string
-  source_language?: string
-  target_language?: string
-}
-
-/**
- * Database row object (snake_case from Supabase)
- */
-interface WordListRow {
-  id: string
-  user_id: string
-  name: string
-  source_language: string
-  target_language: string
-  created_at: string
-  updated_at: string
-}
-
-/**
- * Converts a database row to a WordList object (snake_case to camelCase)
- */
-function rowToWordList(row: WordListRow): WordList {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    name: row.name,
-    sourceLanguage: row.source_language,
-    targetLanguage: row.target_language,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }
-}
-
-/**
  * Fetches all word lists for the current user
  * @returns Array of word lists, sorted by creation date (newest first)
  * @throws Error if database query fails
@@ -62,7 +25,7 @@ export async function getWordLists() {
     .order('created_at', { ascending: false })
 
   if (error) throw error
-  return (data as WordListRow[]).map(rowToWordList)
+  return data as WordList[]
 }
 
 /**
@@ -79,7 +42,7 @@ export async function getWordList(id: string) {
     .single()
 
   if (error) throw error
-  return rowToWordList(data as WordListRow)
+  return data as WordList
 }
 
 /**
@@ -90,8 +53,8 @@ export async function getWordList(id: string) {
  */
 export async function createWordList(wordList: {
   name: string
-  sourceLanguage: string
-  targetLanguage: string
+  source_language: string
+  target_language: string
 }) {
   const {
     data: { user },
@@ -99,20 +62,19 @@ export async function createWordList(wordList: {
 
   if (!user) throw new Error('Not authenticated')
 
-  // Convert camelCase to snake_case for database
   const { data, error } = await supabase
     .from('word_lists')
     .insert({
       user_id: user.id,
       name: wordList.name,
-      source_language: wordList.sourceLanguage,
-      target_language: wordList.targetLanguage,
+      source_language: wordList.source_language,
+      target_language: wordList.target_language,
     } as any)
     .select()
     .single()
 
   if (error) throw error
-  return rowToWordList(data as WordListRow)
+  return data as WordList
 }
 
 /**
@@ -127,27 +89,19 @@ export async function updateWordList(
   id: string,
   updates: {
     name?: string
-    sourceLanguage?: string
-    targetLanguage?: string
+    source_language?: string
+    target_language?: string
   }
 ) {
-  // Build update object with only defined fields, converting to snake_case
-  const updateData: WordListUpdateData = {}
-  if (updates.name !== undefined) updateData.name = updates.name
-  if (updates.sourceLanguage !== undefined)
-    updateData.source_language = updates.sourceLanguage
-  if (updates.targetLanguage !== undefined)
-    updateData.target_language = updates.targetLanguage
-
-  const { data, error } = await (supabase
-    .from('word_lists') as any)
-    .update(updateData)
+  const { data, error } = await supabase
+    .from('word_lists')
+    .update(updates)
     .eq('id', id)
     .select()
     .single()
 
   if (error) throw error
-  return rowToWordList(data as WordListRow)
+  return data as WordList
 }
 
 /**

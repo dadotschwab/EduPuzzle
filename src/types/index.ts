@@ -76,9 +76,9 @@ export interface Word {
  * Used for displaying words with their learning status and for today's puzzles
  */
 export interface WordWithProgress extends Word {
-  sourceLanguage: string        // Language being learned
-  targetLanguage: string        // User's native language
-  progress?: WordProgress       // Optional SRS progress data
+  source_language: string        // Language being learned
+  target_language: string        // User's native language
+  progress?: WordProgress        // Optional SRS progress data
 }
 
 /**
@@ -103,12 +103,12 @@ export interface DueWordsSummary {
  */
 export interface WordList {
   id: string
-  userId: string
+  user_id: string
   name: string
-  sourceLanguage: string        // Language being learned
-  targetLanguage: string        // User's native language
-  createdAt: string
-  updatedAt: string
+  source_language: string        // Language being learned
+  target_language: string        // User's native language
+  created_at: string
+  updated_at: string
 }
 
 // ============================================================================
