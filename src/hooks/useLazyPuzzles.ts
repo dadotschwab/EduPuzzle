@@ -1,23 +1,22 @@
 /**
- * @fileoverview React Query hooks for SRS-driven puzzle generation
+ * @fileoverview Lazy puzzle generation for Today's Puzzles
  *
- * Implements hybrid smart grouping strategy:
- * - Lists with ≥15 words get their own puzzle
- * - Lists with <15 words are combined by language pair
- * - Minimum 10 words required per puzzle
+ * Generates puzzles on-demand to avoid processing all 700+ words at once.
+ * Keeps a buffer of 3 puzzles ahead of the user.
  *
- * @module hooks/useTodaysPuzzles
+ * @module hooks/useLazyPuzzles
  */
 
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchDueWords, fetchDueWordsCount, batchUpdateWordProgress } from '@/lib/api/srs'
+import { fetchDueWords, batchUpdateWordProgress } from '@/lib/api/srs'
 import { generatePuzzle } from '@/lib/puzzleGenerator'
 import type { WordWithProgress, Puzzle } from '@/types'
 import { useAuth } from '@/hooks/useAuth'
 
 const MIN_WORDS_FOR_PUZZLE = 10
 const LARGE_LIST_THRESHOLD = 15
-const INITIAL_PUZZLE_BATCH = 3 // Generate 3 puzzles at a time
+const PUZZLE_BUFFER_SIZE = 3 // Keep 3 puzzles ahead
 
 interface PuzzleGroup {
   languagePair: string
@@ -27,16 +26,16 @@ interface PuzzleGroup {
   listIds: string[]
 }
 
-interface TodaysPuzzlesData {
+interface LazyPuzzlesData {
   puzzles: Puzzle[]
   totalWords: number
-  hasMore: boolean // Indicates if more puzzles can be generated
-  message?: string
+  canGenerateMore: boolean
+  generateMore: () => Promise<void>
+  isGenerating: boolean
 }
 
 /**
  * Prioritizes words by how overdue they are
- * Words that are more overdue appear first in the list
  */
 function prioritizeWordsByOverdue(words: WordWithProgress[]): WordWithProgress[] {
   const today = new Date().toISOString().split('T')[0]
@@ -44,26 +43,15 @@ function prioritizeWordsByOverdue(words: WordWithProgress[]): WordWithProgress[]
   return [...words].sort((a, b) => {
     const aDate = a.progress?.nextReviewDate || today
     const bDate = b.progress?.nextReviewDate || today
-
-    // Earlier dates (more overdue) come first
     return aDate.localeCompare(bDate)
   })
 }
 
 /**
- * Smart grouping algorithm for multi-list puzzles
- *
- * Strategy:
- * 1. Prioritize words by how overdue they are (most overdue first)
- * 2. Group words by language pair
- * 3. Within each language pair, separate by list size
- * 4. Large lists (≥15 words) get their own puzzle
- * 5. Small lists (<15 words) are combined if total ≥ MIN_WORDS
+ * Groups words for puzzle generation
  */
-async function smartGroupWords(dueWords: WordWithProgress[]): Promise<PuzzleGroup[]> {
+async function createPuzzleGroups(dueWords: WordWithProgress[]): Promise<PuzzleGroup[]> {
   const groups: PuzzleGroup[] = []
-
-  // Prioritize overdue words first
   const prioritizedWords = prioritizeWordsByOverdue(dueWords)
 
   // Group by language pair
@@ -90,7 +78,6 @@ async function smartGroupWords(dueWords: WordWithProgress[]): Promise<PuzzleGrou
     const largeLists: { listId: string; words: WordWithProgress[] }[] = []
     const smallLists: { listId: string; words: WordWithProgress[] }[] = []
 
-    // Separate large and small lists
     for (const [listId, words] of listsMap) {
       if (words.length >= LARGE_LIST_THRESHOLD) {
         largeLists.push({ listId, words })
@@ -110,7 +97,7 @@ async function smartGroupWords(dueWords: WordWithProgress[]): Promise<PuzzleGrou
       })
     }
 
-    // Combine small lists if they reach minimum threshold
+    // Combine small lists
     if (smallLists.length > 0) {
       const combinedWords: WordWithProgress[] = []
       const combinedListIds: string[] = []
@@ -120,7 +107,6 @@ async function smartGroupWords(dueWords: WordWithProgress[]): Promise<PuzzleGrou
         combinedListIds.push(listId)
       }
 
-      // Only create puzzle if we have enough words
       if (combinedWords.length >= MIN_WORDS_FOR_PUZZLE) {
         groups.push({
           languagePair,
@@ -137,78 +123,104 @@ async function smartGroupWords(dueWords: WordWithProgress[]): Promise<PuzzleGrou
 }
 
 /**
- * Fetches due words and generates puzzles using smart grouping
+ * Hook for lazy puzzle generation
+ * Generates puzzles on-demand as user progresses
  */
-export function useTodaysPuzzles() {
+export function useLazyPuzzles(): LazyPuzzlesData | null {
   const { user } = useAuth()
+  const [puzzles, setPuzzles] = useState<Puzzle[]>([])
+  const [remainingGroups, setRemainingGroups] = useState<PuzzleGroup[]>([])
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [totalWords, setTotalWords] = useState(0)
 
-  return useQuery({
-    queryKey: ['todaysPuzzles', user?.id],
-    queryFn: async (): Promise<TodaysPuzzlesData> => {
+  // Fetch and group all due words
+  const { data: dueWords, isLoading } = useQuery({
+    queryKey: ['dueWords', user?.id],
+    queryFn: async () => {
       if (!user) throw new Error('User not authenticated')
+      return fetchDueWords(user.id)
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  })
 
-      // Fetch all due words (including new words with stage 0)
-      const dueWords = await fetchDueWords(user.id)
+  // Initialize: create groups and generate first batch
+  useEffect(() => {
+    if (!dueWords || dueWords.length === 0) return
 
-      // No words due
-      if (dueWords.length === 0) {
-        return {
-          puzzles: [],
-          totalWords: 0,
-          message: 'No words due for review today. Great job staying on top of your vocabulary!',
-        }
-      }
+    const initialize = async () => {
+      const groups = await createPuzzleGroups(dueWords)
+      setTotalWords(dueWords.length)
 
-      // Apply smart grouping
-      const groups = await smartGroupWords(dueWords)
+      // Generate first batch of puzzles
+      const initialPuzzles: Puzzle[] = []
+      const groupsToGenerate = groups.slice(0, PUZZLE_BUFFER_SIZE)
+      const remaining = groups.slice(PUZZLE_BUFFER_SIZE)
 
-      // Generate puzzles for each group
-      const puzzles: Puzzle[] = []
-      for (const group of groups) {
+      for (const group of groupsToGenerate) {
         try {
           const puzzle = await generatePuzzle(group.words)
           if (puzzle) {
-            puzzles.push(puzzle)
+            initialPuzzles.push(puzzle)
           }
         } catch (error) {
           console.error(`Failed to generate puzzle for ${group.languagePair}:`, error)
         }
       }
 
-      // Not enough words to create any puzzles
-      if (puzzles.length === 0) {
-        return {
-          puzzles: [],
-          totalWords: dueWords.length,
-          message: `You have ${dueWords.length} word(s) due, but we need at least ${MIN_WORDS_FOR_PUZZLE} words in the same language pair to create a puzzle. Add more words to your lists!`,
+      setPuzzles(initialPuzzles)
+      setRemainingGroups(remaining)
+    }
+
+    initialize()
+  }, [dueWords])
+
+  /**
+   * Generates more puzzles from remaining groups
+   */
+  const generateMore = useCallback(async () => {
+    if (remainingGroups.length === 0 || isGenerating) return
+
+    setIsGenerating(true)
+
+    const groupsToGenerate = remainingGroups.slice(0, PUZZLE_BUFFER_SIZE)
+    const newPuzzles: Puzzle[] = []
+
+    for (const group of groupsToGenerate) {
+      try {
+        const puzzle = await generatePuzzle(group.words)
+        if (puzzle) {
+          newPuzzles.push(puzzle)
         }
+      } catch (error) {
+        console.error(`Failed to generate puzzle for ${group.languagePair}:`, error)
       }
+    }
 
-      return {
-        puzzles,
-        totalWords: dueWords.length,
-      }
-    },
-    enabled: !!user,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  })
-}
+    setPuzzles(prev => [...prev, ...newPuzzles])
+    setRemainingGroups(prev => prev.slice(PUZZLE_BUFFER_SIZE))
+    setIsGenerating(false)
+  }, [remainingGroups, isGenerating])
 
-/**
- * Gets count of due words for dashboard badge
- */
-export function useDueWordsCount() {
-  const { user } = useAuth()
+  if (isLoading || !dueWords) return null
 
-  return useQuery({
-    queryKey: ['dueWordsCount', user?.id],
-    queryFn: async () => {
-      if (!user) return 0
-      return fetchDueWordsCount(user.id)
-    },
-    enabled: !!user,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  })
+  if (dueWords.length === 0) {
+    return {
+      puzzles: [],
+      totalWords: 0,
+      canGenerateMore: false,
+      generateMore: async () => {},
+      isGenerating: false,
+    }
+  }
+
+  return {
+    puzzles,
+    totalWords,
+    canGenerateMore: remainingGroups.length > 0,
+    generateMore,
+    isGenerating,
+  }
 }
 
 /**
@@ -224,19 +236,10 @@ export function useCompletePuzzle() {
       return batchUpdateWordProgress(updates, user.id)
     },
     onSuccess: () => {
-      // Invalidate queries to refresh due words count and puzzles
-      queryClient.invalidateQueries({ queryKey: ['todaysPuzzles'] })
+      // Invalidate queries to refresh due words count
+      queryClient.invalidateQueries({ queryKey: ['dueWords'] })
       queryClient.invalidateQueries({ queryKey: ['dueWordsCount'] })
       queryClient.invalidateQueries({ queryKey: ['wordProgress'] })
     },
   })
-}
-
-/**
- * Hook for managing current puzzle in multi-puzzle session
- */
-export function useCurrentPuzzle(puzzles: Puzzle[] | undefined | null, currentIndex: number): Puzzle | null {
-  if (!puzzles || puzzles.length === 0) return null
-  if (currentIndex < 0 || currentIndex >= puzzles.length) return null
-  return puzzles[currentIndex]
 }

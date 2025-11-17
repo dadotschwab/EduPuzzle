@@ -208,7 +208,7 @@ export function TodaysPuzzles() {
         {/* Progress Indicator */}
         <div className="mb-4 text-center">
           <p className="text-sm text-gray-600">
-            Puzzle {currentPuzzleIndex + 1} of {puzzleData.puzzles?.length || 1} • {puzzleData.totalWords} words due today
+            Puzzle {currentPuzzleIndex + 1} • {puzzleData.totalWords > 99 ? '99+' : puzzleData.totalWords} words to practice today
           </p>
         </div>
 
