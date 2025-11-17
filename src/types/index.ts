@@ -16,6 +16,18 @@
 // ============================================================================
 
 /**
+ * SRS learning stages based on SM-2 algorithm
+ * Determines review intervals and progression through the learning curve
+ */
+export enum SRSStage {
+  New = 0,         // Never studied
+  Learning = 1,    // Recently introduced (1-3 days)
+  Young = 2,       // Passed initial learning (1-4 weeks)
+  Mature = 3,      // Well-known (1+ months)
+  Relearning = 4   // Was mature but failed, back to learning
+}
+
+/**
  * Represents the performance level of a user on a specific word
  * Used by the SRS engine to determine the next review interval
  */
@@ -23,16 +35,47 @@ export type ReviewType = 'perfect' | 'half_known' | 'conditional' | 'unknown' | 
 
 /**
  * Tracks a user's progress for a specific word in the SRS system
+ * Enhanced with SM-2 algorithm fields for optimal spaced repetition
  */
 export interface WordProgress {
   id: string
   userId: string
   wordId: string
-  repetitionLevel: number       // Current SRS level (0-6)
-  nextReviewDate: string        // ISO date string for next review
-  lastReviewedAt?: string       // Last time this word was reviewed
-  totalReviews: number          // Total number of reviews
-  correctReviews: number        // Number of correct reviews
+  stage: SRSStage                // Learning stage (0-4)
+  easeFactor: number             // SM-2 ease factor (1.3-2.5)
+  intervalDays: number           // Days between reviews
+  nextReviewDate: string         // ISO date string for next review
+  lastReviewedAt?: string        // Last time this word was reviewed
+  totalReviews: number           // Total number of reviews
+  correctReviews: number         // Number of correct reviews
+  incorrectReviews: number       // Number of incorrect reviews
+  currentStreak: number          // Consecutive correct answers
+  updatedAt?: string             // Last update timestamp
+}
+
+/**
+ * Word with its SRS progress data combined
+ * Used for displaying words with their learning status
+ */
+export interface WordWithProgress extends Word {
+  progress?: WordProgress
+}
+
+/**
+ * Summary of due words grouped by language pair
+ * Used for generating today's puzzles
+ */
+export interface DueWordsSummary {
+  languagePair: string           // e.g., "en-de"
+  sourceLanguage: string
+  targetLanguage: string
+  totalDue: number
+  byList: Array<{
+    listId: string
+    listName: string
+    wordCount: number
+    words: WordWithProgress[]
+  }>
 }
 
 // ============================================================================
