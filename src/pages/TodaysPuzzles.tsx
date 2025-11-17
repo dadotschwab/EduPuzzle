@@ -9,7 +9,7 @@
  * @module pages/TodaysPuzzles
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
@@ -42,13 +42,18 @@ export function TodaysPuzzles() {
   // Use shared puzzle solver logic
   const solver = usePuzzleSolver(puzzle)
 
+  // Track if this is the initial data load to prevent auto-advancing
+  const isInitialLoadRef = useRef(true)
+
   /**
-   * Initialize to first uncompleted puzzle when data loads
+   * Initialize to first uncompleted puzzle ONLY on initial load
+   * Don't auto-advance when data refetches after completing a puzzle
    */
   useEffect(() => {
-    if (puzzleData?.puzzles) {
+    if (puzzleData?.puzzles && isInitialLoadRef.current) {
       const firstUncompletedIndex = getFirstUncompletedPuzzleIndex(puzzleData.puzzles)
       setCurrentPuzzleIndex(firstUncompletedIndex)
+      isInitialLoadRef.current = false
     }
   }, [puzzleData])
 
@@ -219,6 +224,8 @@ export function TodaysPuzzles() {
               onWordSelect={solver.setSelectedWord}
               onFocusedCellChange={solver.setFocusedCell}
               checkedWords={solver.checkedWords}
+              isPuzzleCompleted={solver.isPuzzleCompleted}
+              showCorrectAnswers={solver.showCorrectAnswers}
             />
           </div>
 
