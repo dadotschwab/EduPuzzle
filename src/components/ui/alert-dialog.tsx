@@ -74,7 +74,10 @@ export function AlertDialogContent({ children }: AlertDialogContentProps) {
   if (!open) return null
 
   return (
-    <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg">
+    <div
+      className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg"
+      onClick={(e) => e.stopPropagation()}
+    >
       {children}
     </div>
   )

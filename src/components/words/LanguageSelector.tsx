@@ -16,6 +16,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from '@/components/ui/command'
 import {
   Popover,
@@ -106,6 +107,11 @@ export function LanguageSelector({
     [value]
   )
 
+  const handleSelect = (languageCode: string) => {
+    onChange(languageCode)
+    setOpen(false)
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -119,31 +125,30 @@ export function LanguageSelector({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Search languages..." className="h-9" />
-          <CommandEmpty>No language found.</CommandEmpty>
-          <CommandGroup className="max-h-64 overflow-auto">
-            {LANGUAGES.map((language) => (
-              <CommandItem
-                key={language.code}
-                value={language.name}
-                onSelect={() => {
-                  onChange(language.code)
-                  setOpen(false)
-                }}
-              >
-                <Check
-                  className={cn(
-                    'mr-2 h-4 w-4',
-                    value === language.code ? 'opacity-100' : 'opacity-0'
-                  )}
-                />
-                {language.name}
-                <span className="ml-auto text-xs text-gray-500">{language.code}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <Command shouldFilter>
+          <CommandInput placeholder="Search languages..." />
+          <CommandList>
+            <CommandEmpty>No language found.</CommandEmpty>
+            <CommandGroup className="max-h-64 overflow-auto">
+              {LANGUAGES.map((language) => (
+                <CommandItem
+                  key={language.code}
+                  value={`${language.name} ${language.code}`}
+                  onSelect={() => handleSelect(language.code)}
+                >
+                  <Check
+                    className={cn(
+                      'mr-2 h-4 w-4',
+                      value === language.code ? 'opacity-100' : 'opacity-0'
+                    )}
+                  />
+                  {language.name}
+                  <span className="ml-auto text-xs text-gray-500">{language.code}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
