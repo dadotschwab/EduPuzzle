@@ -103,11 +103,14 @@ export function LanguageSelector({
 
   // Find the selected language object - support both code and name for backwards compatibility
   const selectedLanguage = useMemo(() => {
+    // Return undefined if value is not provided
+    if (!value) return undefined
+
     // Try to match by code first (e.g., "en")
     let lang = LANGUAGES.find(l => l.code === value)
 
     // If not found, try to match by name (e.g., "English") for backwards compatibility
-    if (!lang) {
+    if (!lang && value) {
       lang = LANGUAGES.find(l => l.name.toLowerCase() === value.toLowerCase())
     }
 
