@@ -9,7 +9,7 @@
  * @module pages/TodaysPuzzles
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
@@ -20,6 +20,10 @@ import { Button } from '@/components/ui/button'
 import { Loader2, AlertCircle, Calendar } from 'lucide-react'
 import { useTodaysPuzzles, useCompletePuzzle, useCurrentPuzzle } from '@/hooks/useTodaysPuzzles'
 import { usePuzzleSolver } from '@/hooks/usePuzzleSolver'
+import {
+  markPuzzleCompleted,
+  getFirstUncompletedPuzzleIndex,
+} from '@/lib/utils/puzzleProgress'
 
 /**
  * Today's Puzzles page component - SRS-driven puzzle practice
@@ -39,11 +43,24 @@ export function TodaysPuzzles() {
   const solver = usePuzzleSolver(puzzle)
 
   /**
+   * Initialize to first uncompleted puzzle when data loads
+   */
+  useEffect(() => {
+    if (puzzleData?.puzzles) {
+      const firstUncompletedIndex = getFirstUncompletedPuzzleIndex(puzzleData.puzzles)
+      setCurrentPuzzleIndex(firstUncompletedIndex)
+    }
+  }, [puzzleData])
+
+  /**
    * Ends the puzzle, validates all words, and updates SRS progress
    */
   const handleEndPuzzle = () => {
     solver.handleEndPuzzle((validationResults) => {
       if (!puzzle) return
+
+      // Mark this puzzle as completed
+      markPuzzleCompleted(puzzle)
 
       // Update SRS progress for all words in this puzzle
       const srsUpdates = puzzle.placedWords.map(word => ({
@@ -59,7 +76,10 @@ export function TodaysPuzzles() {
    * Advances to the next puzzle
    */
   const handleNextPuzzle = () => {
-    if (!puzzleData?.puzzles) return
+    if (!puzzleData?.puzzles || !puzzle) return
+
+    // Mark current puzzle as completed before moving on
+    markPuzzleCompleted(puzzle)
 
     if (currentPuzzleIndex < puzzleData.puzzles.length - 1) {
       setCurrentPuzzleIndex(prev => prev + 1)
