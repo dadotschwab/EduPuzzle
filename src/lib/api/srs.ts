@@ -202,12 +202,14 @@ export async function updateWordProgress(
   wasCorrect: boolean
 ): Promise<void> {
   // Fetch current progress
+  // Cast to any to work around Supabase type inference issues
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: progressData, error: fetchError } = await supabase
     .from('word_progress')
     .select('*')
     .eq('word_id', wordId)
     .eq('user_id', userId)
-    .single()
+    .single() as any
 
   if (fetchError) throw fetchError
   if (!progressData) throw new Error('Word progress not found')
@@ -236,8 +238,10 @@ export async function updateWordProgress(
   console.log(`  New: next_review=${updates.nextReviewDate}, interval=${updates.intervalDays}, stage=${updates.stage}`)
 
   // Update database
-  const { error: updateError } = await supabase
-    .from('word_progress')
+  // Cast to any to work around Supabase type inference issues
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: updateError } = await (supabase
+    .from('word_progress') as any)
     .update(updates)
     .eq('id', progressData.id)
 

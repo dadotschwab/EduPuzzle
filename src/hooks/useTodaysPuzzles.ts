@@ -17,7 +17,6 @@ import { useAuth } from '@/hooks/useAuth'
 
 const MIN_WORDS_FOR_PUZZLE = 10
 const LARGE_LIST_THRESHOLD = 15
-const INITIAL_PUZZLE_BATCH = 3 // Generate 3 puzzles at a time
 
 interface PuzzleGroup {
   languagePair: string
@@ -180,7 +179,7 @@ export function useTodaysPuzzles() {
             term: w.term,
             translation: w.translation,
             definition: w.definition,
-            exampleSentence: w.example_sentence,
+            exampleSentence: w.exampleSentence,
             createdAt: w.createdAt,
           }))
 

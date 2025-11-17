@@ -93,8 +93,10 @@ export async function updateWordList(
     target_language?: string
   }
 ) {
-  const { data, error } = await supabase
-    .from('word_lists')
+  // Cast to any to work around Supabase type inference issues
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase
+    .from('word_lists') as any)
     .update(updates)
     .eq('id', id)
     .select()

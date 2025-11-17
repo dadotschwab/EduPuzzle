@@ -92,31 +92,46 @@ export interface Database {
           id: string
           user_id: string
           word_id: string
-          repetition_level: number
+          stage: number
+          ease_factor: number
+          interval_days: number
           next_review_date: string
           last_reviewed_at: string | null
           total_reviews: number
           correct_reviews: number
+          incorrect_reviews: number
+          current_streak: number
+          updated_at: string
         }
         Insert: {
           id?: string
           user_id: string
           word_id: string
-          repetition_level?: number
+          stage?: number
+          ease_factor?: number
+          interval_days?: number
           next_review_date?: string
           last_reviewed_at?: string | null
           total_reviews?: number
           correct_reviews?: number
+          incorrect_reviews?: number
+          current_streak?: number
+          updated_at?: string
         }
         Update: {
           id?: string
           user_id?: string
           word_id?: string
-          repetition_level?: number
+          stage?: number
+          ease_factor?: number
+          interval_days?: number
           next_review_date?: string
           last_reviewed_at?: string | null
           total_reviews?: number
           correct_reviews?: number
+          incorrect_reviews?: number
+          current_streak?: number
+          updated_at?: string
         }
       }
       puzzle_sessions: {

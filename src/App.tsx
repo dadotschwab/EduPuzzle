@@ -7,8 +7,6 @@ import { Dashboard } from './pages/Dashboard'
 import { WordListDetail } from './pages/WordListDetail'
 import { PuzzleSolver } from './pages/PuzzleSolver'
 import { TodaysPuzzles } from './pages/TodaysPuzzles'
-import { DailyReview } from './pages/DailyReview'
-import { Statistics } from './pages/Statistics'
 import { SettingsLayout } from './pages/Settings/SettingsLayout'
 import { AccountSettings } from './pages/Settings/AccountSettings'
 import { SubscriptionSettings } from './pages/Settings/SubscriptionSettings'
@@ -59,22 +57,6 @@ function App() {
         element={
           <ProtectedRoute>
             <PuzzleSolver />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/app/review"
-        element={
-          <ProtectedRoute>
-            <DailyReview />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/app/stats"
-        element={
-          <ProtectedRoute>
-            <Statistics />
           </ProtectedRoute>
         }
       />

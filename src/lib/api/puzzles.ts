@@ -117,38 +117,6 @@ export async function getRandomWordsForPuzzle(
 }
 
 /**
- * Fetches all words from a word list
- *
- * @param listId - The word list ID to fetch words from
- * @returns Array of all words from the list
- * @throws Error if fetch fails
- */
-export async function getAllWordsFromList(listId: string): Promise<Word[]> {
-  const { data, error } = await supabase
-    .from('words')
-    .select<'*', WordRow>('*')
-    .eq('list_id', listId)
-
-  if (error) {
-    throw new Error(`Failed to fetch words: ${error.message}`)
-  }
-
-  if (!data) {
-    return []
-  }
-
-  return data.map(word => ({
-    id: word.id,
-    listId: word.list_id,
-    term: word.term,
-    translation: word.translation,
-    definition: word.definition || undefined,
-    exampleSentence: word.example_sentence || undefined,
-    createdAt: word.created_at,
-  }))
-}
-
-/**
  * Saves a puzzle session to the database
  *
  * @param userId - The user ID who created the session
@@ -191,80 +159,6 @@ export async function savePuzzleSession(
 
   if (!data) {
     throw new Error('No data returned from puzzle session insert')
-  }
-
-  return {
-    id: data.id,
-    userId: data.user_id,
-    listId: data.list_id,
-    startedAt: data.started_at,
-    completedAt: data.completed_at || undefined,
-    puzzleData: data.puzzle_data,
-    totalWords: data.total_words,
-    correctWords: data.correct_words,
-  }
-}
-
-/**
- * Retrieves a puzzle session by ID
- *
- * @param sessionId - The puzzle session ID
- * @returns The puzzle session
- * @throws Error if fetch fails or session not found
- */
-export async function getPuzzleSession(sessionId: string): Promise<PuzzleSession> {
-  const { data, error } = await supabase
-    .from('puzzle_sessions')
-    .select<'*', PuzzleSessionRow>('*')
-    .eq('id', sessionId)
-    .single()
-
-  if (error) {
-    throw new Error(`Failed to fetch puzzle session: ${error.message}`)
-  }
-
-  return {
-    id: data.id,
-    userId: data.user_id,
-    listId: data.list_id,
-    startedAt: data.started_at,
-    completedAt: data.completed_at || undefined,
-    puzzleData: data.puzzle_data,
-    totalWords: data.total_words,
-    correctWords: data.correct_words,
-  }
-}
-
-/**
- * Updates a puzzle session when completed
- *
- * @param sessionId - The puzzle session ID
- * @param correctWords - Number of words answered correctly
- * @returns Updated puzzle session
- * @throws Error if update fails
- */
-export async function completePuzzleSession(
-  sessionId: string,
-  correctWords: number
-): Promise<PuzzleSession> {
-  // Cast to any to work around Supabase type inference issues when database types are not available
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = (await (supabase
-    .from('puzzle_sessions') as any)
-    .update({
-      completed_at: new Date().toISOString(),
-      correct_words: correctWords,
-    })
-    .eq('id', sessionId)
-    .select()
-    .single()) as { data: PuzzleSessionRow | null; error: any }
-
-  if (error) {
-    throw new Error(`Failed to complete puzzle session: ${error.message}`)
-  }
-
-  if (!data) {
-    throw new Error('No data returned from puzzle session update')
   }
 
   return {

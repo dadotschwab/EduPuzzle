@@ -20,7 +20,7 @@ import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
 import { PuzzleCompletionCard } from '@/components/puzzle/PuzzleCompletionCard'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, Loader2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle } from 'lucide-react'
 import { usePuzzleGeneration, useCurrentPuzzle } from '@/hooks/usePuzzleGeneration'
 import { usePuzzleSolver } from '@/hooks/usePuzzleSolver'
 

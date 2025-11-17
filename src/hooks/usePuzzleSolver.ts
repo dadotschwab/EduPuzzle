@@ -10,16 +10,6 @@
 import { useState } from 'react'
 import type { Puzzle, PlacedWord } from '@/types'
 
-interface PuzzleSolverState {
-  userInput: Record<string, string>
-  selectedWord: PlacedWord | null
-  focusedCell: { x: number; y: number } | null
-  hintsRemaining: number
-  checkedWords: Record<string, 'correct' | 'incorrect'>
-  isPuzzleCompleted: boolean
-  showCorrectAnswers: boolean
-}
-
 interface PuzzleStats {
   totalWords: number
   correctWords: number
