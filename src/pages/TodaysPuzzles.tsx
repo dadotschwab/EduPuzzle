@@ -51,7 +51,15 @@ export function TodaysPuzzles() {
   const hasPendingInvalidationRef = useRef(false)
 
   // Track total words practiced in this session (across multiple batches)
-  const [sessionWordsPracticed, setSessionWordsPracticed] = useState(0)
+  // Persisted in localStorage to maintain progress across dashboard visits
+  const [sessionWordsPracticed, setSessionWordsPracticed] = useState(() => {
+    const today = new Date().toISOString().split('T')[0]
+    const stored = localStorage.getItem(`session_progress_${today}`)
+    return stored ? parseInt(stored, 10) : 0
+  })
+
+  // Track words from the batch we just completed (before fetching next batch)
+  const [completedBatchWords, setCompletedBatchWords] = useState(0)
 
   /**
    * Initialize to first uncompleted puzzle ONLY on initial load
@@ -62,8 +70,38 @@ export function TodaysPuzzles() {
       const firstUncompletedIndex = getFirstUncompletedPuzzleIndex(puzzleData.puzzles)
       setCurrentPuzzleIndex(firstUncompletedIndex)
       isInitialLoadRef.current = false
+
+      // If we just loaded new puzzles after "Continue Practicing", update session counter
+      if (completedBatchWords > 0) {
+        const newTotal = sessionWordsPracticed + completedBatchWords
+        setSessionWordsPracticed(newTotal)
+        setCompletedBatchWords(0)
+
+        // Persist to localStorage
+        const today = new Date().toISOString().split('T')[0]
+        localStorage.setItem(`session_progress_${today}`, newTotal.toString())
+      }
     }
-  }, [puzzleData])
+  }, [puzzleData, sessionWordsPracticed, completedBatchWords])
+
+  /**
+   * Persist session progress to localStorage and clean up old sessions
+   */
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]
+
+    // Save current progress
+    if (sessionWordsPracticed > 0) {
+      localStorage.setItem(`session_progress_${today}`, sessionWordsPracticed.toString())
+    }
+
+    // Clean up old session progress (keep only today's)
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('session_progress_') && key !== `session_progress_${today}`) {
+        localStorage.removeItem(key)
+      }
+    })
+  }, [sessionWordsPracticed])
 
   /**
    * Cleanup effect: Invalidate todaysPuzzles when navigating away
@@ -116,9 +154,14 @@ export function TodaysPuzzles() {
       setCurrentPuzzleIndex(prev => prev + 1)
       solver.resetPuzzle()
     } else {
-      // Last puzzle in batch - count words practiced
+      // Last puzzle in batch - count words practiced and persist
       const wordsInBatch = puzzleData.puzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
-      setSessionWordsPracticed(prev => prev + wordsInBatch)
+      const newTotal = sessionWordsPracticed + wordsInBatch
+      setSessionWordsPracticed(newTotal)
+
+      // Persist to localStorage
+      const today = new Date().toISOString().split('T')[0]
+      localStorage.setItem(`session_progress_${today}`, newTotal.toString())
 
       // Mark that we need to invalidate on unmount
       hasPendingInvalidationRef.current = true
@@ -134,9 +177,9 @@ export function TodaysPuzzles() {
   const handleContinuePracticing = async () => {
     if (!puzzleData?.puzzles) return
 
-    // Count words in current batch
+    // Save current batch words count (will be added to session after new puzzles load)
     const wordsInBatch = puzzleData.puzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
-    setSessionWordsPracticed(prev => prev + wordsInBatch)
+    setCompletedBatchWords(wordsInBatch)
 
     // Invalidate queries to fetch next batch
     await queryClient.invalidateQueries({ queryKey: ['todaysPuzzles'] })
@@ -259,7 +302,7 @@ export function TodaysPuzzles() {
   // Calculate session progress for "Continue Practicing" feature
   const wordsInCurrentBatch = puzzleData.puzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
   const totalWordsPracticed = sessionWordsPracticed + wordsInCurrentBatch
-  const wordsRemaining = Math.max(0, puzzleData.totalWords - wordsInCurrentBatch) // Remaining after current batch
+  const wordsRemaining = Math.max(0, puzzleData.totalWords - totalWordsPracticed) // Remaining after all practiced words
 
   return (
     <AppLayout>
@@ -267,7 +310,7 @@ export function TodaysPuzzles() {
         {/* Progress Indicator */}
         <div className="mb-4 text-center">
           <p className="text-sm text-gray-600">
-            Puzzle {currentPuzzleIndex + 1} • {puzzleData.totalWords > 99 ? '99+' : puzzleData.totalWords} words to practice today
+            Puzzle {currentPuzzleIndex + 1} • {puzzleData.totalWords} words to practice today
           </p>
         </div>
 
