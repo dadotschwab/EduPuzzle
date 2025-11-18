@@ -190,8 +190,9 @@ export const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelector
                       key={language.code}
                       value={language.code}
                       onSelect={() => handleSelect(language.code)}
+                      onClick={() => handleSelect(language.code)}
                       onMouseDown={(e) => {
-                        // Prevent blur on mousedown so click works
+                        // Prevent blur on mousedown so click can complete
                         e.preventDefault()
                       }}
                       className="cursor-pointer"
