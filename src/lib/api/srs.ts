@@ -218,17 +218,22 @@ export async function updateWordProgress(
     console.log(`[SRS API] Creating initial progress for new word ${wordId}`)
 
     const today = new Date().toISOString().split('T')[0]
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const nextReview = tomorrow.toISOString().split('T')[0]
+
+    // Calculate next review date based on correctness
+    const nextReviewDate = new Date()
+    if (wasCorrect) {
+      nextReviewDate.setDate(nextReviewDate.getDate() + 2) // Correct: review in 2 days
+    } else {
+      nextReviewDate.setDate(nextReviewDate.getDate() + 1) // Incorrect: review tomorrow
+    }
 
     const initialProgress = {
       user_id: userId,
       word_id: wordId,
       stage: wasCorrect ? 1 : 0, // Learning if correct, New if incorrect
       ease_factor: 2.5,
-      interval_days: wasCorrect ? 1 : 0,
-      next_review_date: wasCorrect ? nextReview : today,
+      interval_days: wasCorrect ? 2 : 1, // Correct: 2 days, Incorrect: 1 day
+      next_review_date: nextReviewDate.toISOString().split('T')[0],
       last_reviewed_at: today,
       total_reviews: 1,
       correct_reviews: wasCorrect ? 1 : 0,
