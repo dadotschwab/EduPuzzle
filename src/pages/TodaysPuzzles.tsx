@@ -50,6 +50,9 @@ export function TodaysPuzzles() {
   // Track if we need to invalidate todaysPuzzles on unmount (when user navigates away)
   const hasPendingInvalidationRef = useRef(false)
 
+  // Track total words practiced in this session (across multiple batches)
+  const [sessionWordsPracticed, setSessionWordsPracticed] = useState(0)
+
   /**
    * Initialize to first uncompleted puzzle ONLY on initial load
    * Don't auto-advance when data refetches after completing a puzzle
@@ -117,9 +120,34 @@ export function TodaysPuzzles() {
       setCurrentPuzzleIndex(prev => prev + 1)
       solver.resetPuzzle()
     } else {
+      // Last puzzle in batch - count words practiced
+      const wordsInBatch = puzzleData.puzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
+      setSessionWordsPracticed(prev => prev + wordsInBatch)
+
       // All puzzles completed - go back to dashboard
       navigate('/app/dashboard')
     }
+  }
+
+  /**
+   * Continues practicing with next batch of due words
+   */
+  const handleContinuePracticing = async () => {
+    if (!puzzleData?.puzzles) return
+
+    // Count words in current batch
+    const wordsInBatch = puzzleData.puzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
+    setSessionWordsPracticed(prev => prev + wordsInBatch)
+
+    // Invalidate queries to fetch next batch
+    await queryClient.invalidateQueries({ queryKey: ['todaysPuzzles'] })
+    await queryClient.invalidateQueries({ queryKey: ['dueWordsCount'] })
+
+    // Reset to first puzzle
+    setCurrentPuzzleIndex(0)
+    isInitialLoadRef.current = true // Allow auto-navigation to first uncompleted
+    solver.resetPuzzle()
+    hasPendingInvalidationRef.current = false
   }
 
   // Loading state
@@ -229,6 +257,11 @@ export function TodaysPuzzles() {
   const stats = solver.getPuzzleStats()
   const isLastPuzzle = currentPuzzleIndex === (puzzleData.puzzles?.length || 1) - 1
 
+  // Calculate session progress for "Continue Practicing" feature
+  const wordsInCurrentBatch = puzzleData.puzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
+  const totalWordsPracticed = sessionWordsPracticed + wordsInCurrentBatch
+  const wordsRemaining = Math.max(0, puzzleData.totalWords - wordsInCurrentBatch) // Remaining after current batch
+
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 min-h-[calc(100vh-4rem)] flex flex-col justify-center">
@@ -278,6 +311,11 @@ export function TodaysPuzzles() {
                 onToggleAnswersView={solver.setShowCorrectAnswers}
                 onNext={handleNextPuzzle}
                 nextButtonLabel={isLastPuzzle ? 'Back to Dashboard' : 'Next Puzzle'}
+                onContinuePracticing={isLastPuzzle ? handleContinuePracticing : undefined}
+                continuePracticingInfo={isLastPuzzle ? {
+                  wordsPracticed: totalWordsPracticed,
+                  wordsRemaining,
+                } : undefined}
               />
             )}
           </div>

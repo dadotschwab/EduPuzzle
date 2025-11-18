@@ -338,18 +338,34 @@ export async function generatePuzzles(
     }
   }
 
-  // Step 3: Retry failed words
-  if (allFailedWords.length > 0) {
+  // Step 3: Retry failed words (only if >= 5 words, to avoid tiny puzzles)
+  if (allFailedWords.length >= 5) {
     console.log(`Final retry: ${allFailedWords.length} unplaced words`)
 
     const retryPuzzles = await retryFailedWords(allFailedWords, config)
     puzzles.push(...retryPuzzles)
+  } else if (allFailedWords.length > 0) {
+    console.log(`Skipping retry for ${allFailedWords.length} failed words (too few to create meaningful puzzle)`)
+    console.log(`Failed words will be available in next batch: ${allFailedWords.map(w => w.term).join(', ')}`)
   }
 
-  const totalPlaced = puzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
+  // Step 4: Filter out puzzles with too few words (minimum 5 words)
+  const MIN_PUZZLE_SIZE = 5
+  const filteredPuzzles = puzzles.filter(p => p.placedWords.length >= MIN_PUZZLE_SIZE)
+
+  if (filteredPuzzles.length < puzzles.length) {
+    const removed = puzzles.length - filteredPuzzles.length
+    const removedWords = puzzles
+      .filter(p => p.placedWords.length < MIN_PUZZLE_SIZE)
+      .flatMap(p => p.placedWords.map(w => w.word))
+    console.log(`Filtered out ${removed} small puzzle(s) with <${MIN_PUZZLE_SIZE} words`)
+    console.log(`Words from small puzzles will be available in next batch: ${removedWords.join(', ')}`)
+  }
+
+  const totalPlaced = filteredPuzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
   const coverage = (totalPlaced / words.length * 100).toFixed(1)
 
-  console.log(`Generated ${puzzles.length} puzzles - ${totalPlaced}/${words.length} words (${coverage}% coverage)`)
+  console.log(`Generated ${filteredPuzzles.length} puzzles - ${totalPlaced}/${words.length} words (${coverage}% coverage)`)
 
-  return puzzles
+  return filteredPuzzles
 }

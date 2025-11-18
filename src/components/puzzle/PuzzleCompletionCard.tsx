@@ -25,6 +25,11 @@ interface PuzzleCompletionCardProps {
   onNext: () => void
   nextButtonLabel?: string
   showNextButton?: boolean
+  onContinuePracticing?: () => void
+  continuePracticingInfo?: {
+    wordsPracticed: number
+    wordsRemaining: number
+  }
 }
 
 /**
@@ -36,6 +41,8 @@ interface PuzzleCompletionCardProps {
  * @param onNext - Handler for next puzzle/navigation
  * @param nextButtonLabel - Custom label for next button (default: "Next Puzzle")
  * @param showNextButton - Whether to show the next button (default: true)
+ * @param onContinuePracticing - Optional handler for continuing to next batch
+ * @param continuePracticingInfo - Info about session progress (words practiced/remaining)
  */
 export function PuzzleCompletionCard({
   stats,
@@ -44,6 +51,8 @@ export function PuzzleCompletionCard({
   onNext,
   nextButtonLabel = 'Next Puzzle',
   showNextButton = true,
+  onContinuePracticing,
+  continuePracticingInfo,
 }: PuzzleCompletionCardProps) {
   return (
     <Card className="flex-1 flex flex-col overflow-hidden">
@@ -111,19 +120,51 @@ export function PuzzleCompletionCard({
           </Button>
         </div>
 
-        {/* Next Button */}
-        {showNextButton && (
-          <Button
-            onClick={onNext}
-            className="w-full mt-4"
-            size="lg"
-          >
-            {nextButtonLabel}
-            {nextButtonLabel.toLowerCase().includes('next') && (
-              <ArrowRight className="w-4 h-4 ml-2" />
-            )}
-          </Button>
+        {/* Session Progress (if available) */}
+        {continuePracticingInfo && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+            <div className="text-sm text-blue-900 text-center">
+              <div className="font-semibold mb-1">Session Progress</div>
+              <div>
+                You've practiced <strong>{continuePracticingInfo.wordsPracticed}</strong> words.
+              </div>
+              <div className="text-blue-700 mt-1">
+                <strong>{continuePracticingInfo.wordsRemaining}</strong> more words are due today.
+              </div>
+            </div>
+          </div>
         )}
+
+        {/* Action Buttons */}
+        <div className="space-y-3 mt-4">
+          {/* Continue Practicing Button (if available) */}
+          {onContinuePracticing && continuePracticingInfo && continuePracticingInfo.wordsRemaining > 0 && (
+            <Button
+              onClick={onContinuePracticing}
+              className="w-full"
+              size="lg"
+              variant="default"
+            >
+              Continue Practicing
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          )}
+
+          {/* Next/Dashboard Button */}
+          {showNextButton && (
+            <Button
+              onClick={onNext}
+              className="w-full"
+              size="lg"
+              variant={onContinuePracticing ? "outline" : "default"}
+            >
+              {nextButtonLabel}
+              {nextButtonLabel.toLowerCase().includes('next') && (
+                <ArrowRight className="w-4 h-4 ml-2" />
+              )}
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
