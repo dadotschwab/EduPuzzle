@@ -19,9 +19,13 @@ import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
 import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
 import { PuzzleCompletionCard } from '@/components/puzzle/PuzzleCompletionCard'
 import { PuzzleHelpDialog } from '@/components/puzzle/PuzzleHelpDialog'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  PuzzleLoadingState,
+  PuzzleErrorState,
+  PuzzleNotLoadedState,
+} from '@/components/puzzle/PuzzlePageStates'
 import { Button } from '@/components/ui/button'
-import { Loader2, AlertCircle, HelpCircle } from 'lucide-react'
+import { HelpCircle } from 'lucide-react'
 import { usePuzzleGeneration, useCurrentPuzzle } from '@/hooks/usePuzzleGeneration'
 import { usePuzzleSolver } from '@/hooks/usePuzzleSolver'
 
@@ -61,22 +65,7 @@ export function PuzzleSolver() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center">
-          <Card className="w-full max-w-md">
-            <CardContent className="pt-6 text-center space-y-4">
-              <Loader2 className="w-12 h-12 mx-auto animate-spin text-primary" />
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold">Generating Your Puzzle...</h2>
-                <p className="text-muted-foreground">
-                  Fetching words and creating crossword puzzle
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  This usually takes 2-5 seconds
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <PuzzleLoadingState message="Generating your puzzle..." />
       </AppLayout>
     )
   }
@@ -85,34 +74,11 @@ export function PuzzleSolver() {
   if (error) {
     return (
       <AppLayout>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center">
-          <Card className="w-full max-w-md border-destructive">
-            <CardContent className="pt-6 text-center space-y-4">
-              <AlertCircle className="w-12 h-12 mx-auto text-destructive" />
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold">Failed to Generate Puzzle</h2>
-                <p className="text-muted-foreground">
-                  {error instanceof Error ? error.message : 'An unexpected error occurred'}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => navigate('/app')}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Back to Dashboard
-                </Button>
-                <Button
-                  onClick={() => window.location.reload()}
-                  className="flex-1"
-                >
-                  Try Again
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <PuzzleErrorState
+          title="Failed to Generate Puzzle"
+          message={error instanceof Error ? error.message : 'An unexpected error occurred'}
+          showCreateButton={false}
+        />
       </AppLayout>
     )
   }
@@ -121,22 +87,7 @@ export function PuzzleSolver() {
   if (!puzzle) {
     return (
       <AppLayout>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center">
-          <Card className="w-full max-w-md">
-            <CardContent className="pt-6 text-center space-y-4">
-              <AlertCircle className="w-12 h-12 mx-auto text-yellow-500" />
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold">No Puzzle Available</h2>
-                <p className="text-muted-foreground">
-                  Unable to load puzzle. The word list might be empty.
-                </p>
-              </div>
-              <Button onClick={() => navigate('/app')}>
-                Back to Dashboard
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <PuzzleNotLoadedState />
       </AppLayout>
     )
   }
