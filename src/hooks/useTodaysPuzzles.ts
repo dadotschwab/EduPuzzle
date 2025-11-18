@@ -248,10 +248,12 @@ export function useCompletePuzzle() {
       return batchUpdateWordProgress(updates, user.id)
     },
     onSuccess: () => {
-      // Invalidate queries to refresh due words count and puzzles
-      queryClient.invalidateQueries({ queryKey: ['todaysPuzzles'] })
+      // ✅ SAFE: Update counts immediately (for dashboard badges)
       queryClient.invalidateQueries({ queryKey: ['dueWordsCount'] })
       queryClient.invalidateQueries({ queryKey: ['wordProgress'] })
+
+      // ❌ DON'T invalidate todaysPuzzles here - causes layout bug!
+      // Puzzle regeneration happens when user advances or navigates away
     },
   })
 }

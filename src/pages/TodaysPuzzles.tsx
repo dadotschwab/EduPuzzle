@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
 import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
@@ -30,6 +31,7 @@ import {
  */
 export function TodaysPuzzles() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   // Fetch today's due words and generate puzzles
   const { data: puzzleData, isLoading, error } = useTodaysPuzzles()
@@ -45,6 +47,9 @@ export function TodaysPuzzles() {
   // Track if this is the initial data load to prevent auto-advancing
   const isInitialLoadRef = useRef(true)
 
+  // Track if we need to invalidate todaysPuzzles on unmount (when user navigates away)
+  const hasPendingInvalidationRef = useRef(false)
+
   /**
    * Initialize to first uncompleted puzzle ONLY on initial load
    * Don't auto-advance when data refetches after completing a puzzle
@@ -56,6 +61,20 @@ export function TodaysPuzzles() {
       isInitialLoadRef.current = false
     }
   }, [puzzleData])
+
+  /**
+   * Cleanup effect: Invalidate todaysPuzzles when navigating away
+   * This ensures dashboard badge is updated even if user doesn't click "Continue"
+   * (e.g., clicks logo, back button, or closes tab)
+   */
+  useEffect(() => {
+    return () => {
+      // On unmount, invalidate todaysPuzzles if we completed any puzzles
+      if (hasPendingInvalidationRef.current) {
+        queryClient.invalidateQueries({ queryKey: ['todaysPuzzles'] })
+      }
+    }
+  }, [queryClient])
 
   /**
    * Ends the puzzle, validates all words, and updates SRS progress
@@ -74,6 +93,9 @@ export function TodaysPuzzles() {
       }))
 
       completePuzzle.mutate(srsUpdates)
+
+      // Mark that we need to invalidate on unmount (if user navigates away)
+      hasPendingInvalidationRef.current = true
     })
   }
 
@@ -85,6 +107,11 @@ export function TodaysPuzzles() {
 
     // Mark current puzzle as completed before moving on
     markPuzzleCompleted(puzzle)
+
+    // Invalidate todaysPuzzles NOW (safe because user is advancing)
+    // This regenerates puzzles with updated due words for next session
+    queryClient.invalidateQueries({ queryKey: ['todaysPuzzles'] })
+    hasPendingInvalidationRef.current = false // Reset flag
 
     if (currentPuzzleIndex < puzzleData.puzzles.length - 1) {
       setCurrentPuzzleIndex(prev => prev + 1)
