@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { LanguageSelector } from '@/components/words/LanguageSelector'
+import { LanguageSelector, type LanguageSelectorRef } from '@/components/words/LanguageSelector'
 import { useCreateWordList } from '@/hooks/useWordLists'
 
 interface CreateWordListDialogProps {
@@ -16,6 +16,10 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
   const [source_language, setSourceLanguage] = useState('')
   const [target_language, setTargetLanguage] = useState('')
   const createMutation = useCreateWordList()
+
+  // Refs for auto-advancing between fields
+  const sourceLanguageRef = useRef<LanguageSelectorRef>(null)
+  const targetLanguageRef = useRef<LanguageSelectorRef>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,8 +66,10 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
           <div className="space-y-2">
             <Label htmlFor="sourceLanguage">Source Language</Label>
             <LanguageSelector
+              ref={sourceLanguageRef}
               value={source_language}
               onChange={setSourceLanguage}
+              onSelect={() => targetLanguageRef.current?.focus()}
               placeholder="Select source language..."
             />
           </div>
@@ -71,6 +77,7 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
           <div className="space-y-2">
             <Label htmlFor="targetLanguage">Target Language</Label>
             <LanguageSelector
+              ref={targetLanguageRef}
               value={target_language}
               onChange={setTargetLanguage}
               placeholder="Select target language..."

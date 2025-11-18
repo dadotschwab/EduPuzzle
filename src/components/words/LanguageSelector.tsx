@@ -7,14 +7,13 @@
  * @module components/words/LanguageSelector
  */
 
-import { useState, useMemo } from 'react'
-import { Check, ChevronsUpDown } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useState, useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { Check } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
@@ -81,8 +80,13 @@ const LANGUAGES = [
 interface LanguageSelectorProps {
   value: string
   onChange: (value: string) => void
+  onSelect?: () => void // Called when a language is selected (for auto-advancing to next field)
   placeholder?: string
   className?: string
+}
+
+export interface LanguageSelectorRef {
+  focus: () => void
 }
 
 /**
@@ -90,82 +94,119 @@ interface LanguageSelectorProps {
  *
  * @param value - Current selected language code (e.g., "en", "de") or name (e.g., "English", "German")
  * @param onChange - Callback when language is selected (returns ISO code)
+ * @param onSelect - Callback when a language is selected (for auto-advancing to next field)
  * @param placeholder - Placeholder text (default: "Select language...")
  * @param className - Optional CSS class
  */
-export function LanguageSelector({
-  value,
-  onChange,
-  placeholder = 'Select language...',
-  className,
-}: LanguageSelectorProps) {
-  const [open, setOpen] = useState(false)
+export const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelectorProps>(
+  function LanguageSelector({
+    value,
+    onChange,
+    onSelect,
+    placeholder = 'Select language...',
+    className,
+  }, ref) {
+    const [open, setOpen] = useState(false)
+    const [searchValue, setSearchValue] = useState('')
+    const inputRef = useRef<HTMLInputElement>(null)
 
-  // Find the selected language object - support both code and name for backwards compatibility
-  const selectedLanguage = useMemo(() => {
-    // Return undefined if value is not provided
-    if (!value) return undefined
+    // Expose focus method to parent via ref
+    useImperativeHandle(ref, () => ({
+      focus: () => {
+        inputRef.current?.focus()
+      }
+    }))
 
-    // Try to match by code first (e.g., "en")
-    let lang = LANGUAGES.find(l => l.code === value)
+    // Find the selected language object - support both code and name for backwards compatibility
+    const selectedLanguage = useMemo(() => {
+      // Return undefined if value is not provided
+      if (!value) return undefined
 
-    // If not found, try to match by name (e.g., "English") for backwards compatibility
-    if (!lang && value) {
-      lang = LANGUAGES.find(l => l.name.toLowerCase() === value.toLowerCase())
+      // Try to match by code first (e.g., "en")
+      let lang = LANGUAGES.find(l => l.code === value)
+
+      // If not found, try to match by name (e.g., "English") for backwards compatibility
+      if (!lang && value) {
+        lang = LANGUAGES.find(l => l.name.toLowerCase() === value.toLowerCase())
+      }
+
+      return lang
+    }, [value])
+
+    // Update search value when selection changes
+    useEffect(() => {
+      if (selectedLanguage) {
+        setSearchValue(selectedLanguage.name)
+      } else {
+        setSearchValue('')
+      }
+    }, [selectedLanguage])
+
+    // Filter languages based on search
+    const filteredLanguages = useMemo(() => {
+      if (!searchValue) return LANGUAGES
+
+      const search = searchValue.toLowerCase()
+      return LANGUAGES.filter(lang =>
+        lang.name.toLowerCase().includes(search) ||
+        lang.code.toLowerCase().includes(search)
+      )
+    }, [searchValue])
+
+    const handleSelect = (languageCode: string) => {
+      onChange(languageCode)
+      setOpen(false)
+      onSelect?.() // Call onSelect callback for auto-advancing
     }
 
-    return lang
-  }, [value])
-
-  const handleSelect = (languageCode: string) => {
-    onChange(languageCode)
-    setOpen(false)
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <div className="relative">
+            <Input
+              ref={inputRef}
+              value={searchValue}
+              onChange={(e) => {
+                setSearchValue(e.target.value)
+                if (!open) setOpen(true)
+              }}
+              onFocus={() => setOpen(true)}
+              placeholder={placeholder}
+              className={cn('w-full', className)}
+              autoComplete="off"
+            />
+          </div>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+          <Command shouldFilter={false}>
+            <CommandList>
+              <CommandEmpty>No language found.</CommandEmpty>
+              <CommandGroup className="max-h-64 overflow-auto">
+                {filteredLanguages.map((language) => (
+                  <CommandItem
+                    key={language.code}
+                    value={language.code}
+                    onSelect={() => handleSelect(language.code)}
+                    className="cursor-pointer"
+                  >
+                    <Check
+                      className={cn(
+                        'mr-2 h-4 w-4',
+                        selectedLanguage?.code === language.code ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                    {language.name}
+                    <span className="ml-auto text-xs text-gray-500">{language.code}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    )
   }
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn('w-full justify-between', className)}
-          onFocus={() => setOpen(true)}
-        >
-          {selectedLanguage ? selectedLanguage.name : placeholder}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-        <Command shouldFilter>
-          <CommandInput placeholder="Search languages..." autoFocus />
-          <CommandList>
-            <CommandEmpty>No language found.</CommandEmpty>
-            <CommandGroup className="max-h-64 overflow-auto">
-              {LANGUAGES.map((language) => (
-                <CommandItem
-                  key={language.code}
-                  value={`${language.name} ${language.code}`}
-                  onSelect={() => handleSelect(language.code)}
-                  className="cursor-pointer"
-                >
-                  <Check
-                    className={cn(
-                      'mr-2 h-4 w-4',
-                      selectedLanguage?.code === language.code ? 'opacity-100' : 'opacity-0'
-                    )}
-                  />
-                  {language.name}
-                  <span className="ml-auto text-xs text-gray-500">{language.code}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  )
-}
+)
 
 /**
  * Helper function to get language name from code

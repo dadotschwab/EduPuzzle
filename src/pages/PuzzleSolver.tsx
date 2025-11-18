@@ -155,6 +155,7 @@ export function PuzzleSolver() {
               selectedWord={solver.selectedWord}
               onWordSelect={solver.setSelectedWord}
               onFocusedCellChange={solver.setFocusedCell}
+              focusedCell={solver.focusedCell}
               checkedWords={solver.checkedWords}
               isPuzzleCompleted={solver.isPuzzleCompleted}
               showCorrectAnswers={solver.showCorrectAnswers}

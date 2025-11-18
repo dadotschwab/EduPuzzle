@@ -26,6 +26,7 @@ interface PuzzleGridProps {
   checkedWords: Record<string, 'correct' | 'incorrect'>
   isPuzzleCompleted: boolean
   showCorrectAnswers: boolean
+  focusedCell?: { x: number; y: number } | null // Optional controlled focused cell
 }
 
 /**
@@ -42,13 +43,21 @@ export const PuzzleGrid = memo(function PuzzleGrid({
   onFocusedCellChange,
   checkedWords,
   isPuzzleCompleted,
-  showCorrectAnswers
+  showCorrectAnswers,
+  focusedCell: controlledFocusedCell
 }: PuzzleGridProps) {
   const gridRef = useRef<HTMLDivElement>(null)
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
-  const [focusedCell, setFocusedCell] = useState<{ x: number; y: number } | null>(null)
+  const [internalFocusedCell, setInternalFocusedCell] = useState<{ x: number; y: number } | null>(null)
   // Track which word the user is actively working on (for auto-advance)
   const [activeWord, setActiveWord] = useState<PlacedWord | null>(null)
+
+  // Use controlled focusedCell if provided, otherwise use internal state
+  const focusedCell = controlledFocusedCell !== undefined ? controlledFocusedCell : internalFocusedCell
+  const setFocusedCell = useCallback((cell: { x: number; y: number } | null) => {
+    setInternalFocusedCell(cell)
+    onFocusedCellChange(cell)
+  }, [onFocusedCellChange])
 
   /**
    * Memoized map of cells in the selected word
@@ -220,13 +229,6 @@ export const PuzzleGrid = memo(function PuzzleGrid({
       }
     }
   }, [focusedCell])
-
-  /**
-   * Notify parent when focused cell changes
-   */
-  useEffect(() => {
-    onFocusedCellChange(focusedCell)
-  }, [focusedCell, onFocusedCellChange])
 
   /**
    * Checks if a cell is part of the currently selected word
@@ -421,9 +423,11 @@ export const PuzzleGrid = memo(function PuzzleGrid({
       }
       moveToAdjacentCell(x, y, directionMap[e.key])
     } else if (e.key === 'Enter') {
-      // Toggle between across/down words at this cell (same as clicking)
+      // Toggle between across/down words ONLY at intersection where both words START
       e.preventDefault()
-      if (selectedWord && isCellInSelectedWord(x, y)) {
+      const cellNumbers = getCellNumbers(x, y)
+      if (cellNumbers.length > 1 && selectedWord && isCellInSelectedWord(x, y)) {
+        // This cell is the start of multiple words - toggle direction
         const otherWord = getWordAtCell(
           x,
           y,
@@ -462,7 +466,7 @@ export const PuzzleGrid = memo(function PuzzleGrid({
         onCellChange(x, y, '')
       }
     }
-  }, [moveToAdjacentCell, switchToNextWord, userInput, activeWord, onCellChange, selectedWord, isCellInSelectedWord, getWordAtCell, onWordSelect])
+  }, [moveToAdjacentCell, switchToNextWord, userInput, activeWord, onCellChange, selectedWord, isCellInSelectedWord, getWordAtCell, onWordSelect, getCellNumbers])
 
   /**
    * Handles cell click - selects the word at that position
