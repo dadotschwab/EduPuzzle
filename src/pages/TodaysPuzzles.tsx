@@ -312,17 +312,21 @@ export function TodaysPuzzles() {
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 min-h-[calc(100vh-4rem)] flex flex-col justify-center">
         {/* Progress Indicator with Help Icon */}
-        <div className="mb-4 flex items-center justify-center gap-2">
-          <p className="text-sm text-gray-600">
-            Puzzle {currentPuzzleIndex + 1} • {puzzleData.totalWords} words to practice today
-          </p>
-          <button
-            onClick={() => setHelpDialogOpen(true)}
-            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-            aria-label="Show puzzle controls help"
-          >
-            <HelpCircle className="w-5 h-5 text-gray-500 hover:text-blue-600" />
-          </button>
+        <div className="mb-4 grid lg:grid-cols-[1.2fr,1fr] gap-8">
+          <div className="flex items-center justify-center">
+            <p className="text-sm text-gray-600">
+              Puzzle {currentPuzzleIndex + 1} • {puzzleData.totalWords} words to practice today
+            </p>
+          </div>
+          <div className="flex items-center justify-end">
+            <button
+              onClick={() => setHelpDialogOpen(true)}
+              className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="Show puzzle controls help"
+            >
+              <HelpCircle className="w-5 h-5 text-gray-500 hover:text-blue-600" />
+            </button>
+          </div>
         </div>
 
         {/* Main Puzzle Layout - Grid on Left, Clues/Results on Right */}

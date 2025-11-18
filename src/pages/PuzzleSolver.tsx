@@ -170,7 +170,7 @@ export function PuzzleSolver() {
           <div className="lg:sticky lg:top-24 lg:self-start">
             {/* Title with Help Icon */}
             <div className="mb-6">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Crossword Puzzle</h1>
                 <button
                   onClick={() => setHelpDialogOpen(true)}
