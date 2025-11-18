@@ -1,0 +1,172 @@
+# Claude Code Instructions for EduPuzzle
+
+## Architecture Rules (CRITICAL - Read First!)
+
+### Server vs Client Decision Matrix
+
+**ALWAYS use Edge Functions (server-side) for:**
+- ✅ Complex algorithms (puzzle generation, scoring)
+- ✅ Operations >100ms execution time
+- ✅ Non-deterministic results (add seed for reproducibility)
+- ✅ Cacheable operations
+- ✅ Business logic that should be consistent across users
+
+**Use Client-side ONLY for:**
+- ✅ Simple CRUD via Supabase client
+- ✅ UI state management
+- ✅ Form validation (with server backup)
+- ✅ Simple filtering/sorting
+
+### Red Flags - STOP and Move to Server
+
+If you encounter any of these while coding, IMMEDIATELY move logic to Edge Function:
+
+1. 🚨 Fighting race conditions in React Query invalidation
+2. 🚨 Same inputs producing different outputs (non-deterministic)
+3. 🚨 Complex state management to prevent UI flicker
+4. 🚨 Heavy computation blocking UI thread
+5. 🚨 Results that should be cached/consistent
+
+## Code Patterns
+
+### ✅ CORRECT: Server-Side Complex Operation
+
+```typescript
+// Edge Function: supabase/functions/get-puzzles/index.ts
+export async function getTodaysPuzzles(userId: string) {
+  // 1. Check cache
+  const cached = await getCached(userId)
+  if (cached && cached.validUntil > new Date()) {
+    return cached.data
+  }
+
+  // 2. Generate with deterministic seed
+  const words = await fetchDueWords(userId)
+  const seed = words.map(w => w.id).sort().join('|')
+  const puzzles = generatePuzzles(words, { seed })
+
+  // 3. Cache result
+  await cacheResult(userId, puzzles, 24 hours)
+
+  return puzzles
+}
+
+// Client: Simple fetch
+export function useTodaysPuzzles() {
+  return useQuery({
+    queryKey: ['todaysPuzzles', userId],
+    queryFn: () => supabase.functions.invoke('get-puzzles')
+  })
+}
+```
+
+### ❌ INCORRECT: Client-Side Complex Operation
+
+```typescript
+// DON'T DO THIS
+export function useTodaysPuzzles() {
+  const { data: words } = useQuery(['words'], fetchWords)
+
+  // ❌ Expensive computation on client
+  // ❌ Runs on every refetch
+  // ❌ Non-deterministic (Math.random)
+  const puzzles = useMemo(() => {
+    return generatePuzzles(words) // Complex algorithm!
+  }, [words])
+
+  return puzzles
+}
+```
+
+## Project Structure Requirements
+
+```
+/src/lib/api/          # Thin wrappers over Supabase (CRUD only)
+/src/hooks/            # React Query hooks (data fetching only)
+/supabase/functions/   # Business logic and complex operations
+```
+
+**Rules:**
+- API functions: Max 10 lines, no business logic
+- Hooks: Data fetching + caching only
+- Business logic: Edge Functions or DB functions
+
+## TypeScript Requirements
+
+- ✅ Strict mode enabled (already configured)
+- ✅ No `any` types (use explicit types)
+- ✅ All Edge Function responses must be typed
+- ✅ Database types auto-generated from schema
+
+## Testing Approach
+
+Before implementing complex features:
+
+1. Ask: "Should this be server-side?" (Check guidelines)
+2. If yes: Create Edge Function FIRST, then client hook
+3. If no: Implement client-side with proper error handling
+
+## Current Tech Stack
+
+- **Frontend:** React + TypeScript + React Query + Tailwind
+- **Backend:** Supabase (PostgreSQL + Edge Functions + Auth + Storage)
+- **State:** React Query for server state, useState for UI state
+- **Deployment:** Vercel (frontend), Supabase (backend)
+
+## When Generating Code
+
+1. **Read PROJECT_GUIDELINES.md** before starting complex features
+2. **Default to server-side** for anything non-trivial
+3. **Use deterministic seeds** for random generation
+4. **Cache expensive operations** in database or Edge Function
+5. **Keep client code simple** - just fetch and display
+
+## Security Checklist
+
+- [ ] RLS policies defined for all tables
+- [ ] No sensitive logic on client
+- [ ] All inputs validated server-side
+- [ ] Using `auth.uid()` in RLS policies
+- [ ] Service role key never exposed to client
+
+## Performance Targets
+
+- First load: <2s
+- Page transitions: <300ms
+- Edge Function response: <500ms
+- Database queries: <100ms
+
+## Common Patterns in This Codebase
+
+### Data Fetching
+```typescript
+// Pattern: React Query hook wrapping Supabase client or Edge Function
+export function useResource() {
+  return useQuery({
+    queryKey: ['resource', id],
+    queryFn: () => fetchResource(id), // Or invoke Edge Function
+    staleTime: 5 * 60 * 1000
+  })
+}
+```
+
+### Mutations
+```typescript
+// Pattern: Optimistic updates with server authority
+const mutation = useMutation({
+  mutationFn: updateResource,
+  onMutate: async (newData) => {
+    // Optimistic UI update
+  },
+  onError: (err, newData, context) => {
+    // Rollback on error
+  },
+  onSuccess: () => {
+    // Invalidate to get fresh server data
+  }
+})
+```
+
+---
+
+**Remember: Architecture mistakes are expensive to fix later. Take 5 minutes to verify server vs client decision before implementing!**
