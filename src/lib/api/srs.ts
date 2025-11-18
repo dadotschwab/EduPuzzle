@@ -20,6 +20,8 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
   const today = new Date().toISOString().split('T')[0]
   console.log(`[SRS API] Fetching due words for user ${userId} (today: ${today})`)
 
+  // Fetch all user's words with their progress
+  // We'll filter client-side for more reliable and clear logic
   const { data, error } = await supabase
     .from('words')
     .select(`
@@ -37,7 +39,7 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
         target_language,
         user_id
       ),
-      word_progress (
+      word_progress!left (
         id,
         user_id,
         word_id,
@@ -54,7 +56,7 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
       )
     `)
     .eq('word_lists.user_id', userId)
-    .or(`next_review_date.lte.${today},next_review_date.is.null`, { foreignTable: 'word_progress' })
+    .eq('word_progress.user_id', userId)
 
   if (error) throw error
 
@@ -94,24 +96,44 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
   })
 
   // Filter to only include words that are actually due today
+  let newWordsCount = 0
+  let reviewedTodayCount = 0
+  let notDueYetCount = 0
+
   const words = allWords.filter(word => {
     // Include new words (no progress = need first practice)
-    if (!word.progress) return true
+    if (!word.progress) {
+      newWordsCount++
+      return true
+    }
 
     // Check if already reviewed today
     const lastReviewedDate = word.progress.lastReviewedAt?.split('T')[0]
     const wasReviewedToday = lastReviewedDate === today
-    if (wasReviewedToday) return false // Exclude words already reviewed today
+    if (wasReviewedToday) {
+      reviewedTodayCount++
+      return false // Exclude words already reviewed today
+    }
 
     // Check if word is due (next_review_date <= today or null)
     const nextReviewDate = word.progress.nextReviewDate
     if (!nextReviewDate) return true // No next review date = due
 
-    return nextReviewDate <= today // Only include if due today or overdue
+    const isDue = nextReviewDate <= today
+    if (!isDue) {
+      notDueYetCount++
+    }
+    return isDue // Only include if due today or overdue
   })
 
+  console.log(`[SRS API] Filter breakdown: ${newWordsCount} new words, ${reviewedTodayCount} already reviewed today, ${notDueYetCount} not due yet`)
+
   console.log(`[SRS API] Found ${allWords.length} total words, ${words.length} due today (filtered out ${allWords.length - words.length} not due or already reviewed)`)
-  console.log(`[SRS API] Sample word IDs:`, words.slice(0, 5).map(w => `${w.id}:${w.term}`))
+  if (words.length > 0) {
+    console.log(`[SRS API] Sample due words:`, words.slice(0, 5).map(w => `${w.term} (next: ${w.progress?.nextReviewDate || 'none'})`))
+  } else {
+    console.log(`[SRS API] No words due today!`)
+  }
 
   return words
 }
