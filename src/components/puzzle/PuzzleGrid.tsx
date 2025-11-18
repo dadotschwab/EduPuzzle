@@ -74,14 +74,15 @@ export const PuzzleGrid = memo(function PuzzleGrid({
   }, [selectedWord])
 
   /**
-   * Memoized map of cell numbers
+   * Memoized map of cell numbers (supports multiple numbers at intersections)
    * Only recalculates when puzzle changes
    */
   const cellNumbersMap = useMemo(() => {
-    const map = new Map<string, number>()
+    const map = new Map<string, number[]>()
     puzzle.placedWords.forEach(word => {
       const key = `${word.x},${word.y}`
-      map.set(key, word.number)
+      const existing = map.get(key) || []
+      map.set(key, [...existing, word.number])
     })
     return map
   }, [puzzle.placedWords])
@@ -236,11 +237,11 @@ export const PuzzleGrid = memo(function PuzzleGrid({
   }, [selectedWordCellsMap])
 
   /**
-   * Gets the clue number for a cell, if it's the start of a word
+   * Gets the clue numbers for a cell (can be multiple at intersections)
    * Optimized: O(1) lookup instead of O(n) search
    */
-  const getCellNumber = useCallback((x: number, y: number): number | null => {
-    return cellNumbersMap.get(`${x},${y}`) ?? null
+  const getCellNumbers = useCallback((x: number, y: number): number[] => {
+    return cellNumbersMap.get(`${x},${y}`) ?? []
   }, [cellNumbersMap])
 
   /**
@@ -407,7 +408,7 @@ export const PuzzleGrid = memo(function PuzzleGrid({
   }, [activeWord, selectedWord, onCellChange, moveToNextCellInWord])
 
   /**
-   * Handles keyboard navigation (arrows, tab, backspace)
+   * Handles keyboard navigation (arrows, tab, enter, backspace)
    */
   const handleKeyDown = useCallback((e: React.KeyboardEvent, x: number, y: number) => {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
@@ -419,6 +420,22 @@ export const PuzzleGrid = memo(function PuzzleGrid({
         'ArrowRight': 'right' as const,
       }
       moveToAdjacentCell(x, y, directionMap[e.key])
+    } else if (e.key === 'Enter') {
+      // Toggle between across/down words at this cell (same as clicking)
+      e.preventDefault()
+      if (selectedWord && isCellInSelectedWord(x, y)) {
+        const otherWord = getWordAtCell(
+          x,
+          y,
+          selectedWord.direction === 'horizontal' ? 'vertical' : 'horizontal'
+        )
+        if (otherWord && otherWord.id !== selectedWord.id) {
+          onWordSelect(otherWord)
+          setActiveWord(otherWord)
+          // Keep focus on the same cell
+          setFocusedCell({ x, y })
+        }
+      }
     } else if (e.key === 'Tab') {
       e.preventDefault()
       switchToNextWord()
@@ -445,7 +462,7 @@ export const PuzzleGrid = memo(function PuzzleGrid({
         onCellChange(x, y, '')
       }
     }
-  }, [moveToAdjacentCell, switchToNextWord, userInput, activeWord, onCellChange])
+  }, [moveToAdjacentCell, switchToNextWord, userInput, activeWord, onCellChange, selectedWord, isCellInSelectedWord, getWordAtCell, onWordSelect])
 
   /**
    * Handles cell click - selects the word at that position
@@ -493,7 +510,7 @@ export const PuzzleGrid = memo(function PuzzleGrid({
             const letter = puzzle.grid[y][x]
             const isBlackSquare = letter === null
             const displayValue = getCellDisplayValue(x, y)
-            const cellNumber = getCellNumber(x, y)
+            const cellNumbers = getCellNumbers(x, y)
             const isSelected = isCellInSelectedWord(x, y)
             const isFocused = focusedCell?.x === x && focusedCell?.y === y
 
@@ -525,10 +542,10 @@ export const PuzzleGrid = memo(function PuzzleGrid({
                 `}
                 onClick={() => !isPuzzleCompleted && handleCellClick(x, y)}
               >
-                {/* Cell number */}
-                {cellNumber && (
+                {/* Cell number(s) - show all numbers at intersections */}
+                {cellNumbers.length > 0 && (
                   <span className="absolute top-0 left-0.5 text-[0.5em] leading-none font-bold text-gray-600">
-                    {cellNumber}
+                    {cellNumbers.join(' ')}
                   </span>
                 )}
 

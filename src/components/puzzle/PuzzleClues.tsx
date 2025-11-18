@@ -24,6 +24,7 @@ interface PuzzleCluesProps {
   onGiveHint: () => void
   hintsRemaining: number
   checkedWords: Record<string, 'correct' | 'incorrect'>
+  onFocusFirstCell?: (word: PlacedWord) => void
 }
 
 /**
@@ -38,7 +39,8 @@ export function PuzzleClues({
   onEndPuzzle,
   onGiveHint,
   hintsRemaining,
-  checkedWords
+  checkedWords,
+  onFocusFirstCell
 }: PuzzleCluesProps) {
   // Separate words into across and down, sorted by number
   const acrossWords = placedWords
@@ -58,7 +60,10 @@ export function PuzzleClues({
 
     return (
       <button
-        onClick={() => onWordSelect(word)}
+        onClick={() => {
+          onWordSelect(word)
+          onFocusFirstCell?.(word)
+        }}
         className={`
           w-full text-left px-3 py-2 rounded-md transition-colors
           flex items-start gap-2

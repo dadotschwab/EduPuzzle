@@ -183,6 +183,7 @@ export function PuzzleSolver() {
                 onGiveHint={solver.handleGiveHint}
                 hintsRemaining={solver.hintsRemaining}
                 checkedWords={solver.checkedWords}
+                onFocusFirstCell={(word) => solver.setFocusedCell({ x: word.x, y: word.y })}
               />
             ) : (
               <div className="space-y-4">

@@ -130,6 +130,7 @@ export function LanguageSelector({
           role="combobox"
           aria-expanded={open}
           className={cn('w-full justify-between', className)}
+          onFocus={() => setOpen(true)}
         >
           {selectedLanguage ? selectedLanguage.name : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -137,7 +138,7 @@ export function LanguageSelector({
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command shouldFilter>
-          <CommandInput placeholder="Search languages..." />
+          <CommandInput placeholder="Search languages..." autoFocus />
           <CommandList>
             <CommandEmpty>No language found.</CommandEmpty>
             <CommandGroup className="max-h-64 overflow-auto">

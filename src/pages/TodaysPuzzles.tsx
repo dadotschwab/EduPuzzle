@@ -344,6 +344,7 @@ export function TodaysPuzzles() {
                 onGiveHint={solver.handleGiveHint}
                 hintsRemaining={solver.hintsRemaining}
                 checkedWords={solver.checkedWords}
+                onFocusFirstCell={(word) => solver.setFocusedCell({ x: word.x, y: word.y })}
               />
             ) : (
               /* Completion Card */
