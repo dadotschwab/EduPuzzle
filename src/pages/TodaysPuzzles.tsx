@@ -111,18 +111,17 @@ export function TodaysPuzzles() {
     // Mark current puzzle as completed before moving on
     markPuzzleCompleted(puzzle)
 
-    // Invalidate todaysPuzzles NOW (safe because user is advancing)
-    // This regenerates puzzles with updated due words for next session
-    queryClient.invalidateQueries({ queryKey: ['todaysPuzzles'] })
-    hasPendingInvalidationRef.current = false // Reset flag
-
     if (currentPuzzleIndex < puzzleData.puzzles.length - 1) {
+      // Move to next puzzle in same batch (no need to invalidate)
       setCurrentPuzzleIndex(prev => prev + 1)
       solver.resetPuzzle()
     } else {
       // Last puzzle in batch - count words practiced
       const wordsInBatch = puzzleData.puzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
       setSessionWordsPracticed(prev => prev + wordsInBatch)
+
+      // Mark that we need to invalidate on unmount
+      hasPendingInvalidationRef.current = true
 
       // All puzzles completed - go back to dashboard
       navigate('/app/dashboard')
