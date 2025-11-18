@@ -15,7 +15,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { getRandomWordsForPuzzle, savePuzzleSession } from '@/lib/api/puzzles'
 import { generatePuzzles } from '@/lib/algorithms/generator'
 import { getCurrentPuzzle } from '@/lib/utils/helpers'
-import type { Puzzle } from '@/types'
 import { logger } from '@/lib/logger'
 
 // Re-export for backward compatibility

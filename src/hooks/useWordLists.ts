@@ -112,7 +112,7 @@ export function useUpdateWordList() {
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Parameters<typeof updateWordList>[1] }) =>
       updateWordList(id, updates),
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Invalidate all word list queries
       queryClient.invalidateQueries({ queryKey: ['wordLists'] })
     },

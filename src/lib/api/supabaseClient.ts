@@ -41,7 +41,7 @@ export class SupabaseQueryError extends Error {
  * ```
  */
 export async function query<T>(
-  queryFn: () => Promise<{ data: T | null; error: PostgrestError | null }>,
+  queryFn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,
   context?: { table?: string; operation?: string }
 ): Promise<T> {
   const { data, error } = await queryFn()
@@ -85,7 +85,7 @@ export async function query<T>(
  * ```
  */
 export async function mutate<T>(
-  mutationFn: () => Promise<{ data: T | null; error: PostgrestError | null }>,
+  mutationFn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,
   context?: { table?: string; operation?: string }
 ): Promise<T> {
   // Mutations use the same logic as queries

@@ -86,6 +86,7 @@ export interface WordList {
   target_language: string        // User's native language
   created_at: string
   updated_at: string
+  wordCount?: number             // Optional: included when fetched with counts
 }
 
 // ============================================================================
