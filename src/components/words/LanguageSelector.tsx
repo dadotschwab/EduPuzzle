@@ -12,16 +12,10 @@ import { Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
 /**
@@ -160,50 +154,64 @@ export const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelector
     }
 
     return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <div className="relative">
-            <Input
-              ref={inputRef}
-              value={searchValue}
-              onChange={(e) => {
-                setSearchValue(e.target.value)
-                if (!open) setOpen(true)
-              }}
-              onFocus={() => setOpen(true)}
-              placeholder={placeholder}
-              className={cn('w-full', className)}
-              autoComplete="off"
-            />
+      <div className="relative">
+        <Input
+          ref={inputRef}
+          value={searchValue}
+          onChange={(e) => {
+            setSearchValue(e.target.value)
+            if (!open) setOpen(true)
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => {
+            // Delay closing to allow click on dropdown items
+            setTimeout(() => setOpen(false), 200)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && filteredLanguages.length > 0) {
+              e.preventDefault()
+              handleSelect(filteredLanguages[0].code)
+            } else if (e.key === 'Escape') {
+              setOpen(false)
+              inputRef.current?.blur()
+            }
+          }}
+          placeholder={placeholder}
+          className={cn('w-full', className)}
+          autoComplete="off"
+        />
+        {open && filteredLanguages.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-auto">
+            <Command shouldFilter={false}>
+              <CommandList>
+                <CommandGroup>
+                  {filteredLanguages.map((language) => (
+                    <CommandItem
+                      key={language.code}
+                      value={language.code}
+                      onSelect={() => handleSelect(language.code)}
+                      onMouseDown={(e) => {
+                        // Prevent blur on mousedown so click works
+                        e.preventDefault()
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Check
+                        className={cn(
+                          'mr-2 h-4 w-4',
+                          selectedLanguage?.code === language.code ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                      {language.name}
+                      <span className="ml-auto text-xs text-gray-500">{language.code}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
           </div>
-        </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-          <Command shouldFilter={false}>
-            <CommandList>
-              <CommandEmpty>No language found.</CommandEmpty>
-              <CommandGroup className="max-h-64 overflow-auto">
-                {filteredLanguages.map((language) => (
-                  <CommandItem
-                    key={language.code}
-                    value={language.code}
-                    onSelect={() => handleSelect(language.code)}
-                    className="cursor-pointer"
-                  >
-                    <Check
-                      className={cn(
-                        'mr-2 h-4 w-4',
-                        selectedLanguage?.code === language.code ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
-                    {language.name}
-                    <span className="ml-auto text-xs text-gray-500">{language.code}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+        )}
+      </div>
     )
   }
 )

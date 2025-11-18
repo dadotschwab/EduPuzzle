@@ -231,6 +231,28 @@ export const PuzzleGrid = memo(function PuzzleGrid({
   }, [focusedCell])
 
   /**
+   * Sync activeWord with selectedWord when focus changes externally (e.g., from clue click)
+   * This ensures auto-advance works when clicking clues
+   */
+  useEffect(() => {
+    if (selectedWord && focusedCell) {
+      // Check if the focused cell is within the selected word
+      const isInWord = selectedWord.direction === 'horizontal'
+        ? focusedCell.y === selectedWord.y &&
+          focusedCell.x >= selectedWord.x &&
+          focusedCell.x < selectedWord.x + selectedWord.word.length
+        : focusedCell.x === selectedWord.x &&
+          focusedCell.y >= selectedWord.y &&
+          focusedCell.y < selectedWord.y + selectedWord.word.length
+
+      // If focused cell is in selected word, set it as active for auto-advance
+      if (isInWord) {
+        setActiveWord(selectedWord)
+      }
+    }
+  }, [selectedWord, focusedCell])
+
+  /**
    * Checks if a cell is part of the currently selected word
    * Optimized: O(1) lookup instead of O(n) calculation
    */
