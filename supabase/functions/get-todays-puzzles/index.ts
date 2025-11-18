@@ -35,6 +35,7 @@ interface TodaysPuzzlesResponse {
 }
 
 const MIN_WORDS_FOR_PUZZLE = 10
+const MAX_WORDS_PER_SESSION = 50 // Limit to prevent timeout with large word counts
 
 /**
  * CORS headers for Edge Function
@@ -178,12 +179,26 @@ serve(async (req) => {
 
     console.log(`[Edge Function] Found ${dueWords.length} due words`)
 
-    // Step 2: Check if we have enough words
-    if (dueWords.length === 0) {
+    // Step 2: Prioritize most overdue words and limit to prevent timeout
+    const prioritizedWords = dueWords.sort((a, b) => {
+      const aDate = a.progress?.nextReviewDate || today
+      const bDate = b.progress?.nextReviewDate || today
+      return aDate.localeCompare(bDate) // Earlier dates (more overdue) first
+    })
+
+    // Limit to MAX_WORDS_PER_SESSION to prevent timeout
+    const wordsToUse = prioritizedWords.slice(0, MAX_WORDS_PER_SESSION)
+
+    if (wordsToUse.length < dueWords.length) {
+      console.log(`[Edge Function] Limited to ${wordsToUse.length} most overdue words (${dueWords.length} total due)`)
+    }
+
+    // Step 3: Check if we have enough words
+    if (wordsToUse.length === 0) {
       return new Response(
         JSON.stringify({
           puzzles: [],
-          totalWords: 0,
+          totalWords: dueWords.length,
           message: 'No words due for review today. Great job staying on top of your vocabulary!',
         } as TodaysPuzzlesResponse),
         {
@@ -192,7 +207,7 @@ serve(async (req) => {
       )
     }
 
-    if (dueWords.length < MIN_WORDS_FOR_PUZZLE) {
+    if (wordsToUse.length < MIN_WORDS_FOR_PUZZLE) {
       return new Response(
         JSON.stringify({
           puzzles: [],
@@ -205,8 +220,8 @@ serve(async (req) => {
       )
     }
 
-    // Step 3: Create cache key from sorted word IDs
-    const wordIds = dueWords.map(w => w.id).sort()
+    // Step 4: Create cache key from sorted word IDs
+    const wordIds = wordsToUse.map(w => w.id).sort()
 
     // Step 4: Check cache
     const { data: cachedData, error: cacheError } = await supabaseClient
@@ -236,7 +251,7 @@ serve(async (req) => {
     const seed = wordIds.join('|') // Same words = same seed = same puzzle
     console.log(`[Edge Function] Using seed: ${seed.substring(0, 50)}...`)
 
-    const puzzles = await generatePuzzles(dueWords, {
+    const puzzles = await generatePuzzles(wordsToUse, {
       maxGridSize: 16,
       minGridSize: 10,
       seed,
@@ -246,7 +261,10 @@ serve(async (req) => {
 
     const response: TodaysPuzzlesResponse = {
       puzzles,
-      totalWords: dueWords.length,
+      totalWords: dueWords.length, // Show total words due, not just what we're using
+      message: wordsToUse.length < dueWords.length
+        ? `Showing ${wordsToUse.length} most overdue words (${dueWords.length} total due)`
+        : undefined,
     }
 
     // Step 6: Cache the result for 24 hours
