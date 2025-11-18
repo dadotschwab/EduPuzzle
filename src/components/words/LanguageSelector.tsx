@@ -98,8 +98,6 @@ export const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelector
     const [searchValue, setSearchValue] = useState('')
     const inputRef = useRef<HTMLInputElement>(null)
 
-    console.log('[LanguageSelector] Render - value prop:', value)
-
     // Expose focus method to parent via ref
     useImperativeHandle(ref, () => ({
       focus: () => {
@@ -125,13 +123,10 @@ export const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelector
 
     // Update search value when selection changes
     useEffect(() => {
-      console.log('[LanguageSelector] selectedLanguage changed:', selectedLanguage)
       if (selectedLanguage) {
         setSearchValue(selectedLanguage.name)
-        console.log('[LanguageSelector] Set searchValue to:', selectedLanguage.name)
       } else {
         setSearchValue('')
-        console.log('[LanguageSelector] Cleared searchValue')
       }
     }, [selectedLanguage])
 
@@ -147,7 +142,6 @@ export const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelector
     }, [searchValue])
 
     const handleSelect = (languageCode: string) => {
-      console.log('[LanguageSelector] handleSelect called with:', languageCode)
       onChange(languageCode)
       setOpen(false)
       onSelect?.() // Call onSelect callback for auto-advancing
