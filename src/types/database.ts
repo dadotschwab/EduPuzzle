@@ -11,6 +11,7 @@ export interface Database {
           subscription_status: string
           subscription_end_date: string | null
           trial_end_date: string
+          stripe_customer_id: string | null
         }
         Insert: {
           id?: string
@@ -19,6 +20,7 @@ export interface Database {
           subscription_status?: string
           subscription_end_date?: string | null
           trial_end_date?: string
+          stripe_customer_id?: string | null
         }
         Update: {
           id?: string
@@ -27,6 +29,7 @@ export interface Database {
           subscription_status?: string
           subscription_end_date?: string | null
           trial_end_date?: string
+          stripe_customer_id?: string | null
         }
       }
       word_lists: {
