@@ -201,7 +201,7 @@ export async function updateWordProgress(
   userId: string,
   wasCorrect: boolean
 ): Promise<void> {
-  // Fetch current progress
+  // Fetch current progress (use maybeSingle to handle new words)
   // Cast to any to work around Supabase type inference issues
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: progressData, error: fetchError } = await supabase
@@ -209,10 +209,43 @@ export async function updateWordProgress(
     .select('*')
     .eq('word_id', wordId)
     .eq('user_id', userId)
-    .single() as any
+    .maybeSingle() as any
 
   if (fetchError) throw fetchError
-  if (!progressData) throw new Error('Word progress not found')
+
+  // If no progress exists, create initial entry for new word
+  if (!progressData) {
+    console.log(`[SRS API] Creating initial progress for new word ${wordId}`)
+
+    const today = new Date().toISOString().split('T')[0]
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const nextReview = tomorrow.toISOString().split('T')[0]
+
+    const initialProgress = {
+      user_id: userId,
+      word_id: wordId,
+      stage: wasCorrect ? 1 : 0, // Learning if correct, New if incorrect
+      ease_factor: 2.5,
+      interval_days: wasCorrect ? 1 : 0,
+      next_review_date: wasCorrect ? nextReview : today,
+      last_reviewed_at: today,
+      total_reviews: 1,
+      correct_reviews: wasCorrect ? 1 : 0,
+      incorrect_reviews: wasCorrect ? 0 : 1,
+      current_streak: wasCorrect ? 1 : 0,
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: insertError } = await (supabase
+      .from('word_progress') as any)
+      .insert(initialProgress)
+
+    if (insertError) throw insertError
+
+    console.log(`  Created: next_review=${initialProgress.next_review_date}, interval=${initialProgress.interval_days}, stage=${initialProgress.stage}`)
+    return
+  }
 
   const currentProgress: WordProgress = {
     id: progressData.id,
