@@ -8,6 +8,7 @@
  */
 
 import type { Puzzle } from '@/types'
+import { getTodayDate } from './helpers'
 
 const STORAGE_KEY = 'edupuzzle_todays_puzzles'
 
@@ -35,13 +36,6 @@ function generatePuzzleHash(puzzle: Puzzle): string {
   }
 
   return hash.toString(36)
-}
-
-/**
- * Gets today's date in YYYY-MM-DD format
- */
-function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0]
 }
 
 /**

@@ -12,7 +12,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchDueWordsCount, batchUpdateWordProgress } from '@/lib/api/srs'
 import { supabase } from '@/lib/supabase'
+import { getCurrentPuzzle } from '@/lib/utils/helpers'
 import type { Puzzle } from '@/types'
+
+// Re-export for backward compatibility
+export { getCurrentPuzzle as useCurrentPuzzle }
 import { useAuth } from '@/hooks/useAuth'
 
 interface TodaysPuzzlesData {
@@ -106,13 +110,4 @@ export function useCompletePuzzle() {
       // Puzzle regeneration happens when user advances or navigates away
     },
   })
-}
-
-/**
- * Hook for managing current puzzle in multi-puzzle session
- */
-export function useCurrentPuzzle(puzzles: Puzzle[] | undefined | null, currentIndex: number): Puzzle | null {
-  if (!puzzles || puzzles.length === 0) return null
-  if (currentIndex < 0 || currentIndex >= puzzles.length) return null
-  return puzzles[currentIndex]
 }

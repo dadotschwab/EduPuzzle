@@ -26,6 +26,7 @@ import {
   markPuzzleCompleted,
   getFirstUncompletedPuzzleIndex,
 } from '@/lib/utils/puzzleProgress'
+import { getTodayDate } from '@/lib/utils/helpers'
 
 /**
  * Today's Puzzles page component - SRS-driven puzzle practice
@@ -54,7 +55,7 @@ export function TodaysPuzzles() {
   // Track total words practiced in this session (across multiple batches)
   // Persisted in localStorage to maintain progress across dashboard visits
   const [sessionWordsPracticed, setSessionWordsPracticed] = useState(() => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayDate()
     const stored = localStorage.getItem(`session_progress_${today}`)
     return stored ? parseInt(stored, 10) : 0
   })
@@ -82,7 +83,7 @@ export function TodaysPuzzles() {
         setCompletedBatchWords(0)
 
         // Persist to localStorage
-        const today = new Date().toISOString().split('T')[0]
+        const today = getTodayDate()
         localStorage.setItem(`session_progress_${today}`, newTotal.toString())
       }
     }
@@ -92,7 +93,7 @@ export function TodaysPuzzles() {
    * Persist session progress to localStorage and clean up old sessions
    */
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayDate()
 
     // Save current progress
     if (sessionWordsPracticed > 0) {
@@ -164,7 +165,7 @@ export function TodaysPuzzles() {
       setSessionWordsPracticed(newTotal)
 
       // Persist to localStorage
-      const today = new Date().toISOString().split('T')[0]
+      const today = getTodayDate()
       localStorage.setItem(`session_progress_${today}`, newTotal.toString())
 
       // Mark that we need to invalidate on unmount

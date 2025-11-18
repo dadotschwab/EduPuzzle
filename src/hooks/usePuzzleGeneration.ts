@@ -14,8 +14,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { getRandomWordsForPuzzle, savePuzzleSession } from '@/lib/api/puzzles'
 import { generatePuzzles } from '@/lib/algorithms/generator'
+import { getCurrentPuzzle } from '@/lib/utils/helpers'
 import type { Puzzle } from '@/types'
 import { logger } from '@/lib/logger'
+
+// Re-export for backward compatibility
+export { getCurrentPuzzle as useCurrentPuzzle }
 
 /**
  * Hook to generate puzzles from a word list
@@ -90,35 +94,4 @@ export function usePuzzleGeneration(
   logger.debug(`[usePuzzleGeneration] Query status: ${result.status}, hasData: ${!!result.data}`)
 
   return result
-}
-
-/**
- * Hook to load a specific puzzle from a multi-puzzle set
- *
- * @param puzzles - Array of all puzzles in the session
- * @param puzzleIndex - Index of the puzzle to display (default: 0)
- * @returns The selected puzzle or null
- *
- * @example
- * ```typescript
- * const { data: allPuzzles } = usePuzzleGeneration(listId)
- * const currentPuzzle = useCurrentPuzzle(allPuzzles, 0) // First puzzle
- * ```
- */
-export function useCurrentPuzzle(
-  puzzles: Puzzle[] | undefined,
-  puzzleIndex: number = 0
-): Puzzle | null {
-  if (!puzzles || puzzles.length === 0) {
-    logger.warn('No puzzles available')
-    return null
-  }
-
-  if (puzzleIndex < 0 || puzzleIndex >= puzzles.length) {
-    logger.warn(`Invalid puzzle index ${puzzleIndex}, using 0`)
-    return puzzles[0]
-  }
-
-  logger.debug(`Returning puzzle ${puzzleIndex + 1}/${puzzles.length}`)
-  return puzzles[puzzleIndex]
 }

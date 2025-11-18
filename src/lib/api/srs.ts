@@ -10,6 +10,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { getTodayDate } from '@/lib/utils/helpers'
 import type { WordWithProgress, WordProgress, SRSStage } from '@/types'
 
 /**
@@ -17,7 +18,7 @@ import type { WordWithProgress, WordProgress, SRSStage } from '@/types'
  * Excludes words that have already been reviewed today
  */
 export async function fetchDueWords(userId: string): Promise<WordWithProgress[]> {
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayDate()
   console.log(`[SRS API] Fetching due words for user ${userId} (today: ${today})`)
 
   // Fetch all user's words with their progress
@@ -245,7 +246,7 @@ export async function updateWordProgress(
   if (!progressData) {
     console.log(`[SRS API] Creating initial progress for new word ${wordId}`)
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayDate()
 
     // Calculate next review date based on correctness
     const nextReviewDate = new Date()
