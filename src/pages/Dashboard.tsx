@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useWordListsWithCounts } from '@/hooks/useWordListsWithCounts'
-import { useDeleteWordList } from '@/hooks/useWordLists'
+import { useWordLists, useDeleteWordList } from '@/hooks/useWordLists'
 import { useDueWordsCount } from '@/hooks/useTodaysPuzzles'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Button } from '@/components/ui/button'
@@ -37,7 +36,7 @@ export function Dashboard() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedList, setSelectedList] = useState<WordList | null>(null)
   const [listToDelete, setListToDelete] = useState<{ id: string; name: string } | null>(null)
-  const { data: wordLists, isLoading } = useWordListsWithCounts()
+  const { data: wordLists, isLoading } = useWordLists({ withCounts: true })
   const deleteMutation = useDeleteWordList()
   const { data: dueCount } = useDueWordsCount()
 

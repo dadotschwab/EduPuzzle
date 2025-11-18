@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DialogFormButtons } from '@/components/ui/dialog-form-buttons'
 import { LanguageSelector, type LanguageSelectorRef } from '@/components/words/LanguageSelector'
 import { useCreateWordList } from '@/hooks/useWordLists'
 
@@ -84,19 +84,12 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
             />
           </div>
 
-          <div className="flex gap-2 justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={createMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Creating...' : 'Create List'}
-            </Button>
-          </div>
+          <DialogFormButtons
+            onCancel={() => onOpenChange(false)}
+            submitLabel="Create List"
+            loadingLabel="Creating..."
+            isLoading={createMutation.isPending}
+          />
         </form>
       </DialogContent>
     </Dialog>

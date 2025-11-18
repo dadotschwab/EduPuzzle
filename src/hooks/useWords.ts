@@ -24,7 +24,7 @@ export function useCreateWord() {
       // Supabase returns snake_case (list_id) but we cast to camelCase (listId)
       const listId = (data as any).list_id || data.listId
       queryClient.invalidateQueries({ queryKey: ['words', listId] })
-      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
+      queryClient.invalidateQueries({ queryKey: ['wordLists'] })
     },
   })
 }
@@ -42,7 +42,7 @@ export function useCreateWords() {
         // Supabase returns snake_case (list_id) but we cast to camelCase (listId)
         const listId = (data[0] as any).list_id || data[0].listId
         queryClient.invalidateQueries({ queryKey: ['words', listId] })
-        queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
+        queryClient.invalidateQueries({ queryKey: ['wordLists'] })
       }
     },
   })
@@ -76,7 +76,7 @@ export function useDeleteWord() {
     mutationFn: deleteWord,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['words'] })
-      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
+      queryClient.invalidateQueries({ queryKey: ['wordLists'] })
     },
   })
 }
@@ -91,7 +91,7 @@ export function useDeleteWords() {
     mutationFn: deleteWords,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['words'] })
-      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
+      queryClient.invalidateQueries({ queryKey: ['wordLists'] })
     },
   })
 }

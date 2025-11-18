@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DialogFormButtons } from '@/components/ui/dialog-form-buttons'
 import { LanguageSelector } from '@/components/words/LanguageSelector'
 import { useUpdateWordList } from '@/hooks/useWordLists'
 import type { WordList } from '@/types'
@@ -84,19 +84,12 @@ export function EditWordListDialog({ open, onOpenChange, wordList }: EditWordLis
             />
           </div>
 
-          <div className="flex gap-2 justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={updateMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? 'Updating...' : 'Update List'}
-            </Button>
-          </div>
+          <DialogFormButtons
+            onCancel={() => onOpenChange(false)}
+            submitLabel="Update List"
+            loadingLabel="Updating..."
+            isLoading={updateMutation.isPending}
+          />
         </form>
       </DialogContent>
     </Dialog>

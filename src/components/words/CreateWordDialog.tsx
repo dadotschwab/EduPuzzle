@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DialogFormButtons } from '@/components/ui/dialog-form-buttons'
 import { useCreateWords } from '@/hooks/useWords'
 import { Trash2 } from 'lucide-react'
 
@@ -151,21 +152,14 @@ export function CreateWordDialog({ open, onOpenChange, listId }: CreateWordDialo
             ))}
           </div>
 
-          <div className="flex gap-2 justify-end mt-6 pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={createMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || !hasValidWords}
-            >
-              {createMutation.isPending ? 'Adding...' : `Add ${rows.filter(r => r.term.trim() && r.translation.trim()).length} Word(s)`}
-            </Button>
+          <div className="mt-6 pt-4 border-t">
+            <DialogFormButtons
+              onCancel={() => onOpenChange(false)}
+              submitLabel={`Add ${rows.filter(r => r.term.trim() && r.translation.trim()).length} Word(s)`}
+              loadingLabel="Adding..."
+              isLoading={createMutation.isPending}
+              submitDisabled={!hasValidWords}
+            />
           </div>
         </form>
       </DialogContent>

@@ -15,16 +15,60 @@ import {
   updateWordList,
   deleteWordList,
 } from '@/lib/api/wordLists'
+import { supabase } from '@/lib/supabase'
+import type { WordList } from '@/types'
+
+export interface WordListWithCount extends WordList {
+  wordCount: number
+}
 
 /**
- * Fetches all word lists for the current user
+ * Fetches word lists with optional word counts
+ * @param options - Configuration options
+ * @param options.withCounts - Whether to include word counts (default: false)
  * @returns React Query result with word lists data
  */
-export function useWordLists() {
+export function useWordLists(options?: { withCounts?: boolean }) {
+  const { withCounts = false } = options || {}
+
   return useQuery({
-    queryKey: ['wordLists'],
-    queryFn: getWordLists,
+    queryKey: withCounts ? ['wordLists', 'withCounts'] : ['wordLists'],
+    queryFn: withCounts ? getWordListsWithCounts : getWordLists,
   })
+}
+
+/**
+ * Fetches word lists with word counts
+ * @returns Promise resolving to word lists with counts
+ */
+async function getWordListsWithCounts(): Promise<WordListWithCount[]> {
+  // Get all word lists
+  const { data: lists, error: listsError } = await supabase
+    .from('word_lists')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (listsError) throw listsError
+  if (!lists) return []
+
+  // Get word counts for each list
+  const listsWithCounts = await Promise.all(
+    lists.map(async (list: any) => {
+      const { count, error } = await supabase
+        .from('words')
+        .select('*', { count: 'exact', head: true })
+        .eq('list_id', list.id)
+
+      if (error) throw error
+
+      return {
+        ...list,
+        wordCount: count || 0,
+      } as WordListWithCount
+    })
+  )
+
+  return listsWithCounts
 }
 
 /**
@@ -51,9 +95,8 @@ export function useCreateWordList() {
   return useMutation({
     mutationFn: createWordList,
     onSuccess: () => {
-      // Invalidate both simple lists and lists with word counts
+      // Invalidate all word list queries
       queryClient.invalidateQueries({ queryKey: ['wordLists'] })
-      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
     },
   })
 }
@@ -70,10 +113,8 @@ export function useUpdateWordList() {
     mutationFn: ({ id, updates }: { id: string; updates: Parameters<typeof updateWordList>[1] }) =>
       updateWordList(id, updates),
     onSuccess: (data) => {
-      // Invalidate list collection, specific list, and lists with counts
+      // Invalidate all word list queries
       queryClient.invalidateQueries({ queryKey: ['wordLists'] })
-      queryClient.invalidateQueries({ queryKey: ['wordLists', data.id] })
-      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
     },
   })
 }
@@ -89,9 +130,8 @@ export function useDeleteWordList() {
   return useMutation({
     mutationFn: deleteWordList,
     onSuccess: () => {
-      // Invalidate all list queries
+      // Invalidate all word list queries
       queryClient.invalidateQueries({ queryKey: ['wordLists'] })
-      queryClient.invalidateQueries({ queryKey: ['wordListsWithCounts'] })
     },
   })
 }
