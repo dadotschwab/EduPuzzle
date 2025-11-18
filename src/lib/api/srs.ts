@@ -93,18 +93,24 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
     }
   })
 
-  // Filter out words that have already been reviewed today
+  // Filter to only include words that are actually due today
   const words = allWords.filter(word => {
-    if (!word.progress?.lastReviewedAt) return true // Include new words
+    // Include new words (no progress = need first practice)
+    if (!word.progress) return true
 
-    const lastReviewedDate = word.progress.lastReviewedAt.split('T')[0]
+    // Check if already reviewed today
+    const lastReviewedDate = word.progress.lastReviewedAt?.split('T')[0]
     const wasReviewedToday = lastReviewedDate === today
+    if (wasReviewedToday) return false // Exclude words already reviewed today
 
-    return !wasReviewedToday
+    // Check if word is due (next_review_date <= today or null)
+    const nextReviewDate = word.progress.nextReviewDate
+    if (!nextReviewDate) return true // No next review date = due
+
+    return nextReviewDate <= today // Only include if due today or overdue
   })
 
-  console.log(`[SRS API] Found ${allWords.length} words due (${allWords.length - words.length} already reviewed today)`)
-  console.log(`[SRS API] Returning ${words.length} words to practice`)
+  console.log(`[SRS API] Found ${allWords.length} total words, ${words.length} due today (filtered out ${allWords.length - words.length} not due or already reviewed)`)
   console.log(`[SRS API] Sample word IDs:`, words.slice(0, 5).map(w => `${w.id}:${w.term}`))
 
   return words
