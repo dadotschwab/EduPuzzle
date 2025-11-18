@@ -29,12 +29,6 @@ export enum SRSStage {
 }
 
 /**
- * Represents the performance level of a user on a specific word
- * Used by the SRS engine to determine the next review interval
- */
-export type ReviewType = 'perfect' | 'half_known' | 'conditional' | 'unknown' | 'not_evaluated'
-
-/**
  * Tracks a user's progress for a specific word in the SRS system
  * Enhanced with SM-2 algorithm fields for optimal spaced repetition
  */
@@ -79,23 +73,6 @@ export interface WordWithProgress extends Word {
   source_language: string        // Language being learned
   target_language: string        // User's native language
   progress?: WordProgress        // Optional SRS progress data
-}
-
-/**
- * Summary of due words grouped by language pair
- * Used for generating today's puzzles
- */
-export interface DueWordsSummary {
-  languagePair: string           // e.g., "en-de"
-  sourceLanguage: string
-  targetLanguage: string
-  totalDue: number
-  byList: Array<{
-    listId: string
-    listName: string
-    wordCount: number
-    words: WordWithProgress[]
-  }>
 }
 
 /**
@@ -164,30 +141,4 @@ export interface PuzzleSession {
   puzzleData: Puzzle[]          // Array of puzzles in this session
   totalWords: number
   correctWords: number
-}
-
-/**
- * Records how a user performed on a specific word during a puzzle session
- */
-export interface WordReview {
-  id: string
-  sessionId: string
-  wordId: string
-  userId: string
-  reviewType: ReviewType        // Performance rating for SRS
-  timeToSolve?: number          // Time in seconds
-  hintsUsed: number             // Number of hints/reveals used
-  reviewedAt: string
-}
-
-/**
- * Extended user type with subscription information
- */
-export interface User {
-  id: string
-  email: string
-  createdAt: string
-  subscriptionStatus: 'trial' | 'active' | 'cancelled' | 'expired'
-  subscriptionEndDate?: string
-  trialEndDate: string
 }

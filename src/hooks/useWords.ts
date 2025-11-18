@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getWords, getWord, createWord, createWords, updateWord, deleteWord, deleteWords } from '@/lib/api/words'
+import { getWords, createWord, createWords, updateWord, deleteWord, deleteWords } from '@/lib/api/words'
 
 /**
  * Get all words for a list
@@ -9,17 +9,6 @@ export function useWords(listId: string) {
     queryKey: ['words', listId],
     queryFn: () => getWords(listId),
     enabled: !!listId,
-  })
-}
-
-/**
- * Get a single word
- */
-export function useWord(id: string) {
-  return useQuery({
-    queryKey: ['words', 'single', id],
-    queryFn: () => getWord(id),
-    enabled: !!id,
   })
 }
 

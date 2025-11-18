@@ -10,7 +10,7 @@
  * @module hooks/usePuzzleGeneration
  */
 
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { getRandomWordsForPuzzle, savePuzzleSession } from '@/lib/api/puzzles'
 import { generatePuzzles } from '@/lib/algorithms/generator'
@@ -90,56 +90,6 @@ export function usePuzzleGeneration(
   logger.debug(`[usePuzzleGeneration] Query status: ${result.status}, hasData: ${!!result.data}`)
 
   return result
-}
-
-/**
- * Mutation hook for generating puzzles on-demand (e.g., from a button click)
- *
- * @returns Mutation function and state
- *
- * @example
- * ```typescript
- * function GeneratePuzzleButton({ listId }: { listId: string }) {
- *   const { mutate, isPending } = usePuzzleGenerationMutation()
- *
- *   return (
- *     <Button
- *       onClick={() => mutate({ listId, wordCount: 30 })}
- *       disabled={isPending}
- *     >
- *       {isPending ? 'Generating...' : 'Generate Puzzle'}
- *     </Button>
- *   )
- * }
- * ```
- */
-export function usePuzzleGenerationMutation() {
-  const { user } = useAuth()
-
-  return useMutation({
-    mutationFn: async ({
-      listId,
-      wordCount = 30,
-    }: {
-      listId: string
-      wordCount?: number
-    }) => {
-      // Step 1: Fetch random words
-      const words = await getRandomWordsForPuzzle(listId, wordCount)
-
-      // Step 2: Generate puzzles
-      const puzzles = await generatePuzzles(words)
-
-      // Step 3: Save to database
-      let sessionId: string | null = null
-      if (user) {
-        const session = await savePuzzleSession(user.id, listId, puzzles)
-        sessionId = session.id
-      }
-
-      return { puzzles, sessionId }
-    },
-  })
 }
 
 /**

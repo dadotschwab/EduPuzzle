@@ -108,13 +108,6 @@ export function isPuzzleCompleted(puzzle: Puzzle): boolean {
 }
 
 /**
- * Filters out completed puzzles from a list
- */
-export function filterCompletedPuzzles(puzzles: Puzzle[]): Puzzle[] {
-  return puzzles.filter(puzzle => !isPuzzleCompleted(puzzle))
-}
-
-/**
  * Gets the index of the first uncompleted puzzle
  * Returns 0 if no puzzles are completed
  */
@@ -125,11 +118,4 @@ export function getFirstUncompletedPuzzleIndex(puzzles: Puzzle[]): number {
     }
   }
   return 0 // Default to first puzzle if all are completed
-}
-
-/**
- * Clears all puzzle progress (useful for testing)
- */
-export function clearPuzzleProgress(): void {
-  localStorage.removeItem(STORAGE_KEY)
 }
