@@ -18,9 +18,10 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
 import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
 import { PuzzleCompletionCard } from '@/components/puzzle/PuzzleCompletionCard'
+import { PuzzleHelpDialog } from '@/components/puzzle/PuzzleHelpDialog'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle, HelpCircle } from 'lucide-react'
 import { usePuzzleGeneration, useCurrentPuzzle } from '@/hooks/usePuzzleGeneration'
 import { usePuzzleSolver } from '@/hooks/usePuzzleSolver'
 
@@ -37,6 +38,9 @@ export function PuzzleSolver() {
   // Track which puzzle we're showing
   const [currentPuzzleIndex, setCurrentPuzzleIndex] = useState(0)
   const puzzle = useCurrentPuzzle(allPuzzles, currentPuzzleIndex)
+
+  // Track help dialog visibility
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false)
 
   // Use shared puzzle solver logic
   const solver = usePuzzleSolver(puzzle)
@@ -164,9 +168,18 @@ export function PuzzleSolver() {
 
           {/* Right: Clues/Controls or Completion Stats */}
           <div className="lg:sticky lg:top-24 lg:self-start">
-            {/* Title */}
+            {/* Title with Help Icon */}
             <div className="mb-6">
-              <h1 className="text-3xl font-bold">Crossword Puzzle</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold">Crossword Puzzle</h1>
+                <button
+                  onClick={() => setHelpDialogOpen(true)}
+                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Show puzzle controls help"
+                >
+                  <HelpCircle className="w-5 h-5 text-gray-500 hover:text-blue-600" />
+                </button>
+              </div>
               {allPuzzles && allPuzzles.length > 1 && (
                 <p className="text-sm text-muted-foreground mt-1">
                   Puzzle {currentPuzzleIndex + 1} of {allPuzzles.length}
@@ -210,6 +223,9 @@ export function PuzzleSolver() {
             )}
           </div>
         </div>
+
+        {/* Help Dialog */}
+        <PuzzleHelpDialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen} />
       </div>
     </AppLayout>
   )

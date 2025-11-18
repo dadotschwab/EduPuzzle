@@ -16,9 +16,10 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
 import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
 import { PuzzleCompletionCard } from '@/components/puzzle/PuzzleCompletionCard'
+import { PuzzleHelpDialog } from '@/components/puzzle/PuzzleHelpDialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, AlertCircle, Calendar } from 'lucide-react'
+import { Loader2, AlertCircle, Calendar, HelpCircle } from 'lucide-react'
 import { useTodaysPuzzles, useCompletePuzzle, useCurrentPuzzle } from '@/hooks/useTodaysPuzzles'
 import { usePuzzleSolver } from '@/hooks/usePuzzleSolver'
 import {
@@ -60,6 +61,9 @@ export function TodaysPuzzles() {
 
   // Track words from the batch we just completed (before fetching next batch)
   const [completedBatchWords, setCompletedBatchWords] = useState(0)
+
+  // Track help dialog visibility
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false)
 
   /**
    * Initialize to first uncompleted puzzle ONLY on initial load
@@ -307,11 +311,18 @@ export function TodaysPuzzles() {
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 min-h-[calc(100vh-4rem)] flex flex-col justify-center">
-        {/* Progress Indicator */}
-        <div className="mb-4 text-center">
+        {/* Progress Indicator with Help Icon */}
+        <div className="mb-4 flex items-center justify-center gap-2">
           <p className="text-sm text-gray-600">
             Puzzle {currentPuzzleIndex + 1} • {puzzleData.totalWords} words to practice today
           </p>
+          <button
+            onClick={() => setHelpDialogOpen(true)}
+            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="Show puzzle controls help"
+          >
+            <HelpCircle className="w-5 h-5 text-gray-500 hover:text-blue-600" />
+          </button>
         </div>
 
         {/* Main Puzzle Layout - Grid on Left, Clues/Results on Right */}
@@ -364,6 +375,9 @@ export function TodaysPuzzles() {
             )}
           </div>
         </div>
+
+        {/* Help Dialog */}
+        <PuzzleHelpDialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen} />
       </div>
     </AppLayout>
   )
