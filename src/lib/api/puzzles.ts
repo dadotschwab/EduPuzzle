@@ -10,6 +10,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { query, mutate } from './supabaseClient'
 import type { Word, Puzzle, PuzzleSession } from '@/types'
 import { logger } from '@/lib/logger'
 
@@ -81,17 +82,15 @@ export async function getRandomWordsForPuzzle(
   }
 
   // Fetch random words using PostgreSQL's random() function
-  const { data, error } = await supabase
-    .from('words')
-    .select<'*', WordRow>('*')
-    .eq('list_id', listId)
-    .limit(Math.min(count, totalWords))
-    .order('id', { ascending: false }) // Use consistent ordering
-
-  if (error) {
-    logger.error('Error fetching words:', error)
-    throw new Error(`Failed to fetch words: ${error.message}`)
-  }
+  const data = await query(
+    () => supabase
+      .from('words')
+      .select<'*', WordRow>('*')
+      .eq('list_id', listId)
+      .limit(Math.min(count, totalWords))
+      .order('id', { ascending: false }), // Use consistent ordering
+    { table: 'words', operation: 'select' }
+  )
 
   if (!data || data.length === 0) {
     logger.error('No data returned from words query')
@@ -139,27 +138,20 @@ export async function savePuzzleSession(
   const totalWords = puzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
 
   // Cast to any to work around Supabase type inference issues when database types are not available
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = (await (supabase
-    .from('puzzle_sessions') as any)
-    .insert({
-      user_id: userId,
-      list_id: listId,
-      puzzle_data: puzzles, // Store all puzzles as JSONB
-      total_words: totalWords,
-      correct_words: 0, // Will be updated when puzzle is solved
-      started_at: new Date().toISOString(),
-    })
-    .select()
-    .single()) as { data: PuzzleSessionRow | null; error: any }
-
-  if (error) {
-    throw new Error(`Failed to save puzzle session: ${error.message}`)
-  }
-
-  if (!data) {
-    throw new Error('No data returned from puzzle session insert')
-  }
+  const data = await mutate(
+    () => (supabase.from('puzzle_sessions') as any)
+      .insert({
+        user_id: userId,
+        list_id: listId,
+        puzzle_data: puzzles, // Store all puzzles as JSONB
+        total_words: totalWords,
+        correct_words: 0, // Will be updated when puzzle is solved
+        started_at: new Date().toISOString(),
+      })
+      .select()
+      .single(),
+    { table: 'puzzle_sessions', operation: 'insert' }
+  ) as PuzzleSessionRow
 
   return {
     id: data.id,

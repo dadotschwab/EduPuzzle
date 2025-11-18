@@ -13,6 +13,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { query, mutate } from './supabaseClient'
 import type { Word } from '@/types'
 
 /**
@@ -29,31 +30,37 @@ interface WordUpdateData {
  * Fetches all words for a specific word list
  * @param listId - The word list ID
  * @returns Array of words, sorted by creation date (oldest first)
- * @throws Error if database query fails
+ * @throws SupabaseQueryError if database query fails
  */
-export async function getWords(listId: string) {
-  const { data, error } = await supabase
-    .from('words')
-    .select('*')
-    .eq('list_id', listId)
-    .order('created_at', { ascending: true })
-
-  if (error) throw error
-  return data as Word[]
+export async function getWords(listId: string): Promise<Word[]> {
+  return query(
+    () => supabase
+      .from('words')
+      .select('*')
+      .eq('list_id', listId)
+      .order('created_at', { ascending: true }),
+    { table: 'words', operation: 'select' }
+  )
 }
 
 /**
  * Get a single word by ID
+ * @param id - The word ID
+ * @returns The word
+ * @throws SupabaseQueryError if word not found or database query fails
  */
-export async function getWord(id: string) {
-  const { data, error } = await supabase.from('words').select('*').eq('id', id).single()
-
-  if (error) throw error
-  return data as Word
+export async function getWord(id: string): Promise<Word> {
+  return query(
+    () => supabase.from('words').select('*').eq('id', id).single(),
+    { table: 'words', operation: 'select' }
+  )
 }
 
 /**
  * Create a new word
+ * @param word - Word details
+ * @returns The created word
+ * @throws SupabaseQueryError if database operation fails
  */
 export async function createWord(word: {
   listId: string
@@ -61,25 +68,28 @@ export async function createWord(word: {
   translation: string
   definition?: string
   exampleSentence?: string
-}) {
-  const { data, error } = await supabase
-    .from('words')
-    .insert({
-      list_id: word.listId,
-      term: word.term,
-      translation: word.translation,
-      definition: word.definition,
-      example_sentence: word.exampleSentence,
-    } as any)
-    .select()
-    .single()
-
-  if (error) throw error
-  return data as Word
+}): Promise<Word> {
+  return mutate(
+    () => supabase
+      .from('words')
+      .insert({
+        list_id: word.listId,
+        term: word.term,
+        translation: word.translation,
+        definition: word.definition,
+        example_sentence: word.exampleSentence,
+      } as any)
+      .select()
+      .single(),
+    { table: 'words', operation: 'insert' }
+  )
 }
 
 /**
  * Create multiple words at once (bulk insert)
+ * @param words - Array of word details
+ * @returns Array of created words
+ * @throws SupabaseQueryError if database operation fails
  */
 export async function createWords(
   words: Array<{
@@ -89,26 +99,30 @@ export async function createWords(
     definition?: string
     exampleSentence?: string
   }>
-) {
-  const { data, error } = await supabase
-    .from('words')
-    .insert(
-      words.map((w) => ({
-        list_id: w.listId,
-        term: w.term,
-        translation: w.translation,
-        definition: w.definition,
-        example_sentence: w.exampleSentence,
-      })) as any
-    )
-    .select()
-
-  if (error) throw error
-  return data as Word[]
+): Promise<Word[]> {
+  return mutate(
+    () => supabase
+      .from('words')
+      .insert(
+        words.map((w) => ({
+          list_id: w.listId,
+          term: w.term,
+          translation: w.translation,
+          definition: w.definition,
+          example_sentence: w.exampleSentence,
+        })) as any
+      )
+      .select(),
+    { table: 'words', operation: 'insert' }
+  )
 }
 
 /**
  * Update a word
+ * @param id - The word ID
+ * @param updates - Partial word updates
+ * @returns The updated word
+ * @throws SupabaseQueryError if database operation fails
  */
 export async function updateWord(
   id: string,
@@ -118,7 +132,7 @@ export async function updateWord(
     definition?: string
     exampleSentence?: string
   }
-) {
+): Promise<Word> {
   const updateData: WordUpdateData = {}
   if (updates.term !== undefined) updateData.term = updates.term
   if (updates.translation !== undefined) updateData.translation = updates.translation
@@ -126,31 +140,36 @@ export async function updateWord(
   if (updates.exampleSentence !== undefined)
     updateData.example_sentence = updates.exampleSentence
 
-  const { data, error } = await (supabase
-    .from('words') as any)
-    .update(updateData)
-    .eq('id', id)
-    .select()
-    .single()
-
-  if (error) throw error
-  return data as Word
+  return mutate(
+    () => (supabase.from('words') as any)
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single(),
+    { table: 'words', operation: 'update' }
+  )
 }
 
 /**
  * Delete a word
+ * @param id - The word ID
+ * @throws SupabaseQueryError if database operation fails
  */
-export async function deleteWord(id: string) {
-  const { error } = await supabase.from('words').delete().eq('id', id)
-
-  if (error) throw error
+export async function deleteWord(id: string): Promise<void> {
+  await mutate(
+    () => supabase.from('words').delete().eq('id', id),
+    { table: 'words', operation: 'delete' }
+  )
 }
 
 /**
  * Delete multiple words at once
+ * @param ids - Array of word IDs to delete
+ * @throws SupabaseQueryError if database operation fails
  */
-export async function deleteWords(ids: string[]) {
-  const { error } = await supabase.from('words').delete().in('id', ids)
-
-  if (error) throw error
+export async function deleteWords(ids: string[]): Promise<void> {
+  await mutate(
+    () => supabase.from('words').delete().in('id', ids),
+    { table: 'words', operation: 'delete' }
+  )
 }

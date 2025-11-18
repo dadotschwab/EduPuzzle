@@ -10,6 +10,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { query, mutate } from './supabaseClient'
 import { getTodayDate } from '@/lib/utils/helpers'
 import type { WordWithProgress, WordProgress, SRSStage } from '@/types'
 
@@ -23,43 +24,44 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
 
   // Fetch all user's words with their progress
   // We'll filter client-side for more reliable and clear logic
-  const { data, error } = await supabase
-    .from('words')
-    .select(`
-      id,
-      list_id,
-      term,
-      translation,
-      definition,
-      example_sentence,
-      created_at,
-      word_lists!inner (
+  const data = await query(
+    () => supabase
+      .from('words')
+      .select(`
         id,
-        name,
-        source_language,
-        target_language,
-        user_id
-      ),
-      word_progress!left (
-        id,
-        user_id,
-        word_id,
-        stage,
-        ease_factor,
-        interval_days,
-        next_review_date,
-        last_reviewed_at,
-        total_reviews,
-        correct_reviews,
-        incorrect_reviews,
-        current_streak,
-        updated_at
-      )
-    `)
-    .eq('word_lists.user_id', userId)
-    .eq('word_progress.user_id', userId)
-
-  if (error) throw error
+        list_id,
+        term,
+        translation,
+        definition,
+        example_sentence,
+        created_at,
+        word_lists!inner (
+          id,
+          name,
+          source_language,
+          target_language,
+          user_id
+        ),
+        word_progress!left (
+          id,
+          user_id,
+          word_id,
+          stage,
+          ease_factor,
+          interval_days,
+          next_review_date,
+          last_reviewed_at,
+          total_reviews,
+          correct_reviews,
+          incorrect_reviews,
+          current_streak,
+          updated_at
+        )
+      `)
+      .eq('word_lists.user_id', userId)
+      .eq('word_progress.user_id', userId),
+    { table: 'words', operation: 'select' }
+  )
 
   // Transform to WordWithProgress format
   const allWords: WordWithProgress[] = (data || []).map((row: any) => {
@@ -270,12 +272,10 @@ export async function updateWordProgress(
       current_streak: wasCorrect ? 1 : 0,
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: insertError } = await (supabase
-      .from('word_progress') as any)
-      .insert(initialProgress)
-
-    if (insertError) throw insertError
+    await mutate(
+      () => (supabase.from('word_progress') as any).insert(initialProgress),
+      { table: 'word_progress', operation: 'insert' }
+    )
 
     console.log(`  Created: next_review=${initialProgress.next_review_date}, interval=${initialProgress.interval_days}, stage=${initialProgress.stage}`)
     return
@@ -306,13 +306,12 @@ export async function updateWordProgress(
 
   // Update database
   // Cast to any to work around Supabase type inference issues
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: updateError } = await (supabase
-    .from('word_progress') as any)
-    .update(updates)
-    .eq('id', progressData.id)
-
-  if (updateError) throw updateError
+  await mutate(
+    () => (supabase.from('word_progress') as any)
+      .update(updates)
+      .eq('id', progressData.id),
+    { table: 'word_progress', operation: 'update' }
+  )
 }
 
 /**
