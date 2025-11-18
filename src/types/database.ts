@@ -198,6 +198,32 @@ export interface Database {
           reviewed_at?: string
         }
       }
+      puzzle_cache: {
+        Row: {
+          id: string
+          user_id: string
+          word_ids: string[]
+          puzzle_data: Json
+          generated_at: string
+          valid_until: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          word_ids: string[]
+          puzzle_data: Json
+          generated_at?: string
+          valid_until?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          word_ids?: string[]
+          puzzle_data?: Json
+          generated_at?: string
+          valid_until?: string
+        }
+      }
     }
   }
 }
