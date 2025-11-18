@@ -10,12 +10,6 @@
 import { useState, useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import {
-  Command,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 
 /**
@@ -104,6 +98,8 @@ export const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelector
     const [searchValue, setSearchValue] = useState('')
     const inputRef = useRef<HTMLInputElement>(null)
 
+    console.log('[LanguageSelector] Render - value prop:', value)
+
     // Expose focus method to parent via ref
     useImperativeHandle(ref, () => ({
       focus: () => {
@@ -129,10 +125,13 @@ export const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelector
 
     // Update search value when selection changes
     useEffect(() => {
+      console.log('[LanguageSelector] selectedLanguage changed:', selectedLanguage)
       if (selectedLanguage) {
         setSearchValue(selectedLanguage.name)
+        console.log('[LanguageSelector] Set searchValue to:', selectedLanguage.name)
       } else {
         setSearchValue('')
+        console.log('[LanguageSelector] Cleared searchValue')
       }
     }, [selectedLanguage])
 
@@ -148,6 +147,7 @@ export const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelector
     }, [searchValue])
 
     const handleSelect = (languageCode: string) => {
+      console.log('[LanguageSelector] handleSelect called with:', languageCode)
       onChange(languageCode)
       setOpen(false)
       onSelect?.() // Call onSelect callback for auto-advancing
@@ -182,34 +182,31 @@ export const LanguageSelector = forwardRef<LanguageSelectorRef, LanguageSelector
         />
         {open && filteredLanguages.length > 0 && (
           <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-auto">
-            <Command shouldFilter={false}>
-              <CommandList>
-                <CommandGroup>
-                  {filteredLanguages.map((language) => (
-                    <CommandItem
-                      key={language.code}
-                      value={language.code}
-                      onSelect={() => handleSelect(language.code)}
-                      onClick={() => handleSelect(language.code)}
-                      onMouseDown={(e) => {
-                        // Prevent blur on mousedown so click can complete
-                        e.preventDefault()
-                      }}
-                      className="cursor-pointer"
-                    >
-                      <Check
-                        className={cn(
-                          'mr-2 h-4 w-4',
-                          selectedLanguage?.code === language.code ? 'opacity-100' : 'opacity-0'
-                        )}
-                      />
-                      {language.name}
-                      <span className="ml-auto text-xs text-gray-500">{language.code}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
+            <div className="py-1">
+              {filteredLanguages.map((language) => (
+                <button
+                  key={language.code}
+                  type="button"
+                  onClick={() => {
+                    handleSelect(language.code)
+                  }}
+                  onMouseDown={(e) => {
+                    // Prevent input blur so click can complete
+                    e.preventDefault()
+                  }}
+                  className="w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center cursor-pointer"
+                >
+                  <Check
+                    className={cn(
+                      'mr-2 h-4 w-4',
+                      selectedLanguage?.code === language.code ? 'opacity-100' : 'opacity-0'
+                    )}
+                  />
+                  <span className="flex-1">{language.name}</span>
+                  <span className="text-xs text-gray-500">{language.code}</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
