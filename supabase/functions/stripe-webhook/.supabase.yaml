@@ -1,0 +1,9 @@
+# Supabase Edge Function Configuration for stripe-webhook
+#
+# This function must be publicly accessible because:
+# - Stripe webhooks don't include JWT authorization headers
+# - Security is handled via webhook signature verification
+# - The function verifies the stripe-signature header for authenticity
+
+# Disable JWT verification for this function (required for webhooks)
+verify_jwt: false
