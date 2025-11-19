@@ -12,6 +12,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Keyboard, CheckCircle, Lightbulb, Flag } from 'lucide-react'
+import { memo } from 'react'
 
 interface PuzzleHelpDialogProps {
   open: boolean
@@ -21,7 +22,7 @@ interface PuzzleHelpDialogProps {
 /**
  * Help dialog that explains all puzzle controls and interactions
  */
-export function PuzzleHelpDialog({ open, onOpenChange }: PuzzleHelpDialogProps) {
+export const PuzzleHelpDialog = memo(function PuzzleHelpDialog({ open, onOpenChange }: PuzzleHelpDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto">
@@ -113,4 +114,4 @@ export function PuzzleHelpDialog({ open, onOpenChange }: PuzzleHelpDialogProps) 
       </DialogContent>
     </Dialog>
   )
-}
+})

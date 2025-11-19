@@ -63,18 +63,59 @@ serve(async (req) => {
       )
     }
 
-    // 2. Get user subscription data
+    // 2. Get user subscription data (use maybeSingle to handle missing records)
     const { data: userData, error: userError } = await supabaseClient
       .from('users')
       .select('subscription_status, trial_end_date, subscription_end_date')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (userError) {
       throw new Error(`Failed to fetch user data: ${userError.message}`)
     }
 
-    // 3. Determine access and status
+    // 3. DEFENSIVE: Create user record if it doesn't exist
+    if (!userData) {
+      console.log(`[check-subscription] User record not found for ${user.id}, creating...`)
+
+      // Create user with trial status
+      const trialEndDate = new Date()
+      trialEndDate.setDate(trialEndDate.getDate() + 7) // 7-day trial
+
+      const { data: newUser, error: createError } = await supabaseClient
+        .from('users')
+        .insert({
+          id: user.id,
+          email: user.email!,
+          subscription_status: 'trial',
+          trial_end_date: trialEndDate.toISOString(),
+          created_at: new Date().toISOString(),
+        })
+        .select('subscription_status, trial_end_date, subscription_end_date')
+        .single()
+
+      if (createError || !newUser) {
+        console.error('[check-subscription] Failed to create user record:', createError)
+        throw new Error(`Failed to create user record: ${createError?.message}`)
+      }
+
+      // Use the newly created user data
+      const userData = newUser
+
+      // Return early with trial access
+      return new Response(JSON.stringify({
+        hasAccess: true,
+        status: 'trial',
+        trialEndsAt: trialEndDate.toISOString(),
+        subscriptionEndsAt: null,
+        daysRemaining: 7,
+        message: 'Welcome! You have 7 days left in your trial',
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // 4. Determine access and status
     const now = new Date()
     const trialEndDate = userData.trial_end_date ? new Date(userData.trial_end_date) : null
     const subscriptionEndDate = userData.subscription_end_date
@@ -86,7 +127,7 @@ serve(async (req) => {
     let message = ''
     let status = userData.subscription_status as SubscriptionStatusResponse['status']
 
-    // 4. Check access based on subscription status
+    // 5. Check access based on subscription status
     switch (userData.subscription_status) {
       case 'active':
         hasAccess = true
@@ -135,7 +176,7 @@ serve(async (req) => {
         break
     }
 
-    // 5. Return subscription status
+    // 6. Return subscription status
     const response: SubscriptionStatusResponse = {
       hasAccess,
       status,

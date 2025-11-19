@@ -15,6 +15,10 @@
 import { supabase } from '@/lib/supabase'
 import { query, mutate } from './supabaseClient'
 import type { Word } from '@/types'
+import type { Database } from '@/types/database'
+
+// Type aliases for cleaner code
+type WordInsert = Database['public']['Tables']['words']['Insert']
 
 /**
  * Database update object for words (snake_case for Supabase)
@@ -69,16 +73,18 @@ export async function createWord(word: {
   definition?: string
   exampleSentence?: string
 }): Promise<Word> {
+  const insertData: WordInsert = {
+    list_id: word.listId,
+    term: word.term,
+    translation: word.translation,
+    definition: word.definition || null,
+    example_sentence: word.exampleSentence || null,
+  }
+
   return mutate(
     () => supabase
       .from('words')
-      .insert({
-        list_id: word.listId,
-        term: word.term,
-        translation: word.translation,
-        definition: word.definition,
-        example_sentence: word.exampleSentence,
-      } as any)
+      .insert(insertData)
       .select()
       .single(),
     { table: 'words', operation: 'insert' }
@@ -100,18 +106,18 @@ export async function createWords(
     exampleSentence?: string
   }>
 ): Promise<Word[]> {
+  const insertData: WordInsert[] = words.map((w) => ({
+    list_id: w.listId,
+    term: w.term,
+    translation: w.translation,
+    definition: w.definition || null,
+    example_sentence: w.exampleSentence || null,
+  }))
+
   return mutate(
     () => supabase
       .from('words')
-      .insert(
-        words.map((w) => ({
-          list_id: w.listId,
-          term: w.term,
-          translation: w.translation,
-          definition: w.definition,
-          example_sentence: w.exampleSentence,
-        })) as any
-      )
+      .insert(insertData)
       .select(),
     { table: 'words', operation: 'insert' }
   )
@@ -141,7 +147,8 @@ export async function updateWord(
     updateData.example_sentence = updates.exampleSentence
 
   return mutate(
-    () => (supabase.from('words') as any)
+    () => supabase
+      .from('words')
       .update(updateData)
       .eq('id', id)
       .select()

@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getWords, createWord, createWords, updateWord, deleteWord, deleteWords } from '@/lib/api/words'
+import type { Database } from '@/types/database'
+
+// Helper type for word rows from database (has both snake_case and camelCase)
+type WordRow = Database['public']['Tables']['words']['Row']
 
 /**
  * Get all words for a list
@@ -21,8 +25,9 @@ export function useCreateWord() {
   return useMutation({
     mutationFn: createWord,
     onSuccess: (data) => {
-      // Supabase returns snake_case (list_id) but we cast to camelCase (listId)
-      const listId = (data as any).list_id || data.listId
+      // Extract list_id from database row
+      const wordRow = data as unknown as WordRow
+      const listId = wordRow.list_id
       queryClient.invalidateQueries({ queryKey: ['words', listId] })
       queryClient.invalidateQueries({ queryKey: ['wordLists'] })
     },
@@ -39,8 +44,9 @@ export function useCreateWords() {
     mutationFn: createWords,
     onSuccess: (data) => {
       if (data.length > 0) {
-        // Supabase returns snake_case (list_id) but we cast to camelCase (listId)
-        const listId = (data[0] as any).list_id || data[0].listId
+        // Extract list_id from first database row
+        const wordRow = data[0] as unknown as WordRow
+        const listId = wordRow.list_id
         queryClient.invalidateQueries({ queryKey: ['words', listId] })
         queryClient.invalidateQueries({ queryKey: ['wordLists'] })
       }
@@ -58,8 +64,9 @@ export function useUpdateWord() {
     mutationFn: ({ id, updates }: { id: string; updates: Parameters<typeof updateWord>[1] }) =>
       updateWord(id, updates),
     onSuccess: (data) => {
-      // Supabase returns snake_case (list_id) but we cast to camelCase (listId)
-      const listId = (data as any).list_id || data.listId
+      // Extract list_id from database row
+      const wordRow = data as unknown as WordRow
+      const listId = wordRow.list_id
       queryClient.invalidateQueries({ queryKey: ['words', listId] })
       queryClient.invalidateQueries({ queryKey: ['words', 'single', data.id] })
     },

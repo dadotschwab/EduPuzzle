@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
 import { ProfileMenu } from './ProfileMenu'
+import { memo } from 'react'
 
 interface AppLayoutProps {
   children: React.ReactNode
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+export const AppLayout = memo(function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top navigation bar */}
@@ -28,4 +29,4 @@ export function AppLayout({ children }: AppLayoutProps) {
       <main>{children}</main>
     </div>
   )
-}
+})

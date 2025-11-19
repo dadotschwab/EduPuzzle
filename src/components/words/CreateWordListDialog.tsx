@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback, memo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,7 +11,7 @@ interface CreateWordListDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialogProps) {
+export const CreateWordListDialog = memo(function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialogProps) {
   const [name, setName] = useState('')
   const [source_language, setSourceLanguage] = useState('')
   const [target_language, setTargetLanguage] = useState('')
@@ -21,7 +21,7 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
   const sourceLanguageRef = useRef<LanguageSelectorRef>(null)
   const targetLanguageRef = useRef<LanguageSelectorRef>(null)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
 
     try {
@@ -39,7 +39,11 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
     } catch (error) {
       console.error('Failed to create word list:', error)
     }
-  }
+  }, [name, source_language, target_language, createMutation, onOpenChange])
+
+  const handleTargetFocus = useCallback(() => {
+    targetLanguageRef.current?.focus()
+  }, [])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,7 +73,7 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
               ref={sourceLanguageRef}
               value={source_language}
               onChange={setSourceLanguage}
-              onSelect={() => targetLanguageRef.current?.focus()}
+              onSelect={handleTargetFocus}
               placeholder="Select source language..."
             />
           </div>
@@ -94,4 +98,4 @@ export function CreateWordListDialog({ open, onOpenChange }: CreateWordListDialo
       </DialogContent>
     </Dialog>
   )
-}
+})

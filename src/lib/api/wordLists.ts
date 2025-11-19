@@ -1,25 +1,36 @@
 /**
- * @fileoverview Word list API functions for Supabase database operations
+ * @fileoverview Word List API functions for Supabase
  *
- * Provides CRUD operations for word lists, handling the conversion between
- * camelCase TypeScript types and snake_case database column names.
- *
- * All functions use Row Level Security (RLS) policies to ensure users
- * can only access their own word lists.
- *
- * @module lib/api/wordLists
+ * Handles CRUD operations for vocabulary lists (word_lists table)
  */
 
 import { supabase } from '@/lib/supabase'
 import { query, mutate } from './supabaseClient'
 import type { WordList } from '@/types'
+import type { Database } from '@/types/database'
 
-/**
- * Fetches all word lists for the current user
- * @returns Array of word lists, sorted by creation date (newest first)
- * @throws SupabaseQueryError if database query fails
- */
-export async function getWordLists(): Promise<WordList[]> {
+type WordListInsert = Database['public']['Tables']['word_lists']['Insert']
+type WordListUpdate = Database['public']['Tables']['word_lists']['Update']
+
+export async function getWordLists(params?: { withCounts?: boolean }): Promise<WordList[]> {
+  if (params?.withCounts) {
+    const { data, error } = await supabase
+      .from('word_lists')
+      .select(`
+        *,
+        wordCount:words(count)
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data?.map(list => ({
+      ...list,
+      wordCount: Array.isArray(list.wordCount) && list.wordCount.length > 0 
+        ? (list.wordCount[0] as { count: number }).count 
+        : 0
+    })) || []
+  }
+
   return query(
     () => supabase
       .from('word_lists')
@@ -29,29 +40,13 @@ export async function getWordLists(): Promise<WordList[]> {
   )
 }
 
-/**
- * Fetches a single word list by ID
- * @param id - The word list ID
- * @returns The word list
- * @throws SupabaseQueryError if word list not found or database query fails
- */
 export async function getWordList(id: string): Promise<WordList> {
   return query(
-    () => supabase
-      .from('word_lists')
-      .select('*')
-      .eq('id', id)
-      .single(),
+    () => supabase.from('word_lists').select('*').eq('id', id).single(),
     { table: 'word_lists', operation: 'select' }
   )
 }
 
-/**
- * Creates a new word list for the current user
- * @param wordList - Word list details (name and languages)
- * @returns The created word list
- * @throws Error if user not authenticated or database operation fails
- */
 export async function createWordList(wordList: {
   name: string
   source_language: string
@@ -60,32 +55,21 @@ export async function createWordList(wordList: {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
   if (!user) throw new Error('Not authenticated')
 
+  const insertData: WordListInsert = {
+    user_id: user.id,
+    name: wordList.name,
+    source_language: wordList.source_language,
+    target_language: wordList.target_language,
+  }
+
   return mutate(
-    () => supabase
-      .from('word_lists')
-      .insert({
-        user_id: user.id,
-        name: wordList.name,
-        source_language: wordList.source_language,
-        target_language: wordList.target_language,
-      } as any)
-      .select()
-      .single(),
+    () => supabase.from('word_lists').insert(insertData).select().single(),
     { table: 'word_lists', operation: 'insert' }
   )
 }
 
-/**
- * Updates an existing word list
- * Only provided fields will be updated
- * @param id - The word list ID
- * @param updates - Partial word list updates
- * @returns The updated word list
- * @throws Error if database operation fails
- */
 export async function updateWordList(
   id: string,
   updates: {
@@ -94,10 +78,15 @@ export async function updateWordList(
     target_language?: string
   }
 ): Promise<WordList> {
-  // Cast to any to work around Supabase type inference issues
+  const updateData: WordListUpdate = {}
+  if (updates.name !== undefined) updateData.name = updates.name
+  if (updates.source_language !== undefined) updateData.source_language = updates.source_language
+  if (updates.target_language !== undefined) updateData.target_language = updates.target_language
+
   return mutate(
-    () => (supabase.from('word_lists') as any)
-      .update(updates)
+    () => supabase
+      .from('word_lists')
+      .update(updateData)
       .eq('id', id)
       .select()
       .single(),
@@ -105,12 +94,6 @@ export async function updateWordList(
   )
 }
 
-/**
- * Deletes a word list and all its associated words
- * RLS policy ensures user can only delete their own lists
- * @param id - The word list ID
- * @throws Error if database operation fails
- */
 export async function deleteWordList(id: string): Promise<void> {
   await mutate(
     () => supabase.from('word_lists').delete().eq('id', id),

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,7 +21,7 @@ interface WordRow {
 
 const MAX_ROWS = 10
 
-export function CreateWordDialog({ open, onOpenChange, listId }: CreateWordDialogProps) {
+export const CreateWordDialog = memo(function CreateWordDialog({ open, onOpenChange, listId }: CreateWordDialogProps) {
   const [rows, setRows] = useState<WordRow[]>([
     { id: '1', term: '', translation: '', exampleSentence: '' }
   ])
@@ -34,7 +34,7 @@ export function CreateWordDialog({ open, onOpenChange, listId }: CreateWordDialo
     }
   }, [open])
 
-  const handleInputChange = (id: string, field: keyof WordRow, value: string) => {
+  const handleInputChange = useCallback((id: string, field: keyof WordRow, value: string) => {
     setRows(prevRows => {
       const updatedRows = prevRows.map(row =>
         row.id === id ? { ...row, [field]: value } : row
@@ -61,15 +61,15 @@ export function CreateWordDialog({ open, onOpenChange, listId }: CreateWordDialo
 
       return updatedRows
     })
-  }
+  }, [])
 
-  const handleRemoveRow = (id: string) => {
+  const handleRemoveRow = useCallback((id: string) => {
     if (rows.length > 1) {
       setRows(prevRows => prevRows.filter(row => row.id !== id))
     }
-  }
+  }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Filter out empty rows (only include rows with both term and translation)
@@ -92,7 +92,7 @@ export function CreateWordDialog({ open, onOpenChange, listId }: CreateWordDialo
     } catch (error) {
       console.error('Failed to create words:', error)
     }
-  }
+  }, [listId, rows, createMutation, onOpenChange])
 
   const hasValidWords = rows.some(row => row.term.trim() && row.translation.trim())
 
@@ -165,4 +165,4 @@ export function CreateWordDialog({ open, onOpenChange, listId }: CreateWordDialo
       </DialogContent>
     </Dialog>
   )
-}
+})

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,7 +13,7 @@ interface EditWordListDialogProps {
   wordList: WordList
 }
 
-export function EditWordListDialog({ open, onOpenChange, wordList }: EditWordListDialogProps) {
+export const EditWordListDialog = memo(function EditWordListDialog({ open, onOpenChange, wordList }: EditWordListDialogProps) {
   const [name, setName] = useState(wordList.name)
   const [source_language, setSourceLanguage] = useState(wordList.source_language)
   const [target_language, setTargetLanguage] = useState(wordList.target_language)
@@ -27,7 +27,7 @@ export function EditWordListDialog({ open, onOpenChange, wordList }: EditWordLis
     }
   }, [open, wordList])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
 
     try {
@@ -44,7 +44,7 @@ export function EditWordListDialog({ open, onOpenChange, wordList }: EditWordLis
     } catch (error) {
       console.error('Failed to update word list:', error)
     }
-  }
+  }, [name, source_language, target_language, wordList.id, updateMutation, onOpenChange])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,4 +94,4 @@ export function EditWordListDialog({ open, onOpenChange, wordList }: EditWordLis
       </DialogContent>
     </Dialog>
   )
-}
+})

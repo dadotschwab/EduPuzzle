@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useWordList } from '@/hooks/useWordLists'
 import { useWords, useDeleteWord } from '@/hooks/useWords'
@@ -7,24 +7,58 @@ import { SubscriptionGate } from '@/components/auth/SubscriptionGate'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { CreateWordDialog } from '@/components/words/CreateWordDialog'
-import { ArrowLeft, Plus, Trash2, BookOpen } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react'
+
+const WORDS_PER_PAGE = 50
 
 export function WordListDetail() {
   const { id } = useParams<{ id: string }>()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
   const { data: wordList, isLoading: listLoading } = useWordList(id!)
   const { data: words, isLoading: wordsLoading } = useWords(id!)
   const deleteMutation = useDeleteWord()
 
-  const handleDelete = async (wordId: string, term: string) => {
+  // Pagination calculations
+  const totalWords = words?.length || 0
+  const totalPages = Math.ceil(totalWords / WORDS_PER_PAGE)
+
+  // Memoize paginated words to prevent unnecessary recalculations
+  const paginatedWords = useMemo(() => {
+    if (!words) return []
+    const startIndex = (currentPage - 1) * WORDS_PER_PAGE
+    const endIndex = startIndex + WORDS_PER_PAGE
+    return words.slice(startIndex, endIndex)
+  }, [words, currentPage])
+
+  // Reset to page 1 when words change (e.g., after adding/deleting words)
+  useMemo(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
+
+  const handleDelete = useCallback(async (wordId: string, term: string) => {
     if (confirm(`Are you sure you want to delete "${term}"?`)) {
       try {
         await deleteMutation.mutateAsync(wordId)
+        // If we deleted the last word on this page, go to previous page
+        if (paginatedWords.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1)
+        }
       } catch (error) {
         console.error('Failed to delete word:', error)
       }
     }
-  }
+  }, [deleteMutation, paginatedWords.length, currentPage])
+
+  const handleNextPage = useCallback(() => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+  }, [totalPages])
+
+  const handlePrevPage = useCallback(() => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1))
+  }, [])
 
   if (listLoading || wordsLoading) {
     return (
@@ -73,7 +107,10 @@ export function WordListDetail() {
                 {wordList.source_language} → {wordList.target_language}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {words?.length || 0} {words?.length === 1 ? 'word' : 'words'}
+                {totalWords} {totalWords === 1 ? 'word' : 'words'}
+                {totalPages > 1 && (
+                  <span className="ml-2">• Page {currentPage} of {totalPages}</span>
+                )}
               </p>
             </div>
             <Button onClick={() => setCreateDialogOpen(true)}>
@@ -112,7 +149,7 @@ export function WordListDetail() {
                       </tr>
                     </thead>
                     <tbody>
-                      {words?.map((word) => (
+                      {paginatedWords.map((word) => (
                         <tr
                           key={word.id}
                           className="border-b last:border-b-0 hover:bg-gray-50 transition-colors"
@@ -138,6 +175,35 @@ export function WordListDetail() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {((currentPage - 1) * WORDS_PER_PAGE) + 1} to {Math.min(currentPage * WORDS_PER_PAGE, totalWords)} of {totalWords} words
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
