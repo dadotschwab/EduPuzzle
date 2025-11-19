@@ -17,18 +17,18 @@
  * @module functions/stripe-webhook
  */
 
-// Import with explicit Deno compatibility
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+// Follow Supabase's official Stripe webhook pattern
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import Stripe from 'https://esm.sh/stripe@14.10.0?target=deno'
+import Stripe from 'https://esm.sh/stripe@14?target=denonext'
 
-/**
- * CORS headers (webhooks don't need CORS but include for consistency)
- */
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+// Initialize Stripe with proper configuration
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') as string, {
+  // This is needed to use the Fetch API rather than relying on the Node http package
+  apiVersion: '2024-11-20'
+})
+
+// This is needed in order to use the Web Crypto API in Deno
+const cryptoProvider = Stripe.createSubtleCryptoProvider()
 
 /**
  * Subscription status mapping
@@ -55,72 +55,58 @@ function mapStripeStatus(stripeStatus: string): SubscriptionStatus {
   }
 }
 
-serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+console.log('Hello from Stripe Webhook!')
+
+Deno.serve(async (request) => {
+  const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
+  const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
+
+  if (!stripeSecretKey || !webhookSecret) {
+    console.error('Missing required environment variables')
+    return new Response('Server configuration error', { status: 500 })
   }
 
-  // IMPORTANT: For webhooks, we bypass normal auth and use signature verification instead
-  console.log('Webhook request received:', req.method, req.url)
+  // Handle CORS preflight
+  if (request.method === 'OPTIONS') {
+    return new Response('ok', {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      }
+    })
+  }
+
+  console.log('Webhook request received:', request.method, request.url)
 
   try {
-    // 1. Get webhook signature (required for all Stripe webhooks)
-    const signature = req.headers.get('stripe-signature')
+    // Get Stripe signature from headers
+    const signature = request.headers.get('Stripe-Signature')
     if (!signature) {
       console.error('No Stripe signature in request headers')
-      return new Response(
-        JSON.stringify({ error: 'Missing Stripe signature header' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      return new Response('Missing Stripe signature', { status: 400 })
     }
 
-    // 2. Validate webhook secret is configured
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
-    if (!webhookSecret) {
-      console.error('STRIPE_WEBHOOK_SECRET not configured in environment')
-      throw new Error('STRIPE_WEBHOOK_SECRET not configured')
-    }
-
-    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
-    if (!stripeSecretKey) {
-      console.error('STRIPE_SECRET_KEY not configured in environment')
-      throw new Error('STRIPE_SECRET_KEY not configured')
-    }
-
-    // 3. Initialize Stripe
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2023-10-16',
-      httpClient: Stripe.createFetchHttpClient(),
-    })
-
-    // 4. Get raw body for signature verification
-    const body = await req.text()
-
-    // 5. Verify webhook signature (CRITICAL SECURITY CHECK)
-    let event: Stripe.Event
+    // First step is to verify the event. The .text() method must be used as the
+    // verification relies on the raw request body rather than the parsed JSON.
+    const body = await request.text()
+    
+    let receivedEvent
     try {
-      event = await stripe.webhooks.constructEventAsync(
+      receivedEvent = await stripe.webhooks.constructEventAsync(
         body,
         signature,
-        webhookSecret
+        Deno.env.get('STRIPE_WEBHOOK_SECRET')!,
+        undefined,
+        cryptoProvider
       )
-      console.log('Webhook signature verified successfully')
     } catch (err) {
-      console.error('Webhook signature verification failed:', err)
-      return new Response(
-        JSON.stringify({ error: 'Invalid webhook signature' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      console.error('Webhook signature verification failed:', err.message)
+      return new Response(err.message, { status: 400 })
     }
 
-    // 6. Initialize Supabase client (service role for admin access)
+    console.log(`🔔 Event received: ${receivedEvent.id} - Type: ${receivedEvent.type}`)
+
+    // Initialize Supabase client (service role for admin access)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     
@@ -130,59 +116,53 @@ serve(async (req) => {
     
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
 
-    console.log(`Processing webhook event: ${event.type}`)
-
-    // 7. Handle different event types
-    switch (event.type) {
+    // Handle different event types
+    switch (receivedEvent.type) {
       case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session
+        const session = receivedEvent.data.object as Stripe.Checkout.Session
         await handleCheckoutCompleted(supabaseClient, stripe, session)
         break
       }
 
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription
+        const subscription = receivedEvent.data.object as Stripe.Subscription
         await handleSubscriptionUpdated(supabaseClient, subscription)
         break
       }
 
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription
+        const subscription = receivedEvent.data.object as Stripe.Subscription
         await handleSubscriptionDeleted(supabaseClient, subscription)
         break
       }
 
       case 'invoice.payment_succeeded': {
-        const invoice = event.data.object as Stripe.Invoice
+        const invoice = receivedEvent.data.object as Stripe.Invoice
         await handlePaymentSucceeded(supabaseClient, stripe, invoice)
         break
       }
 
       case 'invoice.payment_failed': {
-        const invoice = event.data.object as Stripe.Invoice
+        const invoice = receivedEvent.data.object as Stripe.Invoice
         await handlePaymentFailed(supabaseClient, invoice)
         break
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`)
+        console.log(`Unhandled event type: ${receivedEvent.type}`)
     }
 
-    // 8. Return success response
-    return new Response(JSON.stringify({ received: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    console.log(`✅ Successfully processed event: ${receivedEvent.type}`)
+    return new Response(JSON.stringify({ ok: true }), { status: 200 })
+
   } catch (error) {
     console.error('Webhook error:', error)
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Internal server error',
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 500 }
     )
   }
 })
