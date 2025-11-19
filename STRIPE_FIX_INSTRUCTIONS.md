@@ -1,16 +1,55 @@
-# 🔧 Stripe Webhook Fix Instructions
+# 🔧 Stripe Webhook Fix Instructions - UPDATED
 
 ## 🎯 Problem Summary
 
-Your Stripe integration is failing because the webhook URL is configured incorrectly. The webhook URL includes an `?apikey=` parameter, which triggers Supabase's JWT authentication. Since Stripe webhooks don't include authorization headers, they're being rejected with 401 errors **before your function code even runs**.
+Your Stripe integration was failing due to **TWO configuration issues**:
+
+1. **Incorrect configuration location**: Using `.supabase.yaml` in function directory instead of `config.toml` in project root
+2. **Webhook URL format**: The webhook URL may include an `?apikey=` parameter, which triggers Supabase's JWT authentication
+
+Since Stripe webhooks don't include authorization headers, they were being rejected with 401 errors **before your function code even runs**.
 
 **Good news:** Your subscriptions ARE being created in Stripe successfully! The issue is only with the webhook communication back to Supabase, so your database doesn't get updated.
 
 ---
 
-## 🚀 Quick Fix (5 minutes)
+## ✅ Configuration Fixed (Completed)
 
-### Step 1: Fix Webhook URL in Stripe Dashboard
+The following changes have been implemented:
+
+1. ✅ **Added proper configuration to `supabase/config.toml`**
+   - Added `[functions.stripe-webhook]` section with `verify_jwt = false`
+   - This is the correct location per Supabase official documentation
+
+2. ✅ **Removed incorrect `.supabase.yaml` file**
+   - Deleted `supabase/functions/stripe-webhook/.supabase.yaml`
+   - This file was using an outdated configuration approach
+
+---
+
+## 🚀 Deployment Steps (Required)
+
+### Step 1: Deploy Updated Configuration
+
+**IMPORTANT:** The configuration changes have been made locally. You must deploy them to take effect.
+
+```bash
+# Navigate to project directory
+cd /home/linux/EduPuzzle/EduPuzzle
+
+# Deploy the stripe-webhook function with updated configuration
+supabase functions deploy stripe-webhook
+
+# Verify deployment
+supabase functions list
+```
+
+**What this does:**
+- Deploys the function with the new `verify_jwt = false` configuration from `config.toml`
+- Allows Stripe webhooks to bypass JWT authentication at the gateway level
+- Security is maintained through Stripe signature verification in the function code
+
+### Step 2: Fix Webhook URL in Stripe Dashboard
 
 1. **Go to Stripe Dashboard**
    - Navigate to: https://dashboard.stripe.com/test/webhooks
@@ -18,7 +57,7 @@ Your Stripe integration is failing because the webhook URL is configured incorre
 
 2. **Find your webhook endpoint**
    - Look for the endpoint with your Supabase URL
-   - Currently shows: `https://gqalsczfephexbserzqp.supabase.co/functions/v1/stripe-webhook?apikey=...`
+   - Currently may show: `https://gqalsczfephexbserzqp.supabase.co/functions/v1/stripe-webhook?apikey=...`
 
 3. **Edit the endpoint**
    - Click on the webhook endpoint
@@ -36,18 +75,6 @@ Your Stripe integration is failing because the webhook URL is configured incorre
    ```
 
 4. **Save the changes**
-
-### Step 2: Deploy Updated Edge Function
-
-The webhook code has been improved to remove redundant checks and add better logging.
-
-```bash
-# Deploy the updated webhook function
-supabase functions deploy stripe-webhook
-
-# Verify deployment
-supabase functions list
-```
 
 ### Step 3: Verify Webhook Secret is Set
 
@@ -143,35 +170,40 @@ LIMIT 5;
 
 ## 🎯 What Was Fixed
 
-### Code Changes Made:
+### Configuration Changes Made:
 
-1. **Removed redundant signature check** in `stripe-webhook/index.ts`
-   - Eliminated duplicate `stripe-signature` header validation
-   - Cleaner, more maintainable code
+1. **✅ Added proper function configuration to `supabase/config.toml`**
+   - Added `[functions.stripe-webhook]` section
+   - Set `verify_jwt = false` to disable JWT authentication for this endpoint
+   - This is the **correct location** per Supabase official documentation
+   - Allows Stripe webhooks to reach the function without authorization headers
 
-2. **Added better error logging**
-   - More descriptive error messages
-   - Logs when signature verification succeeds
-   - Logs configuration issues clearly
+2. **✅ Removed incorrect `.supabase.yaml` file**
+   - Deleted `supabase/functions/stripe-webhook/.supabase.yaml`
+   - This file was using an outdated/incorrect configuration approach
+   - Per-function `.supabase.yaml` files are not the recommended method
 
-3. **Updated documentation** in `STRIPE_SETUP.md`
-   - Added critical warning about webhook URL format
-   - Added troubleshooting for 401 errors
-   - Clarified webhook testing procedures
+3. **✅ Updated documentation**
+   - Clarified the correct configuration approach
+   - Added deployment instructions
+   - Updated troubleshooting steps
 
 ### Root Causes Identified:
 
-1. **Primary Issue:** Webhook URL included `?apikey=` parameter
-   - This triggered Supabase's JWT authentication
+1. **Primary Issue:** Incorrect configuration location
+   - Using `.supabase.yaml` in function directory (not supported/outdated)
+   - Should use `config.toml` in project root with `[functions.stripe-webhook]` section
+   - This prevented JWT bypass from taking effect
+
+2. **Secondary Issue:** Webhook URL may include `?apikey=` parameter
+   - This triggers Supabase's JWT authentication middleware
    - Webhooks don't have authorization headers → 401 error
    - Function code never executed
 
-2. **Testing Issue:** Some tests used invalid signature data
-   - This is actually GOOD - shows security is working
-   - Use proper testing methods (`stripe trigger` or dashboard)
-
-3. **Code Quality:** Redundant signature validation
-   - Minor issue, but cleaned up for better maintainability
+3. **Security Note:** Signature verification is still enforced
+   - The function code verifies Stripe webhook signatures
+   - Only legitimate Stripe webhooks can trigger database updates
+   - Security is maintained through cryptographic verification
 
 ---
 

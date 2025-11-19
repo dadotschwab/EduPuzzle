@@ -14,7 +14,8 @@ import { checkSubscriptionStatus, type SubscriptionStatusResponse } from '@/lib/
 /**
  * Hook for accessing subscription status and access permissions
  *
- * Fetches and caches subscription data using React Query. Only fetches when user is authenticated.
+ * Fetches and caches subscription data using React Query. Only fetches when user is authenticated
+ * and auth loading is complete to prevent race conditions.
  * Provides subscription status, trial info, access permissions, and loading/error states.
  *
  * @returns Subscription state and helper functions
@@ -41,12 +42,12 @@ import { checkSubscriptionStatus, type SubscriptionStatusResponse } from '@/lib/
  * ```
  */
 export function useSubscription() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, loading } = useAuth()
 
   const query = useQuery<SubscriptionStatusResponse>({
     queryKey: ['subscription', user?.id],
     queryFn: checkSubscriptionStatus,
-    enabled: isAuthenticated && !!user?.id,
+    enabled: !loading && isAuthenticated && !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes - subscription status doesn't change often
     gcTime: 10 * 60 * 1000, // 10 minutes cache time
   })

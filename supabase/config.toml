@@ -237,3 +237,12 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# Edge Functions Configuration
+# Configure individual function behavior for authentication and other settings
+
+# Stripe Webhook - Disable JWT verification for webhook endpoint
+# Stripe webhooks don't include authorization headers, they use signature verification instead
+# Security is maintained through Stripe's webhook signature verification in the function code
+[functions.stripe-webhook]
+verify_jwt = false
