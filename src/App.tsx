@@ -10,6 +10,8 @@ import { TodaysPuzzles } from './pages/TodaysPuzzles'
 import { SettingsLayout } from './pages/Settings/SettingsLayout'
 import { AccountSettings } from './pages/Settings/AccountSettings'
 import { SubscriptionSettings } from './pages/Settings/SubscriptionSettings'
+import { SubscriptionSuccess } from './pages/SubscriptionSuccess'
+import { SubscriptionCancel } from './pages/SubscriptionCancel'
 
 function App() {
   return (
@@ -72,6 +74,24 @@ function App() {
         <Route path="account" element={<AccountSettings />} />
         <Route path="subscription" element={<SubscriptionSettings />} />
       </Route>
+
+      {/* Subscription checkout flow routes */}
+      <Route
+        path="/subscription/success"
+        element={
+          <ProtectedRoute>
+            <SubscriptionSuccess />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/subscription/cancel"
+        element={
+          <ProtectedRoute>
+            <SubscriptionCancel />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   )
 }

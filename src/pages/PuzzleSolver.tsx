@@ -24,6 +24,7 @@ import {
   PuzzleErrorState,
   PuzzleNotLoadedState,
 } from '@/components/puzzle/PuzzlePageStates'
+import { SubscriptionGate } from '@/components/auth/SubscriptionGate'
 import { Button } from '@/components/ui/button'
 import { HelpCircle } from 'lucide-react'
 import { usePuzzleGeneration, useCurrentPuzzle } from '@/hooks/usePuzzleGeneration'
@@ -54,7 +55,7 @@ export function PuzzleSolver() {
    */
   const handleNextPuzzle = () => {
     if (allPuzzles && currentPuzzleIndex < allPuzzles.length - 1) {
-      setCurrentPuzzleIndex(prev => prev + 1)
+      setCurrentPuzzleIndex((prev) => prev + 1)
       solver.resetPuzzle()
     } else {
       navigate('/app/dashboard')
@@ -98,86 +99,88 @@ export function PuzzleSolver() {
 
   return (
     <AppLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 min-h-[calc(100vh-4rem)] flex flex-col justify-center">
-        {/* Main Puzzle Layout - Grid on Left, Clues/Results on Right */}
-        <div className="grid lg:grid-cols-[1.2fr,1fr] gap-8">
-          {/* Left: Puzzle Grid */}
-          <div className="flex items-start justify-center">
-            <PuzzleGrid
-              puzzle={puzzle}
-              userInput={solver.userInput}
-              onCellChange={solver.handleCellChange}
-              selectedWord={solver.selectedWord}
-              onWordSelect={solver.setSelectedWord}
-              onFocusedCellChange={solver.setFocusedCell}
-              focusedCell={solver.focusedCell}
-              checkedWords={solver.checkedWords}
-              isPuzzleCompleted={solver.isPuzzleCompleted}
-              showCorrectAnswers={solver.showCorrectAnswers}
-            />
-          </div>
-
-          {/* Right: Clues/Controls or Completion Stats */}
-          <div className="lg:sticky lg:top-24 lg:self-start">
-            {/* Title with Help Icon */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold">Crossword Puzzle</h1>
-                <button
-                  onClick={() => setHelpDialogOpen(true)}
-                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                  aria-label="Show puzzle controls help"
-                >
-                  <HelpCircle className="w-5 h-5 text-gray-500 hover:text-blue-600" />
-                </button>
-              </div>
-              {allPuzzles && allPuzzles.length > 1 && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Puzzle {currentPuzzleIndex + 1} of {allPuzzles.length}
-                </p>
-              )}
-            </div>
-
-            {!solver.isPuzzleCompleted ? (
-              <PuzzleClues
-                placedWords={puzzle.placedWords}
+      <SubscriptionGate feature="Advanced crossword puzzles">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 min-h-[calc(100vh-4rem)] flex flex-col justify-center">
+          {/* Main Puzzle Layout - Grid on Left, Clues/Results on Right */}
+          <div className="grid lg:grid-cols-[1.2fr,1fr] gap-8">
+            {/* Left: Puzzle Grid */}
+            <div className="flex items-start justify-center">
+              <PuzzleGrid
+                puzzle={puzzle}
+                userInput={solver.userInput}
+                onCellChange={solver.handleCellChange}
                 selectedWord={solver.selectedWord}
                 onWordSelect={solver.setSelectedWord}
-                onCheckPuzzle={solver.handleCheckPuzzle}
-                onEndPuzzle={() => solver.handleEndPuzzle()}
-                onGiveHint={solver.handleGiveHint}
-                hintsRemaining={solver.hintsRemaining}
+                onFocusedCellChange={solver.setFocusedCell}
+                focusedCell={solver.focusedCell}
                 checkedWords={solver.checkedWords}
-                onFocusFirstCell={(word) => solver.setFocusedCell({ x: word.x, y: word.y })}
+                isPuzzleCompleted={solver.isPuzzleCompleted}
+                showCorrectAnswers={solver.showCorrectAnswers}
               />
-            ) : (
-              <div className="space-y-4">
-                {/* Dashboard Button */}
-                <Button
-                  onClick={() => navigate('/app/dashboard')}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Back to Dashboard
-                </Button>
+            </div>
 
-                {/* Completion Card */}
-                <PuzzleCompletionCard
-                  stats={stats}
-                  showCorrectAnswers={solver.showCorrectAnswers}
-                  onToggleAnswersView={solver.setShowCorrectAnswers}
-                  onNext={handleNextPuzzle}
-                  nextButtonLabel={isLastPuzzle ? 'Back to Dashboard' : 'Next Puzzle'}
-                  showNextButton={!isLastPuzzle}
-                />
+            {/* Right: Clues/Controls or Completion Stats */}
+            <div className="lg:sticky lg:top-24 lg:self-start">
+              {/* Title with Help Icon */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between">
+                  <h1 className="text-3xl font-bold">Crossword Puzzle</h1>
+                  <button
+                    onClick={() => setHelpDialogOpen(true)}
+                    className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                    aria-label="Show puzzle controls help"
+                  >
+                    <HelpCircle className="w-5 h-5 text-gray-500 hover:text-blue-600" />
+                  </button>
+                </div>
+                {allPuzzles && allPuzzles.length > 1 && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Puzzle {currentPuzzleIndex + 1} of {allPuzzles.length}
+                  </p>
+                )}
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Help Dialog */}
-        <PuzzleHelpDialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen} />
-      </div>
+              {!solver.isPuzzleCompleted ? (
+                <PuzzleClues
+                  placedWords={puzzle.placedWords}
+                  selectedWord={solver.selectedWord}
+                  onWordSelect={solver.setSelectedWord}
+                  onCheckPuzzle={solver.handleCheckPuzzle}
+                  onEndPuzzle={() => solver.handleEndPuzzle()}
+                  onGiveHint={solver.handleGiveHint}
+                  hintsRemaining={solver.hintsRemaining}
+                  checkedWords={solver.checkedWords}
+                  onFocusFirstCell={(word) => solver.setFocusedCell({ x: word.x, y: word.y })}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {/* Dashboard Button */}
+                  <Button
+                    onClick={() => navigate('/app/dashboard')}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Back to Dashboard
+                  </Button>
+
+                  {/* Completion Card */}
+                  <PuzzleCompletionCard
+                    stats={stats}
+                    showCorrectAnswers={solver.showCorrectAnswers}
+                    onToggleAnswersView={solver.setShowCorrectAnswers}
+                    onNext={handleNextPuzzle}
+                    nextButtonLabel={isLastPuzzle ? 'Back to Dashboard' : 'Next Puzzle'}
+                    showNextButton={!isLastPuzzle}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Help Dialog */}
+          <PuzzleHelpDialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen} />
+        </div>
+      </SubscriptionGate>
     </AppLayout>
   )
 }

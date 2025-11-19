@@ -1,10 +1,11 @@
 /**
- * Edge Function: Stripe Webhook Handler
+ * Edge Function: Stripe Webhook Handler (PUBLIC ENDPOINT)
  *
  * SECURITY CRITICAL: Handles all Stripe subscription events.
  * - Verifies webhook signatures (prevents spoofing)
  * - Updates subscription status in database
  * - Handles payment failures and cancellations
+ * - PUBLIC ACCESS: Uses webhook signature verification instead of auth headers
  *
  * Events handled:
  * - checkout.session.completed: New subscription created
@@ -16,6 +17,7 @@
  * @module functions/stripe-webhook
  */
 
+// Import with explicit Deno compatibility
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import Stripe from 'https://esm.sh/stripe@14.10.0?target=deno'
@@ -57,6 +59,21 @@ serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  // IMPORTANT: For webhooks, we bypass normal auth and use signature verification instead
+  console.log('Webhook request received:', req.method, req.url)
+  
+  // Check if this is a webhook request (has stripe-signature header)
+  const stripeSignature = req.headers.get('stripe-signature')
+  if (!stripeSignature) {
+    return new Response(
+      JSON.stringify({ error: 'Missing Stripe signature' }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
   }
 
   try {
@@ -112,10 +129,14 @@ serve(async (req) => {
     }
 
     // 6. Initialize Supabase client (service role for admin access)
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase configuration missing')
+    }
+    
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
 
     console.log(`Processing webhook event: ${event.type}`)
 

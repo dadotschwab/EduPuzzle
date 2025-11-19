@@ -1,199 +1,203 @@
-import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Check, CreditCard, Receipt } from 'lucide-react'
-
-type BillingInterval = 'monthly' | 'yearly'
-type PlanType = 'free' | 'monthly' | 'yearly'
+import { Check, CreditCard, Receipt, Loader2, AlertCircle, Crown } from 'lucide-react'
+import { useSubscription } from '@/hooks/useSubscription'
+import { useCheckout } from '@/hooks/useCheckout'
+import { useCustomerPortal } from '@/hooks/useCustomerPortal'
 
 export function SubscriptionSettings() {
-  const [billingInterval, setBillingInterval] = useState<BillingInterval>('yearly')
-  const currentPlan = 'free' as PlanType // This would come from your auth/user context
+  const { data: subscription, isLoading, error, hasAccess, daysRemaining } = useSubscription()
+  const { startCheckout, isPending: checkoutPending } = useCheckout()
+  const { openPortal, isPending: portalPending } = useCustomerPortal()
 
-  const plans = {
-    free: {
-      name: 'Free',
-      price: { monthly: 0, yearly: 0 },
-      features: [
-        'Unlimited word lists',
-        'Daily puzzles',
-        'Basic statistics',
-      ],
-    },
-    monthly: {
-      name: 'Premium Monthly',
-      price: { monthly: 9.99, yearly: 0 },
-      features: [
-        'All Free features',
-        'Advanced statistics',
-        'Custom puzzle difficulty',
-        'Priority support',
-      ],
-    },
-    yearly: {
-      name: 'Premium Yearly',
-      price: { monthly: 0, yearly: 99.99 },
-      features: [
-        'All Monthly features',
-        'Save $20 compared to monthly',
-        'Early access to new features',
-      ],
-      savings: '$20',
-    },
+  // Show loading state while fetching subscription data
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-blue-600" />
+          <p className="text-muted-foreground">Loading subscription details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state if subscription fetch failed
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="w-6 h-6" />
+              <CardTitle>Unable to Load Subscription</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700 mb-4">
+              We couldn't load your subscription information. Please try again.
+            </p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const planFeatures = [
+    'Unlimited word lists',
+    'Daily puzzles',
+    'Basic statistics',
+    'Advanced statistics',
+    'Custom puzzle difficulty',
+    'Priority support',
+  ]
+
+  const getStatusBadge = () => {
+    if (!subscription) return null
+
+    switch (subscription.status) {
+      case 'trial':
+        return <Badge variant="secondary">Free Trial</Badge>
+      case 'active':
+        return <Badge className="bg-green-100 text-green-800">Active</Badge>
+      case 'cancelled':
+        return <Badge variant="destructive">Cancelled</Badge>
+      case 'expired':
+        return <Badge variant="outline">Expired</Badge>
+      case 'past_due':
+        return <Badge className="bg-orange-100 text-orange-800">Past Due</Badge>
+      default:
+        return null
+    }
+  }
+
+  const getStatusMessage = () => {
+    if (!subscription) return ''
+
+    if (subscription.status === 'trial' && daysRemaining !== null) {
+      return `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} remaining in trial`
+    }
+
+    return subscription.message
+  }
+
+  const handleUpgrade = () => {
+    startCheckout({
+      successUrl: `${window.location.origin}/subscription/success`,
+      cancelUrl: `${window.location.origin}/settings/subscription`,
+    })
+  }
+
+  const handleManageSubscription = () => {
+    openPortal({
+      returnUrl: `${window.location.origin}/settings/subscription`,
+    })
   }
 
   return (
     <div className="space-y-6">
-      {/* Plans Section */}
-      <div>
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold">Choose Your Plan</h2>
-          <p className="text-muted-foreground mt-1">Select the plan that works best for you</p>
-        </div>
-
-        {/* Billing Toggle */}
-        <div className="flex justify-center mb-6">
-          <div className="inline-flex items-center bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setBillingInterval('monthly')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                billingInterval === 'monthly'
-                  ? 'bg-white text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingInterval('yearly')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                billingInterval === 'yearly'
-                  ? 'bg-white text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Yearly
-              <span className="ml-2 text-xs text-green-600">Save $20</span>
-            </button>
+      {/* Current Subscription Status */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="w-5 h-5" />
+                Subscription Status
+              </CardTitle>
+              <CardDescription>
+                {subscription?.status === 'trial' ? '7-day free trial' : 'Premium subscription'}
+              </CardDescription>
+            </div>
+            {getStatusBadge()}
           </div>
-        </div>
-
-        {/* Plans Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Free Plan */}
-          <Card className={currentPlan === 'free' ? 'border-2 border-primary relative' : ''}>
-            {currentPlan === 'free' && (
-              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Current Plan</Badge>
-            )}
-            <CardHeader>
-              <CardTitle>{plans.free.name}</CardTitle>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">$0</span>
-                <span className="text-muted-foreground">/month</span>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold">{hasAccess ? '€6.99' : 'Free'}</p>
+                <p className="text-sm text-muted-foreground">{hasAccess ? 'per month' : 'plan'}</p>
               </div>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3 mb-6">
-                {plans.free.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              {currentPlan === 'free' ? (
-                <Button className="w-full" disabled>
-                  Current Plan
-                </Button>
-              ) : (
-                <Button variant="outline" className="w-full">
-                  Downgrade
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Premium Monthly */}
-          {billingInterval === 'monthly' && (
-            <Card className={currentPlan === 'monthly' ? 'border-2 border-primary relative' : ''}>
-              {currentPlan === 'monthly' && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Current Plan</Badge>
-              )}
-              <CardHeader>
-                <CardTitle>{plans.monthly.name}</CardTitle>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">${plans.monthly.price.monthly}</span>
-                  <span className="text-muted-foreground">/month</span>
+              {subscription && (
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">{getStatusMessage()}</p>
+                  {subscription.trialEndsAt && subscription.status === 'trial' && (
+                    <p className="text-xs text-muted-foreground">
+                      Trial ends: {new Date(subscription.trialEndsAt).toLocaleDateString()}
+                    </p>
+                  )}
+                  {subscription.subscriptionEndsAt && subscription.status === 'active' && (
+                    <p className="text-xs text-muted-foreground">
+                      Next billing: {new Date(subscription.subscriptionEndsAt).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 mb-6">
-                  {plans.monthly.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                {currentPlan === 'monthly' ? (
-                  <Button className="w-full" disabled>
-                    Current Plan
-                  </Button>
-                ) : (
-                  <Button className="w-full">
-                    {currentPlan === 'free' ? 'Upgrade' : 'Switch to Monthly'}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Premium Yearly */}
-          {billingInterval === 'yearly' && (
-            <Card
-              className={`${
-                currentPlan === 'yearly' ? 'border-2 border-primary' : 'border-2 border-primary'
-              } relative`}
-            >
-              {currentPlan === 'yearly' ? (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Current Plan</Badge>
-              ) : (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">Best Value</Badge>
               )}
-              <CardHeader>
-                <CardTitle>{plans.yearly.name}</CardTitle>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">${plans.yearly.price.yearly}</span>
-                  <span className="text-muted-foreground">/year</span>
-                </div>
-                <p className="text-sm text-green-600 font-medium">
-                  Save ${plans.yearly.savings}
-                </p>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 mb-6">
-                  {plans.yearly.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check className="h-5 w-5 text-green-600 flex-shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                {currentPlan === 'yearly' ? (
-                  <Button className="w-full" disabled>
-                    Current Plan
-                  </Button>
-                ) : (
-                  <Button className="w-full">
-                    {currentPlan === 'free' ? 'Upgrade' : 'Switch to Yearly'}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              {!hasAccess && (
+                <Button onClick={handleUpgrade} disabled={checkoutPending} className="flex-1">
+                  {checkoutPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Starting Checkout...
+                    </>
+                  ) : (
+                    'Start Free Trial'
+                  )}
+                </Button>
+              )}
+
+              {hasAccess && (
+                <Button
+                  variant="outline"
+                  onClick={handleManageSubscription}
+                  disabled={portalPending}
+                  className="flex-1"
+                >
+                  {portalPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Opening Portal...
+                    </>
+                  ) : (
+                    'Manage Subscription'
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Plan Features */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Premium Features</CardTitle>
+          <CardDescription>
+            {hasAccess
+              ? 'You have access to all premium features'
+              : 'Upgrade to unlock all features'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-3">
+            {planFeatures.map((feature, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm">
+                <Check
+                  className={`h-5 w-5 flex-shrink-0 ${hasAccess ? 'text-green-600' : 'text-muted-foreground'}`}
+                />
+                <span className={hasAccess ? '' : 'text-muted-foreground'}>{feature}</span>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
 
       {/* Payment Method */}
       <Card>
@@ -202,9 +206,33 @@ export function SubscriptionSettings() {
           <CardDescription>Manage your payment information</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <CreditCard className="h-5 w-5" />
-            <p>No payment method on file</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <CreditCard className="h-5 w-5" />
+              <div>
+                <p>Payment method managed through Stripe</p>
+                {hasAccess && (
+                  <p className="text-xs">Update your card details in the customer portal</p>
+                )}
+              </div>
+            </div>
+            {hasAccess && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManageSubscription}
+                disabled={portalPending}
+              >
+                {portalPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Manage'
+                )}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -216,9 +244,33 @@ export function SubscriptionSettings() {
           <CardDescription>View your past invoices and receipts</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <Receipt className="h-5 w-5" />
-            <p>No billing history available</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <Receipt className="h-5 w-5" />
+              <div>
+                <p>Invoices and receipts available in Stripe</p>
+                {hasAccess && (
+                  <p className="text-xs">Access your billing history in the customer portal</p>
+                )}
+              </div>
+            </div>
+            {hasAccess && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleManageSubscription}
+                disabled={portalPending}
+              >
+                {portalPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'View History'
+                )}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
