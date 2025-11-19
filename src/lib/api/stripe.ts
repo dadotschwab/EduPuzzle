@@ -176,10 +176,65 @@ export async function checkSubscriptionStatus(): Promise<SubscriptionStatusRespo
   logger.debug('Checking subscription status')
 
   try {
+    // 1. Check if user is authenticated and session is valid
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+
+    if (sessionError) {
+      logger.error('Failed to get session', { error: sessionError })
+      throw new StripeApiError('Authentication session error. Please log in again.', 401)
+    }
+
+    if (!sessionData.session) {
+      logger.error('No active session found')
+      throw new StripeApiError('No active session. Please log in.', 401)
+    }
+
+    logger.debug('Session is valid', {
+      userId: sessionData.session.user.id,
+      expiresAt: sessionData.session.expires_at
+    })
+
+    // 2. Check if session is about to expire (within 5 minutes)
+    const expiresAt = sessionData.session.expires_at
+    if (expiresAt) {
+      const expiryTime = expiresAt * 1000 // Convert to milliseconds
+      const now = Date.now()
+      const timeUntilExpiry = expiryTime - now
+      const fiveMinutes = 5 * 60 * 1000
+
+      if (timeUntilExpiry < fiveMinutes) {
+        logger.debug('Session expiring soon, refreshing...')
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+
+        if (refreshError) {
+          logger.error('Failed to refresh session', { error: refreshError })
+          throw new StripeApiError('Failed to refresh session. Please log in again.', 401)
+        }
+
+        if (!refreshData.session) {
+          logger.error('No session after refresh')
+          throw new StripeApiError('Session refresh failed. Please log in again.', 401)
+        }
+
+        logger.debug('Session refreshed successfully')
+      }
+    }
+
+    // 3. Invoke the Edge Function
     const { data, error } = await supabase.functions.invoke('check-subscription')
 
     if (error) {
       logger.error('Subscription status check failed', { error })
+
+      // Handle 401 specifically
+      if (error.status === 401 || error.message?.includes('Unauthorized')) {
+        throw new StripeApiError(
+          'Authentication failed. Please log out and log in again.',
+          401,
+          'AUTH_FAILED'
+        )
+      }
+
       throw new StripeApiError(error.message || 'Failed to check subscription status', error.status)
     }
 

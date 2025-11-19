@@ -37,13 +37,42 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Get authenticated user
+    // 1. Check for Authorization header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.error('[check-subscription] No Authorization header found')
+      return new Response(
+        JSON.stringify({ error: 'No Authorization header provided' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    console.log('[check-subscription] Authorization header present')
+
+    // 2. Get authenticated user
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('[check-subscription] Missing Supabase environment variables')
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      supabaseUrl,
+      supabaseAnonKey,
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: { Authorization: authHeader },
         },
       }
     )
@@ -53,9 +82,13 @@ serve(async (req) => {
       error: authError,
     } = await supabaseClient.auth.getUser()
 
-    if (authError || !user) {
+    if (authError) {
+      console.error('[check-subscription] Auth error:', authError.message)
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({
+          error: 'Authentication failed',
+          details: authError.message
+        }),
         {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -63,7 +96,20 @@ serve(async (req) => {
       )
     }
 
-    // 2. Get user subscription data (use maybeSingle to handle missing records)
+    if (!user) {
+      console.error('[check-subscription] No user found after auth')
+      return new Response(
+        JSON.stringify({ error: 'No user found' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    console.log(`[check-subscription] User authenticated: ${user.id}`)
+
+    // 3. Get user subscription data (use maybeSingle to handle missing records)
     const { data: userData, error: userError } = await supabaseClient
       .from('users')
       .select('subscription_status, trial_end_date, subscription_end_date')
@@ -74,7 +120,7 @@ serve(async (req) => {
       throw new Error(`Failed to fetch user data: ${userError.message}`)
     }
 
-    // 3. DEFENSIVE: Create user record if it doesn't exist
+    // 4. DEFENSIVE: Create user record if it doesn't exist
     if (!userData) {
       console.log(`[check-subscription] User record not found for ${user.id}, creating...`)
 
@@ -115,7 +161,7 @@ serve(async (req) => {
       })
     }
 
-    // 4. Determine access and status
+    // 5. Determine access and status
     const now = new Date()
     const trialEndDate = userData.trial_end_date ? new Date(userData.trial_end_date) : null
     const subscriptionEndDate = userData.subscription_end_date
@@ -127,7 +173,7 @@ serve(async (req) => {
     let message = ''
     let status = userData.subscription_status as SubscriptionStatusResponse['status']
 
-    // 5. Check access based on subscription status
+    // 6. Check access based on subscription status
     switch (userData.subscription_status) {
       case 'active':
         hasAccess = true
@@ -176,7 +222,7 @@ serve(async (req) => {
         break
     }
 
-    // 6. Return subscription status
+    // 7. Return subscription status
     const response: SubscriptionStatusResponse = {
       hasAccess,
       status,
