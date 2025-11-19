@@ -63,48 +63,39 @@ serve(async (req) => {
 
   // IMPORTANT: For webhooks, we bypass normal auth and use signature verification instead
   console.log('Webhook request received:', req.method, req.url)
-  
-  // Check if this is a webhook request (has stripe-signature header)
-  const stripeSignature = req.headers.get('stripe-signature')
-  if (!stripeSignature) {
-    return new Response(
-      JSON.stringify({ error: 'Missing Stripe signature' }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
-  }
 
   try {
-    // 1. Validate webhook secret
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
-    if (!webhookSecret) {
-      throw new Error('STRIPE_WEBHOOK_SECRET not configured')
-    }
-
-    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
-    if (!stripeSecretKey) {
-      throw new Error('STRIPE_SECRET_KEY not configured')
-    }
-
-    // 2. Initialize Stripe
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2023-10-16',
-      httpClient: Stripe.createFetchHttpClient(),
-    })
-
-    // 3. Get webhook signature
+    // 1. Get webhook signature (required for all Stripe webhooks)
     const signature = req.headers.get('stripe-signature')
     if (!signature) {
+      console.error('No Stripe signature in request headers')
       return new Response(
-        JSON.stringify({ error: 'No signature provided' }),
+        JSON.stringify({ error: 'Missing Stripe signature header' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
     }
+
+    // 2. Validate webhook secret is configured
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
+    if (!webhookSecret) {
+      console.error('STRIPE_WEBHOOK_SECRET not configured in environment')
+      throw new Error('STRIPE_WEBHOOK_SECRET not configured')
+    }
+
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
+    if (!stripeSecretKey) {
+      console.error('STRIPE_SECRET_KEY not configured in environment')
+      throw new Error('STRIPE_SECRET_KEY not configured')
+    }
+
+    // 3. Initialize Stripe
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2023-10-16',
+      httpClient: Stripe.createFetchHttpClient(),
+    })
 
     // 4. Get raw body for signature verification
     const body = await req.text()
@@ -117,10 +108,11 @@ serve(async (req) => {
         signature,
         webhookSecret
       )
+      console.log('Webhook signature verified successfully')
     } catch (err) {
       console.error('Webhook signature verification failed:', err)
       return new Response(
-        JSON.stringify({ error: 'Invalid signature' }),
+        JSON.stringify({ error: 'Invalid webhook signature' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

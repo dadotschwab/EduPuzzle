@@ -105,9 +105,18 @@ After deploying the webhook function, your URL will be:
 https://[your-project-ref].supabase.co/functions/v1/stripe-webhook
 ```
 
+⚠️ **CRITICAL: DO NOT include `?apikey=` or any query parameters in the webhook URL!**
+- ❌ WRONG: `https://xxx.supabase.co/functions/v1/stripe-webhook?apikey=YOUR_KEY`
+- ✅ CORRECT: `https://xxx.supabase.co/functions/v1/stripe-webhook`
+
+**Why this matters:**
+- Including `apikey` triggers Supabase's JWT authentication
+- Stripe webhooks don't have authorization headers, so they'll be rejected with 401 errors
+- The webhook uses signature verification instead of JWT authentication for security
+
 #### B. Add Webhook Endpoint in Stripe
 1. Dashboard → **Developers** → **Webhooks** → **Add endpoint**
-2. Endpoint URL: (paste URL from above)
+2. Endpoint URL: (paste URL from above - **WITHOUT any query parameters**)
 3. **Select events to listen to:**
    - `checkout.session.completed`
    - `customer.subscription.created`
@@ -256,16 +265,29 @@ supabase functions logs check-subscription
 
 ### Common Issues
 
-#### 1. "STRIPE_SECRET_KEY not configured"
+#### 1. ⚠️ "Missing authorization header" (401 error)
+**Symptoms:** Stripe webhooks return 401 errors, subscriptions created in Stripe but not in database
+
+**Cause:** Webhook URL includes `?apikey=` parameter
+
+**Fix:**
+1. Go to Stripe Dashboard → Developers → Webhooks
+2. Click on your webhook endpoint
+3. Update the URL to remove `?apikey=` and any other query parameters
+4. Correct format: `https://[project-ref].supabase.co/functions/v1/stripe-webhook`
+5. Save and test the webhook
+
+#### 2. "STRIPE_SECRET_KEY not configured"
 - Ensure secrets are set: `supabase secrets list`
 - Re-deploy function after setting secrets
 
-#### 2. "Invalid signature" on webhook
+#### 3. "Invalid signature" on webhook
 - Verify `STRIPE_WEBHOOK_SECRET` matches Stripe Dashboard
-- Ensure webhook is sending to correct URL
+- Ensure webhook is sending to correct URL (without query parameters!)
 - Check that raw body is being used (not parsed JSON)
+- If using Stripe CLI for testing, ensure you're using the correct webhook secret
 
-#### 3. "No active subscription found" in portal
+#### 4. "No active subscription found" in portal
 - User must complete checkout first
 - Check `stripe_customer_id` exists in users table:
   ```sql
@@ -273,9 +295,15 @@ supabase functions logs check-subscription
   FROM users WHERE email = 'test@example.com';
   ```
 
-#### 4. Trial not working
+#### 5. Trial not working
 - Verify `trial_end_date` is set correctly in database
 - Check subscription_data.trial_period_days in create-checkout function
+
+#### 6. Webhooks show "test" data errors
+- This happens when testing with invalid signature data
+- Use `stripe trigger` CLI command for proper testing
+- Or use Stripe Dashboard's "Send test webhook" feature
+- The signature verification is working correctly by rejecting invalid data
 
 ---
 
