@@ -50,36 +50,47 @@ serve(async (req) => {
       httpClient: Stripe.createFetchHttpClient(),
     })
 
-    // 3. Get authenticated user
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    )
+    // 3. Get authenticated user using service role
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase configuration missing')
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+
+    // Extract token from Authorization header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
 
     const {
       data: { user },
       error: authError,
-    } = await supabaseClient.auth.getUser()
+    } = await supabaseClient.auth.getUser(token)
 
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      console.error('[create-portal-session] Auth error:', authError)
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // 4. Parse request body
-    const body: PortalRequest = req.method === 'POST'
-      ? await req.json()
-      : {}
+    const body: PortalRequest = req.method === 'POST' ? await req.json() : {}
 
     const returnUrl = body.returnUrl || `${req.headers.get('origin')}/settings/subscription`
 
@@ -95,13 +106,10 @@ serve(async (req) => {
     }
 
     if (!userData.stripe_customer_id) {
-      return new Response(
-        JSON.stringify({ error: 'No active subscription found' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      return new Response(JSON.stringify({ error: 'No active subscription found' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // 6. Create portal session

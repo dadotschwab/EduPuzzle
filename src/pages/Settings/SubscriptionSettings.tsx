@@ -1,15 +1,58 @@
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Check, CreditCard, Receipt, Loader2, AlertCircle, Crown } from 'lucide-react'
+import {
+  Check,
+  CreditCard,
+  Receipt,
+  Loader2,
+  AlertCircle,
+  Crown,
+  Shield,
+  Wifi,
+  RefreshCw,
+} from 'lucide-react'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useCheckout } from '@/hooks/useCheckout'
 import { useCustomerPortal } from '@/hooks/useCustomerPortal'
+import { usePostPayment } from '@/hooks/usePostPayment'
 
 export function SubscriptionSettings() {
-  const { data: subscription, isLoading, error, hasAccess, daysRemaining } = useSubscription()
+  const {
+    data: subscription,
+    isLoading,
+    error,
+    hasAccess,
+    daysRemaining,
+    errorType,
+    retry,
+    isActive,
+  } = useSubscription()
   const { startCheckout, isPending: checkoutPending } = useCheckout()
   const { openPortal, isPending: portalPending } = useCustomerPortal()
+  const { refreshSubscription } = usePostPayment()
+
+  // Refresh subscription status after returning from Stripe checkout
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const sessionId = urlParams.get('session_id')
+
+    if (sessionId) {
+      // User returned from successful Stripe checkout
+      console.log('Detected Stripe checkout return, refreshing subscription status')
+      refreshSubscription()
+
+      // Clean up URL parameter
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.delete('session_id')
+      window.history.replaceState({}, '', newUrl.toString())
+    }
+  }, [refreshSubscription])
+
+  // Only show portal access for paid subscriptions (not trial)
+  const canAccessPortal =
+    isActive || subscription?.status === 'cancelled' || subscription?.status === 'past_due'
 
   // Show loading state while fetching subscription data
   if (isLoading) {
@@ -25,20 +68,72 @@ export function SubscriptionSettings() {
 
   // Show error state if subscription fetch failed
   if (error) {
+    const getErrorIcon = () => {
+      switch (errorType) {
+        case 'auth':
+          return <Shield className="w-6 h-6" />
+        case 'network':
+          return <Wifi className="w-6 h-6" />
+        case 'rate_limit':
+          return <RefreshCw className="w-6 h-6" />
+        default:
+          return <AlertCircle className="w-6 h-6" />
+      }
+    }
+
+    const getErrorTitle = () => {
+      switch (errorType) {
+        case 'auth':
+          return 'Authentication Required'
+        case 'network':
+          return 'Connection Problem'
+        case 'rate_limit':
+          return 'Too Many Requests'
+        case 'server':
+          return 'Server Error'
+        default:
+          return 'Unable to Load Subscription'
+      }
+    }
+
+    const getErrorMessage = () => {
+      switch (errorType) {
+        case 'auth':
+          return 'Your session may have expired. Please log out and log back in to continue.'
+        case 'network':
+          return 'Unable to connect to our servers. Please check your internet connection and try again.'
+        case 'rate_limit':
+          return 'Too many requests. Please wait a moment before trying again.'
+        case 'server':
+          return 'Our servers are experiencing issues. Please try again in a few minutes.'
+        default:
+          return "We couldn't load your subscription information. Please try again."
+      }
+    }
+
     return (
       <div className="max-w-2xl mx-auto px-4 py-16">
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2 text-red-600">
-              <AlertCircle className="w-6 h-6" />
-              <CardTitle>Unable to Load Subscription</CardTitle>
+            <div
+              className={`flex items-center gap-2 ${errorType === 'auth' ? 'text-orange-600' : 'text-red-600'}`}
+            >
+              {getErrorIcon()}
+              <CardTitle>{getErrorTitle()}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-700 mb-4">
-              We couldn't load your subscription information. Please try again.
-            </p>
-            <Button onClick={() => window.location.reload()}>Try Again</Button>
+            <p className="text-gray-700 mb-4">{getErrorMessage()}</p>
+            <div className="flex gap-2">
+              <Button onClick={retry} variant="default">
+                Try Again
+              </Button>
+              {errorType === 'auth' && (
+                <Button onClick={() => (window.location.href = '/login')} variant="outline">
+                  Log In
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -140,7 +235,7 @@ export function SubscriptionSettings() {
 
             {/* Action Buttons */}
             <div className="flex gap-3">
-              {!hasAccess && (
+              {subscription?.status === 'trial' && (
                 <Button onClick={handleUpgrade} disabled={checkoutPending} className="flex-1">
                   {checkoutPending ? (
                     <>
@@ -148,12 +243,25 @@ export function SubscriptionSettings() {
                       Starting Checkout...
                     </>
                   ) : (
-                    'Start Free Trial'
+                    'Upgrade to Premium'
                   )}
                 </Button>
               )}
 
-              {hasAccess && (
+              {!hasAccess && subscription?.status !== 'trial' && (
+                <Button onClick={handleUpgrade} disabled={checkoutPending} className="flex-1">
+                  {checkoutPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Starting Checkout...
+                    </>
+                  ) : (
+                    'Subscribe Now'
+                  )}
+                </Button>
+              )}
+
+              {canAccessPortal && (
                 <Button
                   variant="outline"
                   onClick={handleManageSubscription}
@@ -210,13 +318,17 @@ export function SubscriptionSettings() {
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <CreditCard className="h-5 w-5" />
               <div>
-                <p>Payment method managed through Stripe</p>
-                {hasAccess && (
-                  <p className="text-xs">Update your card details in the customer portal</p>
+                {canAccessPortal ? (
+                  <>
+                    <p>Payment method managed through Stripe</p>
+                    <p className="text-xs">Update your card details in the customer portal</p>
+                  </>
+                ) : (
+                  <p>No payment method on file</p>
                 )}
               </div>
             </div>
-            {hasAccess && (
+            {canAccessPortal && (
               <Button
                 variant="outline"
                 size="sm"
@@ -248,13 +360,17 @@ export function SubscriptionSettings() {
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <Receipt className="h-5 w-5" />
               <div>
-                <p>Invoices and receipts available in Stripe</p>
-                {hasAccess && (
-                  <p className="text-xs">Access your billing history in the customer portal</p>
+                {canAccessPortal ? (
+                  <>
+                    <p>Invoices and receipts available in Stripe</p>
+                    <p className="text-xs">Access your billing history in the customer portal</p>
+                  </>
+                ) : (
+                  <p>No billing history yet</p>
                 )}
               </div>
             </div>
-            {hasAccess && (
+            {canAccessPortal && (
               <Button
                 variant="outline"
                 size="sm"

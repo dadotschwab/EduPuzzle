@@ -8,8 +8,13 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
+import { useCallback } from 'react'
 import { useAuth } from './useAuth'
-import { checkSubscriptionStatus, type SubscriptionStatusResponse } from '@/lib/api/stripe'
+import {
+  checkSubscriptionStatus,
+  type SubscriptionStatusResponse,
+  StripeApiError,
+} from '@/lib/api/stripe'
 
 /**
  * Hook for accessing subscription status and access permissions
@@ -26,13 +31,19 @@ import { checkSubscriptionStatus, type SubscriptionStatusResponse } from '@/lib/
  * @returns isTrial - Whether user is currently in trial period
  * @returns isActive - Whether user has active subscription
  * @returns daysRemaining - Days remaining in trial/subscription
+ * @returns errorType - Classified error type for better UX
+ * @returns retry - Function to manually retry failed requests
  * @returns refetch - Function to manually refetch subscription status
  *
  * @example
  * ```typescript
- * const { data, hasAccess, isTrial, daysRemaining, isLoading } = useSubscription()
+ * const { data, hasAccess, isTrial, daysRemaining, isLoading, errorType, retry } = useSubscription()
  *
  * if (isLoading) return <LoadingSpinner />
+ *
+ * if (errorType === 'auth') {
+ *   return <AuthError onRetry={retry} />
+ * }
  *
  * if (!hasAccess) {
  *   return <UpgradePrompt daysRemaining={daysRemaining} />
@@ -48,9 +59,42 @@ export function useSubscription() {
     queryKey: ['subscription', user?.id],
     queryFn: checkSubscriptionStatus,
     enabled: !loading && isAuthenticated && !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes - subscription status doesn't change often
-    gcTime: 10 * 60 * 1000, // 10 minutes cache time
+    staleTime: 2 * 60 * 1000, // Reduced from 5 minutes to 2 minutes for faster updates after payment
+    gcTime: 10 * 60 * 1000,
+    // Add refetch on window focus to catch payment completion
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true, // 10 minutes cache time
+    retry: (failureCount, error: Error) => {
+      // Don't retry auth errors
+      if (
+        error instanceof StripeApiError &&
+        (error.statusCode === 401 || error.code === 'AUTH_FAILED')
+      ) {
+        return false
+      }
+      // Retry network/server errors up to 3 times
+      return failureCount < 3
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   })
+
+  // Enhanced error classification
+  const getErrorType = (error: Error | null) => {
+    if (!error) return null
+    if (error instanceof StripeApiError) {
+      if (error.statusCode === 401 || error.code === 'AUTH_FAILED') return 'auth'
+      if (error.statusCode === 429) return 'rate_limit'
+      if (error.statusCode && error.statusCode >= 500) return 'server'
+      if (error.statusCode && error.statusCode >= 400) return 'client'
+    }
+    if (error.message?.includes('fetch')) return 'network'
+    return 'unknown'
+  }
+
+  // Retry function
+  const retry = useCallback(() => {
+    query.refetch()
+  }, [query])
 
   // Convenience getters
   const hasAccess = query.data?.hasAccess ?? false
@@ -64,5 +108,7 @@ export function useSubscription() {
     isTrial,
     isActive,
     daysRemaining,
+    errorType: getErrorType(query.error),
+    retry,
   }
 }

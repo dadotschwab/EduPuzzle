@@ -129,8 +129,24 @@ export async function createCheckoutSession(
   logger.debug('Creating checkout session', { request })
 
   try {
+    // Get the current session for Authorization header
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+
+    if (sessionError) {
+      logger.error('Failed to get session', { error: sessionError })
+      throw new StripeApiError('Authentication session error. Please log in again.', 401)
+    }
+
+    if (!sessionData.session?.access_token) {
+      logger.error('No active session found')
+      throw new StripeApiError('No active session. Please log in.', 401)
+    }
+
     const { data, error } = await supabase.functions.invoke('create-checkout', {
       body: request,
+      headers: {
+        Authorization: `Bearer ${sessionData.session.access_token}`,
+      },
     })
 
     if (error) {
@@ -191,7 +207,7 @@ export async function checkSubscriptionStatus(): Promise<SubscriptionStatusRespo
 
     logger.debug('Session is valid', {
       userId: sessionData.session.user.id,
-      expiresAt: sessionData.session.expires_at
+      expiresAt: sessionData.session.expires_at,
     })
 
     // 2. Check if session is about to expire (within 5 minutes)
@@ -221,7 +237,11 @@ export async function checkSubscriptionStatus(): Promise<SubscriptionStatusRespo
     }
 
     // 3. Invoke the Edge Function
-    const { data, error } = await supabase.functions.invoke('check-subscription')
+    const { data, error } = await supabase.functions.invoke('check-subscription', {
+      headers: {
+        Authorization: `Bearer ${sessionData.session.access_token}`,
+      },
+    })
 
     if (error) {
       logger.error('Subscription status check failed', { error })
@@ -281,8 +301,24 @@ export async function createPortalSession(
   logger.debug('Creating portal session', { request })
 
   try {
+    // Get the current session for Authorization header
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+
+    if (sessionError) {
+      logger.error('Failed to get session', { error: sessionError })
+      throw new StripeApiError('Authentication session error. Please log in again.', 401)
+    }
+
+    if (!sessionData.session?.access_token) {
+      logger.error('No active session found')
+      throw new StripeApiError('No active session. Please log in.', 401)
+    }
+
     const { data, error } = await supabase.functions.invoke('create-portal-session', {
       body: request,
+      headers: {
+        Authorization: `Bearer ${sessionData.session.access_token}`,
+      },
     })
 
     if (error) {

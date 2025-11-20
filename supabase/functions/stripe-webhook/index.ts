@@ -24,7 +24,7 @@ import Stripe from 'https://esm.sh/stripe@14?target=denonext'
 // Initialize Stripe with proper configuration
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') as string, {
   // This is needed to use the Fetch API rather than relying on the Node http package
-  apiVersion: '2024-11-20'
+  apiVersion: '2024-11-20',
 })
 
 // This is needed in order to use the Web Crypto API in Deno
@@ -72,7 +72,7 @@ Deno.serve(async (request) => {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      }
+      },
     })
   }
 
@@ -89,7 +89,7 @@ Deno.serve(async (request) => {
     // First step is to verify the event. The .text() method must be used as the
     // verification relies on the raw request body rather than the parsed JSON.
     const body = await request.text()
-    
+
     let receivedEvent
     try {
       receivedEvent = await stripe.webhooks.constructEventAsync(
@@ -104,48 +104,74 @@ Deno.serve(async (request) => {
       return new Response(err.message, { status: 400 })
     }
 
-    console.log(`🔔 Event received: ${receivedEvent.id} - Type: ${receivedEvent.type}`)
+    console.log(`🔔 Event received: ${receivedEvent.id} - Type: ${receivedEvent.type}`, {
+      customer: receivedEvent.data.object.customer,
+      subscription: receivedEvent.data.object.subscription,
+      amount: receivedEvent.data.object.amount_total || receivedEvent.data.object.amount,
+      status: receivedEvent.data.object.status,
+    })
 
     // Initialize Supabase client (service role for admin access)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    
+
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Supabase configuration missing')
     }
-    
+
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
 
+    // Check for duplicate event processing (idempotency)
+    const { data: existingEvent, error: eventCheckError } = await supabaseClient
+      .from('stripe_webhook_events')
+      .select('id, processed_at')
+      .eq('event_id', receivedEvent.id)
+      .single()
+
+    if (existingEvent) {
+      console.log(
+        `Event ${receivedEvent.id} already processed at ${existingEvent.processed_at}, skipping`
+      )
+      return new Response(JSON.stringify({ ok: true, skipped: true }), { status: 200 })
+    }
+
+    if (eventCheckError && eventCheckError.code !== 'PGRST116') {
+      // PGRST116 = no rows found
+      console.error('Error checking for duplicate event:', eventCheckError)
+      // Continue processing but log the error
+    }
+
     // Handle different event types
+    let processingResult: { userId: string; newStatus: string } | null = null
     switch (receivedEvent.type) {
       case 'checkout.session.completed': {
         const session = receivedEvent.data.object as Stripe.Checkout.Session
-        await handleCheckoutCompleted(supabaseClient, stripe, session)
+        processingResult = await handleCheckoutCompleted(supabaseClient, stripe, session)
         break
       }
 
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = receivedEvent.data.object as Stripe.Subscription
-        await handleSubscriptionUpdated(supabaseClient, subscription)
+        processingResult = await handleSubscriptionUpdated(supabaseClient, subscription)
         break
       }
 
       case 'customer.subscription.deleted': {
         const subscription = receivedEvent.data.object as Stripe.Subscription
-        await handleSubscriptionDeleted(supabaseClient, subscription)
+        processingResult = await handleSubscriptionDeleted(supabaseClient, subscription)
         break
       }
 
       case 'invoice.payment_succeeded': {
         const invoice = receivedEvent.data.object as Stripe.Invoice
-        await handlePaymentSucceeded(supabaseClient, stripe, invoice)
+        processingResult = await handlePaymentSucceeded(supabaseClient, stripe, invoice)
         break
       }
 
       case 'invoice.payment_failed': {
         const invoice = receivedEvent.data.object as Stripe.Invoice
-        await handlePaymentFailed(supabaseClient, invoice)
+        processingResult = await handlePaymentFailed(supabaseClient, invoice)
         break
       }
 
@@ -153,16 +179,42 @@ Deno.serve(async (request) => {
         console.log(`Unhandled event type: ${receivedEvent.type}`)
     }
 
-    console.log(`✅ Successfully processed event: ${receivedEvent.type}`)
-    return new Response(JSON.stringify({ ok: true }), { status: 200 })
+    // Log successful event processing for deduplication
+    const eventData = receivedEvent.data.object
+    await supabaseClient.from('stripe_webhook_events').insert({
+      event_id: receivedEvent.id,
+      event_type: receivedEvent.type,
+      customer_id: eventData.customer,
+      subscription_id: eventData.subscription,
+      user_id: processingResult?.userId,
+    })
 
+    console.log(`✅ Successfully processed event: ${receivedEvent.type}`, {
+      eventId: receivedEvent.id,
+      customerId: eventData.customer,
+      userId: processingResult?.userId,
+      newStatus: processingResult?.newStatus,
+    })
+
+    return new Response(JSON.stringify({ ok: true }), { status: 200 })
   } catch (error) {
-    console.error('Webhook error:', error)
+    console.error('❌ Webhook error:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      type: typeof error,
+      keys: error instanceof Object ? Object.keys(error) : [],
+    })
+
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Internal server error',
+        details: error instanceof Error ? error.stack : undefined,
       }),
-      { status: 500 }
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
     )
   }
 })
@@ -175,7 +227,7 @@ async function handleCheckoutCompleted(
   supabase: any,
   stripe: Stripe,
   session: Stripe.Checkout.Session
-) {
+): Promise<{ userId: string; newStatus: string } | null> {
   console.log('Handling checkout.session.completed:', session.id)
 
   const customerId = session.customer as string
@@ -184,7 +236,7 @@ async function handleCheckoutCompleted(
 
   if (!userId) {
     console.error('No supabase_user_id in session metadata')
-    return
+    return null
   }
 
   // Get subscription details
@@ -192,13 +244,14 @@ async function handleCheckoutCompleted(
 
   // Calculate subscription end date
   const subscriptionEndDate = new Date(subscription.current_period_end * 1000)
+  const newStatus = mapStripeStatus(subscription.status)
 
   // Update user record
   const { error } = await supabase
     .from('users')
     .update({
       stripe_customer_id: customerId,
-      subscription_status: mapStripeStatus(subscription.status),
+      subscription_status: newStatus,
       subscription_end_date: subscriptionEndDate.toISOString(),
     })
     .eq('id', userId)
@@ -208,7 +261,8 @@ async function handleCheckoutCompleted(
     throw error
   }
 
-  console.log(`User ${userId} subscription activated`)
+  console.log(`User ${userId} subscription status set to ${newStatus}`)
+  return { userId, newStatus }
 }
 
 /**
@@ -217,7 +271,7 @@ async function handleCheckoutCompleted(
 async function handleSubscriptionUpdated(
   supabase: any,
   subscription: Stripe.Subscription
-) {
+): Promise<{ userId: string; newStatus: string } | null> {
   console.log('Handling subscription update:', subscription.id)
 
   const customerId = subscription.customer as string
@@ -236,17 +290,18 @@ async function handleSubscriptionUpdated(
 
   if (userError || !user) {
     console.error('Could not find user for subscription:', subscription.id)
-    return
+    return null
   }
 
   // Calculate subscription end date
   const subscriptionEndDate = new Date(subscription.current_period_end * 1000)
+  const newStatus = mapStripeStatus(subscription.status)
 
   // Update user subscription status
   const { error } = await supabase
     .from('users')
     .update({
-      subscription_status: mapStripeStatus(subscription.status),
+      subscription_status: newStatus,
       subscription_end_date: subscriptionEndDate.toISOString(),
     })
     .eq('id', user.id)
@@ -256,7 +311,8 @@ async function handleSubscriptionUpdated(
     throw error
   }
 
-  console.log(`User ${user.id} subscription updated to ${subscription.status}`)
+  console.log(`User ${user.id} subscription updated to ${newStatus}`)
+  return { userId: user.id, newStatus }
 }
 
 /**
@@ -265,7 +321,7 @@ async function handleSubscriptionUpdated(
 async function handleSubscriptionDeleted(
   supabase: any,
   subscription: Stripe.Subscription
-) {
+): Promise<{ userId: string; newStatus: string } | null> {
   console.log('Handling subscription deletion:', subscription.id)
 
   const customerId = subscription.customer as string
@@ -279,7 +335,7 @@ async function handleSubscriptionDeleted(
 
   if (userError || !user) {
     console.error('Could not find user for cancelled subscription')
-    return
+    return null
   }
 
   // Update user to cancelled status
@@ -297,6 +353,7 @@ async function handleSubscriptionDeleted(
   }
 
   console.log(`User ${user.id} subscription cancelled`)
+  return { userId: user.id, newStatus: 'cancelled' }
 }
 
 /**
@@ -306,20 +363,18 @@ async function handlePaymentSucceeded(
   supabase: any,
   stripe: Stripe,
   invoice: Stripe.Invoice
-) {
+): Promise<{ userId: string; newStatus: string } | null> {
   console.log('Handling payment success:', invoice.id)
 
   // Only process subscription invoices
   if (!invoice.subscription) {
-    return
+    return null
   }
 
   const customerId = invoice.customer as string
 
   // Get subscription details
-  const subscription = await stripe.subscriptions.retrieve(
-    invoice.subscription as string
-  )
+  const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string)
 
   // Find user by Stripe customer ID
   const { data: user, error: userError } = await supabase
@@ -330,16 +385,17 @@ async function handlePaymentSucceeded(
 
   if (userError || !user) {
     console.error('Could not find user for payment')
-    return
+    return null
   }
 
   // Update subscription end date
   const subscriptionEndDate = new Date(subscription.current_period_end * 1000)
+  const newStatus = mapStripeStatus(subscription.status) // Fixed: Use mapStripeStatus instead of hardcoded 'active'
 
   const { error } = await supabase
     .from('users')
     .update({
-      subscription_status: 'active',
+      subscription_status: newStatus,
       subscription_end_date: subscriptionEndDate.toISOString(),
     })
     .eq('id', user.id)
@@ -349,7 +405,8 @@ async function handlePaymentSucceeded(
     throw error
   }
 
-  console.log(`User ${user.id} payment processed successfully`)
+  console.log(`User ${user.id} payment processed successfully, status: ${newStatus}`)
+  return { userId: user.id, newStatus }
 }
 
 /**
@@ -358,7 +415,7 @@ async function handlePaymentSucceeded(
 async function handlePaymentFailed(
   supabase: any,
   invoice: Stripe.Invoice
-) {
+): Promise<{ userId: string; newStatus: string } | null> {
   console.log('Handling payment failure:', invoice.id)
 
   const customerId = invoice.customer as string
@@ -372,7 +429,7 @@ async function handlePaymentFailed(
 
   if (userError || !user) {
     console.error('Could not find user for failed payment')
-    return
+    return null
   }
 
   // Update status to past_due
@@ -389,4 +446,5 @@ async function handlePaymentFailed(
   }
 
   console.log(`User ${user.id} payment failed - marked as past_due`)
+  return { userId: user.id, newStatus: 'past_due' }
 }
