@@ -13,7 +13,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { getRandomWordsForPuzzle, savePuzzleSession } from '@/lib/api/puzzles'
-import { generatePuzzles } from '@/lib/algorithms/generator'
+import { usePuzzleGeneratorWorker } from './usePuzzleGeneratorWorker'
 import { getCurrentPuzzle } from '@/lib/utils/helpers'
 import { logger } from '@/lib/logger'
 
@@ -49,6 +49,7 @@ export function usePuzzleGeneration(
   enabled: boolean = true
 ) {
   const { user } = useAuth()
+  const worker = usePuzzleGeneratorWorker()
 
   logger.debug(`[usePuzzleGeneration] Hook called - listId: ${listId}, wordCount: ${wordCount}`)
 
@@ -61,10 +62,19 @@ export function usePuzzleGeneration(
         // Step 1: Fetch random words from database
         const words = await getRandomWordsForPuzzle(listId, wordCount)
         logger.info(`Fetched ${words.length} words`)
-        logger.debug(`Sample words:`, words.slice(0, 3).map(w => w.term))
+        logger.debug(
+          `Sample words:`,
+          words.slice(0, 3).map((w) => w.term)
+        )
 
-        // Step 2: Generate puzzles using our algorithm
-        const puzzles = await generatePuzzles(words)
+        // Step 2: Generate puzzles using Web Worker to prevent UI blocking
+        const puzzles = await worker.generatePuzzles(words, {
+          maxGridSize: 16,
+          minGridSize: 10,
+          timeoutMs: 10000,
+          minCrossingsPerWord: 1,
+          maxAttemptsPerWord: 100,
+        })
         logger.info(`Generated ${puzzles.length} puzzles`)
 
         // Step 3: Save to database if user is authenticated
@@ -82,7 +92,7 @@ export function usePuzzleGeneration(
         throw error
       }
     },
-    enabled: enabled && !!listId,
+    enabled: enabled && !!listId && worker.isWorkerReady,
     staleTime: Infinity, // Keep puzzles fresh during session
     gcTime: 0, // Don't cache - generate fresh puzzles each time
     refetchOnMount: 'always', // Always generate new puzzles when component mounts
@@ -92,5 +102,11 @@ export function usePuzzleGeneration(
 
   logger.debug(`[usePuzzleGeneration] Query status: ${result.status}, hasData: ${!!result.data}`)
 
-  return result
+  return {
+    ...result,
+    isGenerating: worker.isGenerating,
+    progress: worker.progress,
+    error: result.error || worker.error,
+    cancelGeneration: worker.cancelGeneration,
+  }
 }
