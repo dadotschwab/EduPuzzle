@@ -11,6 +11,7 @@ EDU-PUZZLE helps users learn vocabulary through automatically generated crosswor
 - 🧩 **Intelligent Crossword Generation**: Automatically creates connected puzzles with no islands
 - 📚 **Vocabulary Management**: Create and manage custom word lists
 - 🔄 **Spaced Repetition System**: Scientific learning intervals for optimal retention
+- 🤝 **Word List Sharing**: Share vocabulary lists with others - either as static copies or collaborative lists with real-time sync
 - 💳 **Subscription Model**: 7-day free trial, then €6.99/month
 - 📊 **Progress Tracking**: Detailed statistics and learning analytics
 
@@ -35,17 +36,20 @@ EDU-PUZZLE helps users learn vocabulary through automatically generated crosswor
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd EduPuzzle
    ```
 
 2. Install dependencies:
+
    ```bash
    pnpm install
    ```
 
 3. Set up environment variables:
+
    ```bash
    cp .env.example .env
    ```
@@ -56,11 +60,13 @@ EDU-PUZZLE helps users learn vocabulary through automatically generated crosswor
    - `VITE_STRIPE_PUBLISHABLE_KEY`
 
 4. Initialize Supabase (if using local development):
+
    ```bash
    pnpm supabase:init
    ```
 
 5. Run database migrations and configure development settings:
+
    ```bash
    pnpm supabase:migrate
    ```
@@ -111,13 +117,15 @@ src/
 The application uses PostgreSQL with the following main tables:
 
 - `users` - User accounts and subscription status
-- `word_lists` - User's vocabulary collections
+- `word_lists` - User's vocabulary collections (extended with sharing fields)
 - `words` - Individual vocabulary words
 - `word_progress` - SRS tracking per user/word
 - `puzzle_sessions` - Generated puzzles
 - `word_reviews` - Individual word performance
+- `shared_lists` - Shared list access tokens and metadata
+- `list_collaborators` - Users who have joined collaborative lists
 
-See `supabase/migrations/20250113_initial_schema.sql` for the complete schema.
+See `supabase/migrations/20250113_initial_schema.sql` for the initial schema and `supabase/migrations/20251124123318_add_word_list_sharing.sql` for the sharing extensions.
 
 ## Puzzle Generation Algorithm
 
@@ -130,6 +138,7 @@ The crossword puzzle generation uses an "Incremental Best-Fit" approach:
 5. Splits into multiple puzzles if needed
 
 Key constraints:
+
 - 100% word coverage (all due words included)
 - No disconnected clusters (fully connected grid)
 - < 5 seconds generation time
@@ -145,11 +154,48 @@ Key constraints:
 - Level 6: 180 days
 
 Review types:
+
 - **Perfect**: Correct immediately → advance level
 - **Half Known**: Correct after hints → advance level
 - **Conditional**: 30-70% revealed → same level
 - **Unknown**: Incorrect → reset to level 0
 - **Not Evaluated**: >70% revealed → no change
+
+## Word List Sharing
+
+EDU-PUZZLE allows users to share their vocabulary lists with others through secure, link-based sharing. The sharing system supports two modes:
+
+### Sharing Modes
+
+**Static Copy Sharing:**
+
+- Recipients get their own independent copy of the word list
+- Changes made by the recipient don't affect the original list
+- SRS progress is tracked separately for each user
+- Anonymous users can import copies without signing up
+
+**Collaborative Sharing:**
+
+- Multiple users can edit the same list simultaneously
+- Real-time synchronization ensures all collaborators see changes instantly
+- Requires user authentication to join collaborative lists
+- SRS progress remains individual per user despite shared content
+
+### How to Share a List
+
+1. Navigate to your Dashboard
+2. Click the three-dot menu (⋯) on any word list
+3. Select "Share List"
+4. Choose between "Share as copy" or "Share as collaborative"
+5. Click "Generate Link" to create a shareable link
+6. Copy the link and share it with others
+
+### Security & Privacy
+
+- Share links use cryptographically secure tokens
+- Row Level Security (RLS) ensures proper access control
+- SRS learning progress is always kept private per user
+- Anonymous users can only import copies, not join collaborative lists
 
 ## Contributing
 
