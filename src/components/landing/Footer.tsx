@@ -16,14 +16,29 @@ export function Footer() {
               words through intelligent, adaptive challenges.
             </p>
             <div className="flex space-x-4">
-              {/* Social media links - placeholders */}
-              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+              {/* Social media links */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+                onClick={() => window.open('https://twitter.com/edupuzzle', '_blank')}
+              >
                 Twitter
               </Button>
-              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+                onClick={() => window.open('https://github.com/edupuzzle', '_blank')}
+              >
                 GitHub
               </Button>
-              <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+                onClick={() => window.open('https://linkedin.com/company/edupuzzle', '_blank')}
+              >
                 LinkedIn
               </Button>
             </div>
