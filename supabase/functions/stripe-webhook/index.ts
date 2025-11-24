@@ -31,6 +31,17 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 // @ts-expect-error - Deno imports not recognized by TypeScript
 import Stripe from 'https://esm.sh/stripe@14?target=denonext'
 
+// Import security middleware
+import { checkRateLimit, createRateLimitResponse } from '../_middleware/rateLimit.ts'
+import {
+  validateStripeEvent,
+  validateSubscriptionData,
+  validateInvoiceData,
+} from '../_shared/validation.ts'
+import { detectSuspiciousPatterns, logSecurityEvent } from '../_shared/security.ts'
+import { checkWebhookIdempotency, storeWebhookResult } from '../_shared/idempotency.ts'
+import { withRetry, stripeCircuitBreaker } from '../_shared/retry.ts'
+
 // Initialize Stripe with proper configuration
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') as string, {
   // This is needed to use the Fetch API rather than relying on the Node http package
@@ -90,6 +101,19 @@ Deno.serve(async (request) => {
 
   console.log('Webhook request received:', request.method, request.url)
 
+  // Security Layer 1: Rate Limiting
+  if (checkRateLimit(request)) {
+    logSecurityEvent('Rate limit exceeded', { ip: request.headers.get('x-forwarded-for') })
+    return createRateLimitResponse()
+  }
+
+  // Security Layer 2: Suspicious Pattern Detection
+  const warnings = detectSuspiciousPatterns(request)
+  if (warnings.length > 0) {
+    logSecurityEvent('Suspicious request patterns detected', { warnings })
+    // Continue processing but log the warnings
+  }
+
   try {
     // Get Stripe signature from headers
     const signature = request.headers.get('Stripe-Signature')
@@ -123,25 +147,54 @@ Deno.serve(async (request) => {
       status: receivedEvent.data.object.status,
     })
 
-    // Initialize Supabase client (service role for admin access)
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Supabase configuration missing')
+    // Security Layer 3: Idempotency Check
+    const idempotencyCheck = await checkWebhookIdempotency(receivedEvent.id)
+    if (idempotencyCheck.isDuplicate) {
+      console.log(`Duplicate webhook event ${receivedEvent.id}, skipping processing`)
+      return new Response('Event already processed', { status: 200 })
     }
 
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
+    // Security Layer 4: Event Validation
+    const eventValidation = validateStripeEvent(receivedEvent)
+    if (!eventValidation.success) {
+      logSecurityEvent('Invalid webhook event structure', {
+        eventId: receivedEvent.id,
+        error: eventValidation.error
+      })
+      return new Response('Invalid event structure', { status: 400 })
+    }
 
-    // Check for duplicate event processing (idempotency)
-    const { data: existingEvent, error: eventCheckError } = await supabaseClient
-      .from('stripe_webhook_events')
-      .select('id, processed_at')
-      .eq('event_id', receivedEvent.id)
-      .single()
+    // Security Layer 5: Event Data Validation
+    let dataValidation: { success: boolean; error?: string }
+    if (receivedEvent.type.includes('subscription')) {
+      dataValidation = validateSubscriptionData(receivedEvent.data.object)
+    } else if (receivedEvent.type.includes('invoice')) {
+      dataValidation = validateInvoiceData(receivedEvent.data.object)
+    } else {
+      dataValidation = { success: true } // Skip validation for other event types
+    }
 
-    if (existingEvent) {
-      console.log(
+    if (!dataValidation.success) {
+      logSecurityEvent('Invalid webhook event data', {
+        eventId: receivedEvent.id,
+        eventType: receivedEvent.type,
+        error: dataValidation.error
+      })
+      return new Response('Invalid event data', { status: 400 })
+    }
+
+    // Security Layer 6: Circuit Breaker + Retry Logic
+    const processEvent = async () => {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+      if (!supabaseUrl || !supabaseServiceKey) {
+        throw new Error('Supabase configuration missing')
+      }
+
+      const supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
+
+      // Process the event based on its type
         `Event ${receivedEvent.id} already processed at ${existingEvent.processed_at}, skipping`
       )
       return new Response(JSON.stringify({ ok: true, skipped: true }), { status: 200 })
@@ -208,7 +261,28 @@ Deno.serve(async (request) => {
       newStatus: processingResult?.newStatus,
     })
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200 })
+      // Store successful processing result for idempotency
+      storeWebhookResult(receivedEvent.id, { success: true })
+
+      return new Response(JSON.stringify({ ok: true }), { status: 200 })
+    }
+
+    // Execute with circuit breaker and retry logic
+    const result = await withRetry(
+      () => stripeCircuitBreaker.execute(processEvent),
+      {
+        maxRetries: 3,
+        baseDelay: 1000,
+        retryableErrors: (error) => {
+          // Retry on database connection issues, temporary Stripe issues, etc.
+          return error?.message?.includes('connection') ||
+                 error?.message?.includes('timeout') ||
+                 error?.status >= 500
+        }
+      }
+    )
+
+    return result
   } catch (error) {
     console.error('❌ Webhook error:', error)
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
