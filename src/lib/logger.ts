@@ -47,7 +47,7 @@ class Logger {
   /**
    * Debug logs - detailed information for development
    */
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (this.config.enableDebug) {
       console.log(`[DEBUG] ${message}`, ...args)
     }
@@ -56,7 +56,7 @@ class Logger {
   /**
    * Info logs - important events and metrics
    */
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (this.config.enableInfo) {
       console.log(`[INFO] ${message}`, ...args)
     }
@@ -65,14 +65,14 @@ class Logger {
   /**
    * Warning logs - potential issues (always shown)
    */
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     console.warn(`[WARN] ${message}`, ...args)
   }
 
   /**
    * Error logs - critical issues (always shown)
    */
-  error(message: string, ...args: any[]): void {
+  error(message: string, ...args: unknown[]): void {
     console.error(`[ERROR] ${message}`, ...args)
   }
 
@@ -98,5 +98,5 @@ export const logger = new Logger()
 
 // Make it available globally for debugging (window.logger.setDebugEnabled(true))
 if (typeof window !== 'undefined') {
-  (window as any).logger = logger
+  (window as typeof window & { logger: Logger }).logger = logger
 }

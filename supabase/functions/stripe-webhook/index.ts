@@ -40,7 +40,9 @@ function mapStripeStatus(stripeStatus: string): SubscriptionStatus {
     case 'active':
       return 'active'
     case 'trialing':
-      return 'trial'
+      // Stripe trialing subscriptions are paid subscriptions in trial period
+      // Treat them as "active" to distinguish from app free trial
+      return 'active'
     case 'canceled':
     case 'cancelled':
       return 'cancelled'

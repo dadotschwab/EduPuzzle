@@ -41,6 +41,8 @@ export interface Database {
           target_language: string
           created_at: string
           updated_at: string
+          is_shared: boolean
+          shared_at: string | null
         }
         Insert: {
           id?: string
@@ -50,6 +52,8 @@ export interface Database {
           target_language: string
           created_at?: string
           updated_at?: string
+          is_shared?: boolean
+          shared_at?: string | null
         }
         Update: {
           id?: string
@@ -59,6 +63,8 @@ export interface Database {
           target_language?: string
           created_at?: string
           updated_at?: string
+          is_shared?: boolean
+          shared_at?: string | null
         }
       }
       words: {
@@ -225,6 +231,67 @@ export interface Database {
           puzzle_data?: Json
           generated_at?: string
           valid_until?: string
+        }
+      }
+      shared_lists: {
+        Row: {
+          id: string
+          original_list_id: string
+          share_token: string
+          share_mode: 'copy' | 'collaborative'
+          created_by: string
+          created_at: string
+          expires_at: string | null
+          is_active: boolean
+          access_count: number
+          last_accessed_at: string | null
+        }
+        Insert: {
+          id?: string
+          original_list_id: string
+          share_token: string
+          share_mode: 'copy' | 'collaborative'
+          created_by: string
+          created_at?: string
+          expires_at?: string | null
+          is_active?: boolean
+          access_count?: number
+          last_accessed_at?: string | null
+        }
+        Update: {
+          id?: string
+          original_list_id?: string
+          share_token?: string
+          share_mode?: 'copy' | 'collaborative'
+          created_by?: string
+          created_at?: string
+          expires_at?: string | null
+          is_active?: boolean
+          access_count?: number
+          last_accessed_at?: string | null
+        }
+      }
+      list_collaborators: {
+        Row: {
+          id: string
+          shared_list_id: string
+          user_id: string
+          joined_at: string
+          role: 'owner' | 'member'
+        }
+        Insert: {
+          id?: string
+          shared_list_id: string
+          user_id: string
+          joined_at?: string
+          role?: 'owner' | 'member'
+        }
+        Update: {
+          id?: string
+          shared_list_id?: string
+          user_id?: string
+          joined_at?: string
+          role?: 'owner' | 'member'
         }
       }
     }

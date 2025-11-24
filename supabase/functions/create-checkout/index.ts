@@ -151,7 +151,8 @@ serve(async (req) => {
         },
       ],
       subscription_data: {
-        trial_period_days: 7,
+        // No trial period - users already had 7-day app trial
+        // trial_period_days: 7,
         metadata: {
           supabase_user_id: user.id,
         },
