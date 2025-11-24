@@ -20,15 +20,9 @@ export interface CardProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof cardVariants> {}
 
-const Card = React.forwardRef<HTMLDivElement, CardProps>((
-  ({ className, hover, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(cardVariants({ hover, className }))}
-      {...props}
-    />
-  )
-)
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, hover, ...props }, ref) => (
+  <div ref={ref} className={cn(cardVariants({ hover, className }))} {...props} />
+))
 Card.displayName = 'Card'
 
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
