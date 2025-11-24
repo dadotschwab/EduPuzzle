@@ -7,7 +7,7 @@
 import { supabase } from '@/lib/supabase'
 import { query, mutate } from './supabaseClient'
 import type { WordList } from '@/types'
-import type { Database } from '@/types/database'
+import type { Database } from '@/types/database.types'
 
 type WordListInsert = Database['public']['Tables']['word_lists']['Insert']
 type WordListUpdate = Database['public']['Tables']['word_lists']['Update']

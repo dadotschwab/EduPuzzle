@@ -18,9 +18,9 @@ describe('useConflictResolution', () => {
       useQueryClient: originalUseQueryClient,
     }))
 
-    const operation = vi.fn().mockResolvedValue('success')
-    const optimisticUpdate = vi.fn()
-    const rollbackUpdate = vi.fn()
+    vi.fn().mockResolvedValue('success')
+    vi.fn()
+    vi.fn()
 
     // This test would need more complex mocking to work properly
     // For now, just verify the hook returns the expected interface

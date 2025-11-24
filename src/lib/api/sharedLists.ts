@@ -140,7 +140,18 @@ export async function getListCollaborators(sharedListId: string): Promise<Collab
     .eq('shared_list_id', sharedListId)
 
   if (error) throw error
-  return data
+
+  return (
+    data?.map((collab: any) => ({
+      id: collab.id,
+      shared_list_id: collab.shared_list_id,
+      user_id: collab.user_id,
+      joined_at: collab.joined_at,
+      role: collab.role as 'owner' | 'member' | null,
+      user: collab.user,
+      isOnline: false, // Default value, would need real-time implementation
+    })) || []
+  )
 }
 
 /**

@@ -34,17 +34,17 @@ export enum SRSStage {
  */
 export interface WordProgress {
   id: string
-  userId: string
-  wordId: string
+  userId: string | null
+  wordId: string | null
   stage: SRSStage // Learning stage (0-4)
-  easeFactor: number // SM-2 ease factor (1.3-2.5)
-  intervalDays: number // Days between reviews
+  easeFactor: number | null // SM-2 ease factor (1.3-2.5)
+  intervalDays: number | null // Days between reviews
   nextReviewDate: string // ISO date string for next review
   lastReviewedAt?: string // Last time this word was reviewed
-  totalReviews: number // Total number of reviews
-  correctReviews: number // Number of correct reviews
-  incorrectReviews: number // Number of incorrect reviews
-  currentStreak: number // Consecutive correct answers
+  totalReviews: number | null // Total number of reviews
+  correctReviews: number | null // Number of correct reviews
+  incorrectReviews: number | null // Number of incorrect reviews
+  currentStreak: number | null // Consecutive correct answers
   updatedAt?: string // Last update timestamp
 }
 
@@ -57,12 +57,12 @@ export interface WordProgress {
  */
 export interface Word {
   id: string
-  listId: string
+  listId: string | null
   term: string // The word to learn (e.g., "Apple")
   translation: string // Translation or definition (e.g., "A fruit")
   definition?: string // Optional detailed definition
   exampleSentence?: string // Optional example usage
-  createdAt: string
+  createdAt: string | null
 }
 
 /**
@@ -80,12 +80,12 @@ export interface WordWithProgress extends Word {
  */
 export interface WordList {
   id: string
-  user_id: string
+  user_id: string | null
   name: string
   source_language: string // Language being learned
   target_language: string // User's native language
-  created_at: string
-  updated_at: string
+  created_at: string | null
+  updated_at: string | null
   wordCount?: number // Optional: included when fetched with counts
 }
 
@@ -135,13 +135,13 @@ export interface Puzzle {
  */
 export interface PuzzleSession {
   id: string
-  userId: string
+  userId: string | null
   listId?: string // Optional: the word list this puzzle is from
-  startedAt: string
+  startedAt: string | null
   completedAt?: string
   puzzleData: Puzzle[] // Array of puzzles in this session
   totalWords: number
-  correctWords: number
+  correctWords: number | null
 }
 
 // ============================================================================
@@ -189,8 +189,8 @@ export interface Collaborator {
   id: string
   shared_list_id: string
   user_id: string
-  joined_at: string
-  role: 'owner' | 'member'
+  joined_at: string | null
+  role: 'owner' | 'member' | null
   user?: {
     id: string
     email: string

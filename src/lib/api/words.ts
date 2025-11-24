@@ -45,7 +45,7 @@ interface WordUpdateData {
  * @throws SupabaseQueryError if database query fails
  */
 export async function getWords(listId: string): Promise<Word[]> {
-  return query(
+  const words = await query(
     () =>
       supabase
         .from('words')
@@ -54,6 +54,16 @@ export async function getWords(listId: string): Promise<Word[]> {
         .order('created_at', { ascending: true }),
     { table: 'words', operation: 'select' }
   )
+
+  return words.map((word: any) => ({
+    id: word.id,
+    listId: word.list_id || '',
+    term: word.term,
+    translation: word.translation,
+    definition: word.definition || undefined,
+    exampleSentence: word.example_sentence || undefined,
+    createdAt: word.created_at || '',
+  }))
 }
 
 /**

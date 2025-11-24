@@ -69,29 +69,29 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
   // Define raw row type for Supabase query result
   interface WordQueryRow {
     id: string
-    list_id: string
+    list_id: string | null
     term: string
     translation: string
     definition: string | null
     example_sentence: string | null
-    created_at: string
+    created_at: string | null
     word_lists: {
       source_language: string
       target_language: string
     }
     word_progress: Array<{
       id: string
-      user_id: string
-      word_id: string
-      stage: number
-      ease_factor: number
-      interval_days: number
+      user_id: string | null
+      word_id: string | null
+      stage: number | null
+      ease_factor: number | null
+      interval_days: number | null
       next_review_date: string | null
       last_reviewed_at: string | null
-      total_reviews: number
-      correct_reviews: number
-      incorrect_reviews: number
-      current_streak: number
+      total_reviews: number | null
+      correct_reviews: number | null
+      incorrect_reviews: number | null
+      current_streak: number | null
       updated_at: string | null
     }> | null
   }
@@ -204,13 +204,13 @@ export async function fetchDueWordsCount(userId: string): Promise<number> {
 function calculateNextReview(progress: WordProgress, wasCorrect: boolean): Partial<WordProgress> {
   const updates: Partial<WordProgress> = {
     lastReviewedAt: new Date().toISOString(),
-    totalReviews: progress.totalReviews + 1,
+    totalReviews: (progress.totalReviews || 0) + 1,
   }
 
   if (wasCorrect) {
     // Correct answer: increase interval and ease factor
-    updates.correctReviews = progress.correctReviews + 1
-    updates.currentStreak = progress.currentStreak + 1
+    updates.correctReviews = (progress.correctReviews || 0) + 1
+    updates.currentStreak = (progress.currentStreak || 0) + 1
 
     // Calculate new interval
     let newInterval: number
@@ -220,11 +220,11 @@ function calculateNextReview(progress: WordProgress, wasCorrect: boolean): Parti
       newInterval = 6 // Second review: 6 days
     } else {
       // Subsequent reviews: interval × easeFactor
-      newInterval = Math.round(progress.intervalDays * progress.easeFactor)
+      newInterval = Math.round((progress.intervalDays || 1) * (progress.easeFactor || 2.5))
     }
 
     updates.intervalDays = newInterval
-    updates.easeFactor = Math.min(2.5, progress.easeFactor + 0.1)
+    updates.easeFactor = Math.min(2.5, (progress.easeFactor || 2.5) + 0.1)
 
     // Stage progression based on interval
     if (progress.stage === 0) {
@@ -242,10 +242,10 @@ function calculateNextReview(progress: WordProgress, wasCorrect: boolean): Parti
     }
   } else {
     // Incorrect answer: reset interval, decrease ease factor
-    updates.incorrectReviews = progress.incorrectReviews + 1
+    updates.incorrectReviews = (progress.incorrectReviews || 0) + 1
     updates.currentStreak = 0
     updates.intervalDays = 1 // Reset to 1 day
-    updates.easeFactor = Math.max(1.3, progress.easeFactor - 0.2)
+    updates.easeFactor = Math.max(1.3, (progress.easeFactor || 2.5) - 0.2)
 
     // Demote mature words to relearning
     if (progress.stage === 3) {

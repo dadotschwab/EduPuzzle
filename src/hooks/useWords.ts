@@ -1,6 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getWords, createWord, createWords, updateWord, deleteWord, deleteWords } from '@/lib/api/words'
-import type { Database } from '@/types/database'
+import {
+  getWords,
+  createWord,
+  createWords,
+  updateWord,
+  deleteWord,
+  deleteWords,
+} from '@/lib/api/words'
+import type { Database } from '@/types/database.types'
 
 // Helper type for word rows from database (has both snake_case and camelCase)
 type WordRow = Database['public']['Tables']['words']['Row']

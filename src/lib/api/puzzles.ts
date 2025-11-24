@@ -11,7 +11,8 @@
 
 import { supabase } from '@/lib/supabase'
 import { query, mutate } from './supabaseClient'
-import type { Database, Json } from '@/types/database'
+import type { Database } from '@/types/database.types'
+import type { Json } from '@/types/database.types'
 import type { Word, Puzzle } from '@/types'
 import { logger } from '@/lib/logger'
 
@@ -146,13 +147,13 @@ export async function savePuzzleSession(
 
   return {
     id: sessionRow.id,
-    user_id: sessionRow.user_id,
+    user_id: sessionRow.user_id || '',
     list_id: sessionRow.list_id,
-    started_at: sessionRow.started_at,
+    started_at: sessionRow.started_at || '',
     completed_at: sessionRow.completed_at,
     puzzle_data: sessionRow.puzzle_data,
     total_words: sessionRow.total_words,
-    correct_words: sessionRow.correct_words,
+    correct_words: sessionRow.correct_words || 0,
   }
 }
 
@@ -211,5 +212,19 @@ export async function getPuzzleSessions(listId?: string): Promise<PuzzleSession[
     query_builder.eq('list_id', listId)
   }
 
-  return query(() => query_builder, { table: 'puzzle_sessions', operation: 'select' })
+  const sessions = await query(() => query_builder, {
+    table: 'puzzle_sessions',
+    operation: 'select',
+  })
+
+  return sessions.map((session: any) => ({
+    id: session.id,
+    user_id: session.user_id || '',
+    list_id: session.list_id,
+    started_at: session.started_at || '',
+    completed_at: session.completed_at,
+    puzzle_data: session.puzzle_data,
+    total_words: session.total_words,
+    correct_words: session.correct_words || 0,
+  }))
 }
