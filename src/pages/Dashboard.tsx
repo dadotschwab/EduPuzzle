@@ -35,6 +35,7 @@ import {
   PlayCircle,
   PuzzleIcon,
   Share,
+  Users,
 } from 'lucide-react'
 import type { WordList } from '@/types'
 
@@ -146,9 +147,17 @@ export function Dashboard() {
                         <CardDescription>
                           {list.source_language} → {list.target_language}
                         </CardDescription>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {list.wordCount} {list.wordCount === 1 ? 'word' : 'words'}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-sm text-muted-foreground">
+                            {list.wordCount} {list.wordCount === 1 ? 'word' : 'words'}
+                          </p>
+                          {(list as any).is_shared && (
+                            <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                              <Users className="h-3 w-3" />
+                              <span>Shared</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* 3-Dot Menu */}
