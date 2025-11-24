@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useScrollSpy } from '@/hooks/useScrollSpy'
+import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { StickyHeader } from './StickyHeader'
 import { HeroSection } from './HeroSection'
 import { InteractiveDemo } from './InteractiveDemo'
@@ -39,7 +40,9 @@ export function LandingPage({ className }: LandingPageProps) {
 
       <main>
         <HeroSection onCtaClick={handleCtaClick} />
-        <InteractiveDemo />
+        <ErrorBoundary>
+          <InteractiveDemo />
+        </ErrorBoundary>
         <FeaturesGrid />
         <HowItWorks />
       </main>

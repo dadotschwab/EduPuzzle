@@ -1,14 +1,17 @@
 import { Button } from '@/components/ui/button'
 import { AnimatedPuzzle } from './AnimatedPuzzle'
+import { useAuth } from '@/hooks/useAuth'
 
 interface HeroSectionProps {
   onCtaClick: () => void
 }
 
 export function HeroSection({ onCtaClick }: HeroSectionProps) {
+  const { user } = useAuth()
+
   const handleWatchDemo = () => {
-    // TODO: Scroll to demo section or open modal
-    console.log('Watch demo clicked')
+    // Scroll to demo section
+    document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })
   }
 
   return (
@@ -28,7 +31,7 @@ export function HeroSection({ onCtaClick }: HeroSectionProps) {
         </p>
         <div className="mt-8 space-x-4">
           <Button size="lg" variant="gradient" onClick={onCtaClick}>
-            Start Learning Free
+            {user ? 'Continue Learning' : 'Start Learning Free'}
           </Button>
           <Button variant="outline" size="lg" onClick={handleWatchDemo}>
             Watch Demo

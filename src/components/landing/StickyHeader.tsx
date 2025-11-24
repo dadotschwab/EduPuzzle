@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/useAuth'
 
 interface StickyHeaderProps {
   activeSection: string
@@ -15,14 +16,21 @@ const navItems = [
 ]
 
 export function StickyHeader({ activeSection, onNavigate }: StickyHeaderProps) {
+  const { user } = useAuth()
+
   const handleLoginClick = useCallback(() => {
     // TODO: Navigate to login page
-    console.log('Login clicked')
+    window.location.href = '/login'
   }, [])
 
   const handleSignupClick = useCallback(() => {
     // TODO: Navigate to signup page
-    console.log('Signup clicked')
+    window.location.href = '/signup'
+  }, [])
+
+  const handleDashboardClick = useCallback(() => {
+    // TODO: Navigate to dashboard
+    window.location.href = '/dashboard'
   }, [])
 
   return (
@@ -48,12 +56,20 @@ export function StickyHeader({ activeSection, onNavigate }: StickyHeaderProps) {
           </div>
         </div>
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={handleLoginClick}>
-            Login
-          </Button>
-          <Button variant="gradient" onClick={handleSignupClick}>
-            Sign Up
-          </Button>
+          {user ? (
+            <Button variant="gradient" onClick={handleDashboardClick}>
+              Go to Dashboard
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={handleLoginClick}>
+                Login
+              </Button>
+              <Button variant="gradient" onClick={handleSignupClick}>
+                Sign Up
+              </Button>
+            </>
+          )}
         </div>
       </nav>
     </header>
