@@ -1,18 +1,5 @@
 import { Button } from '@/components/ui/button'
-
-// Placeholder for AnimatedPuzzle - will be implemented in Phase 4
-function AnimatedPuzzle({ className }: { className?: string }) {
-  return (
-    <div
-      className={`w-96 h-96 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center ${className || ''}`}
-    >
-      <div className="text-center">
-        <div className="text-6xl mb-4">🧩</div>
-        <p className="text-gray-600">Animated Puzzle Visual</p>
-      </div>
-    </div>
-  )
-}
+import { AnimatedPuzzle } from './AnimatedPuzzle'
 
 interface HeroSectionProps {
   onCtaClick: () => void
