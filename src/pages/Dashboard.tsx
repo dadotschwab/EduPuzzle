@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useWordLists, useDeleteWordList } from '@/hooks/useWordLists'
 import { useDueWordsCount } from '@/hooks/useTodaysPuzzles'
 import { useJoinedCollaborativeLists } from '@/hooks/useSharedLists'
+import { useAuth } from '@/hooks/useAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { Button } from '@/components/ui/button'
@@ -40,13 +41,13 @@ import {
   Share,
   Users,
   LogOut,
-  Sparkles,
 } from 'lucide-react'
 import type { WordList } from '@/types'
 import type { WordListWithCount } from '@/hooks/useWordLists'
 
 export function Dashboard() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [addWordDialogOpen, setAddWordDialogOpen] = useState(false)
@@ -111,12 +112,8 @@ export function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with gradient */}
         <div className="mb-8">
-          <div className="inline-flex items-center rounded-full bg-gradient-to-r from-violet-100 to-pink-100 px-4 py-1.5 text-sm font-semibold text-violet-700 mb-4 border border-violet-200">
-            <Sparkles className="w-4 h-4 mr-1.5" />
-            Your Learning Hub
-          </div>
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-slate-900 via-violet-900 to-slate-900 bg-clip-text text-transparent">
-            Welcome back!
+            Welcome back{user?.name ? `, ${user.name}` : ''}!
           </h1>
           <p className="text-slate-600 text-lg">
             Continue your vocabulary journey with crossword puzzles

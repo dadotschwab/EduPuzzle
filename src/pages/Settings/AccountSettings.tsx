@@ -15,10 +15,12 @@ import { supabase } from '@/lib/supabase'
 import { Edit } from 'lucide-react'
 
 export function AccountSettings() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
+  const [nameDialogOpen, setNameDialogOpen] = useState(false)
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [passwordStep, setPasswordStep] = useState<1 | 2>(1) // Two-step password change
+  const [newName, setNewName] = useState('')
   const [newEmail, setNewEmail] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -26,6 +28,40 @@ export function AccountSettings() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const handleUpdateName = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    if (!newName.trim()) {
+      setError('Name cannot be empty')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ name: newName.trim() })
+        .eq('id', user?.id!)
+
+      if (error) throw error
+
+      setSuccess('Name updated successfully!')
+      await refreshUser()
+      setNewName('')
+      setTimeout(() => {
+        setNameDialogOpen(false)
+        setSuccess('')
+      }, 2000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update name')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleUpdateEmail = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -151,6 +187,21 @@ export function AccountSettings() {
           <CardDescription>Manage your account details</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Name */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label>Name</Label>
+              <p className="text-sm text-muted-foreground">{user?.name || 'Not set'}</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => {
+              setNewName(user?.name || '')
+              setNameDialogOpen(true)
+            }}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          </div>
+
           {/* Email */}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -176,6 +227,46 @@ export function AccountSettings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Name Dialog */}
+      <Dialog open={nameDialogOpen} onOpenChange={setNameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Name</DialogTitle>
+            <DialogDescription>
+              Change how we greet you in the app.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateName} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-name">Name</Label>
+              <Input
+                id="new-name"
+                type="text"
+                placeholder="Your name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                required
+              />
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            {success && <p className="text-sm text-green-600">{success}</p>}
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setNameDialogOpen(false)}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Updating...' : 'Update Name'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Email Dialog */}
       <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
