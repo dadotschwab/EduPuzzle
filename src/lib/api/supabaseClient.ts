@@ -8,6 +8,7 @@
  */
 
 import { PostgrestError } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 
 /**
  * Custom error class for Supabase query errors
@@ -24,31 +25,7 @@ export class SupabaseQueryError extends Error {
   }
 }
 
-/**
- * Executes a Supabase query and handles errors consistently
- *
- * @param queryFn - Function that returns a Supabase query result
- * @param context - Optional context for better error messages
- * @returns The query data, guaranteed to be non-null
- * @throws SupabaseQueryError if the query fails or returns null
- *
- * @example
- * ```typescript
- * const words = await query(
- *   () => supabase.from('words').select('*').eq('list_id', listId),
- *   { table: 'words', operation: 'select' }
- * )
- * ```
- */
-export async function query<T>(
-  queryFn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,
-  context?: { table?: string; operation?: string }
-): Promise<T> {
-  const { data, error } = await queryFn()
 
-  if (error) {
-    throw new SupabaseQueryError(error, context?.table, context?.operation)
-  }
 
   // Treat null data as an error for consistency
   if (data === null) {
@@ -57,7 +34,7 @@ export async function query<T>(
         message: 'Query returned null data',
         code: 'NULL_DATA',
         details: '',
-        hint: ''
+        hint: '',
       } as PostgrestError,
       context?.table,
       context?.operation
@@ -85,9 +62,112 @@ export async function query<T>(
  * ```
  */
 export async function mutate<T>(
-  mutationFn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,
+  mutateFn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,
   context?: { table?: string; operation?: string }
 ): Promise<T> {
-  // Mutations use the same logic as queries
-  return query(mutationFn, context)
+  const { data, error } = await mutateFn()
+
+  if (error) {
+    throw new SupabaseQueryError(error, context?.table, context?.operation)
+  }
+
+  if (data === null) {
+    throw new SupabaseQueryError(
+      {
+        message: 'Mutation returned null data',
+        code: 'NULL_DATA',
+        details: '',
+        hint: '',
+      } as PostgrestError,
+      context?.table,
+      context?.operation
+    )
+  }
+
+  return data
+}
+
+// Enhanced query wrapper with auth guarding
+export async function query<T>(
+  queryFn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,
+  options: {
+    requireAuth?: boolean
+    table?: string
+    operation?: string
+  } = {}
+): Promise<T> {
+  const { requireAuth = true } = options
+
+  // Auth guard check
+  if (requireAuth) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      throw new Error('Authentication required for this operation')
+    }
+  }
+
+  try {
+    const { data, error } = await queryFn()
+
+    if (error) {
+      // Handle specific auth errors
+      if (error.code === 'PGRST301' || error.message.includes('JWT')) {
+        throw new Error('Authentication expired. Please log in again.')
+      }
+
+      throw new SupabaseQueryError(error, options.table, options.operation)
+    }
+
+    if (data === null) {
+      throw new SupabaseQueryError(
+        {
+          message: 'Query returned null data',
+          code: 'NULL_DATA',
+          details: '',
+          hint: '',
+        } as PostgrestError,
+        options.table,
+        options.operation
+      )
+    }
+
+    return data
+  } catch (error) {
+    // Re-throw with additional context
+    if (error instanceof SupabaseQueryError) {
+      throw error
+    }
+
+    throw new Error(
+      `Database operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
+  }
+}
+
+// Enhanced mutate wrapper
+export async function mutate<T>(
+  mutateFn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,
+  options: {
+    requireAuth?: boolean
+    table?: string
+    operation?: string
+    optimisticUpdate?: () => void
+    rollback?: () => void
+  } = {}
+): Promise<T> {
+  const { optimisticUpdate, rollback } = options
+
+  // Apply optimistic update if provided
+  optimisticUpdate?.()
+
+  try {
+    const result = await query(mutateFn, options)
+    return result
+  } catch (error) {
+    // Rollback optimistic update on error
+    rollback?.()
+    throw error
+  }
 }
