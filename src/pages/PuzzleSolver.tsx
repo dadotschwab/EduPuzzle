@@ -19,6 +19,7 @@ import { PuzzleGrid } from '@/components/puzzle/PuzzleGrid'
 import { PuzzleClues } from '@/components/puzzle/PuzzleClues'
 import { PuzzleCompletionCard } from '@/components/puzzle/PuzzleCompletionCard'
 import { PuzzleHelpDialog } from '@/components/puzzle/PuzzleHelpDialog'
+import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import {
   PuzzleLoadingState,
   PuzzleErrorState,
@@ -182,5 +183,30 @@ export function PuzzleSolver() {
         </div>
       </SubscriptionGate>
     </AppLayout>
+  )
+}
+
+export default function PuzzleSolverPage() {
+  return (
+    <ErrorBoundary
+      fallback={
+        <AppLayout>
+          <div className="p-8 text-center">
+            <h2 className="text-xl font-semibold mb-2">Puzzle Loading Error</h2>
+            <p className="text-muted-foreground mb-4">
+              We encountered an issue loading your puzzle. Please try again.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Reload Puzzle
+            </button>
+          </div>
+        </AppLayout>
+      }
+    >
+      <PuzzleSolver />
+    </ErrorBoundary>
   )
 }

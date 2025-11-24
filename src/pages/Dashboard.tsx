@@ -4,6 +4,7 @@ import { useWordLists, useDeleteWordList } from '@/hooks/useWordLists'
 import { useDueWordsCount } from '@/hooks/useTodaysPuzzles'
 import { useJoinedCollaborativeLists } from '@/hooks/useSharedLists'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreateWordListDialog } from '@/components/words/CreateWordListDialog'
@@ -338,5 +339,30 @@ export function Dashboard() {
         )}
       </div>
     </AppLayout>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <ErrorBoundary
+      fallback={
+        <AppLayout>
+          <div className="p-8 text-center">
+            <h2 className="text-xl font-semibold mb-2">Dashboard Error</h2>
+            <p className="text-muted-foreground mb-4">
+              We encountered an issue loading your dashboard. Please try again.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Reload Dashboard
+            </button>
+          </div>
+        </AppLayout>
+      }
+    >
+      <Dashboard />
+    </ErrorBoundary>
   )
 }

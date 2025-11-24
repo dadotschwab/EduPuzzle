@@ -4,6 +4,7 @@ import { useWordList } from '@/hooks/useWordLists'
 import { useWords, useDeleteWord } from '@/hooks/useWords'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { SubscriptionGate } from '@/components/auth/SubscriptionGate'
+import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { CreateWordDialog } from '@/components/words/CreateWordDialog'
@@ -38,19 +39,22 @@ export function WordListDetail() {
     }
   }, [currentPage, totalPages])
 
-  const handleDelete = useCallback(async (wordId: string, term: string) => {
-    if (confirm(`Are you sure you want to delete "${term}"?`)) {
-      try {
-        await deleteMutation.mutateAsync(wordId)
-        // If we deleted the last word on this page, go to previous page
-        if (paginatedWords.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1)
+  const handleDelete = useCallback(
+    async (wordId: string, term: string) => {
+      if (confirm(`Are you sure you want to delete "${term}"?`)) {
+        try {
+          await deleteMutation.mutateAsync(wordId)
+          // If we deleted the last word on this page, go to previous page
+          if (paginatedWords.length === 1 && currentPage > 1) {
+            setCurrentPage(currentPage - 1)
+          }
+        } catch (error) {
+          console.error('Failed to delete word:', error)
         }
-      } catch (error) {
-        console.error('Failed to delete word:', error)
       }
-    }
-  }, [deleteMutation, paginatedWords.length, currentPage])
+    },
+    [deleteMutation, paginatedWords.length, currentPage]
+  )
 
   const handleNextPage = useCallback(() => {
     setCurrentPage((prev) => Math.min(prev + 1, totalPages))
@@ -109,7 +113,9 @@ export function WordListDetail() {
               <p className="text-sm text-muted-foreground mt-1">
                 {totalWords} {totalWords === 1 ? 'word' : 'words'}
                 {totalPages > 1 && (
-                  <span className="ml-2">• Page {currentPage} of {totalPages}</span>
+                  <span className="ml-2">
+                    • Page {currentPage} of {totalPages}
+                  </span>
                 )}
               </p>
             </div>
@@ -180,7 +186,8 @@ export function WordListDetail() {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
                     <div className="text-sm text-muted-foreground">
-                      Showing {((currentPage - 1) * WORDS_PER_PAGE) + 1} to {Math.min(currentPage * WORDS_PER_PAGE, totalWords)} of {totalWords} words
+                      Showing {(currentPage - 1) * WORDS_PER_PAGE + 1} to{' '}
+                      {Math.min(currentPage * WORDS_PER_PAGE, totalWords)} of {totalWords} words
                     </div>
                     <div className="flex gap-2">
                       <Button
@@ -216,5 +223,30 @@ export function WordListDetail() {
         </div>
       </SubscriptionGate>
     </AppLayout>
+  )
+}
+
+export default function WordListDetailPage() {
+  return (
+    <ErrorBoundary
+      fallback={
+        <AppLayout>
+          <div className="p-8 text-center">
+            <h2 className="text-xl font-semibold mb-2">Word List Error</h2>
+            <p className="text-muted-foreground mb-4">
+              We encountered an issue loading your word list. Please try again.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Reload List
+            </button>
+          </div>
+        </AppLayout>
+      }
+    >
+      <WordListDetail />
+    </ErrorBoundary>
   )
 }
