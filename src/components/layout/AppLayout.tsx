@@ -17,7 +17,7 @@ export const AppLayout = memo(function AppLayout({ children }: AppLayoutProps) {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-8">
               <Link to="/app" className="flex items-center gap-2 group">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-white transform group-hover:rotate-12 transition-transform duration-300 shadow-md shadow-violet-200">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-white transition-all duration-300 shadow-md shadow-violet-200 group-hover:shadow-lg group-hover:shadow-violet-300">
                   <Puzzle size={20} className="fill-white/20" />
                 </div>
                 <h1 className="text-xl font-bold text-slate-900 group-hover:text-violet-600 transition-colors">

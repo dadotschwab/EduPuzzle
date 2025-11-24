@@ -194,7 +194,7 @@ export function Dashboard() {
               return (
                 <Card
                   key={list.id}
-                  className="group hover:-translate-y-1 hover:shadow-xl transition-all duration-200 cursor-pointer relative overflow-hidden"
+                  className="group hover:shadow-xl transition-all duration-200 cursor-pointer relative overflow-hidden"
                   onClick={() => handleCardClick(list.id)}
                 >
                   {/* Gradient accent bar */}
