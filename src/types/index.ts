@@ -21,11 +21,11 @@
  * New → Learning → Young → Mature / Relearning
  */
 export enum SRSStage {
-  New = 0,         // Never studied
-  Learning = 1,    // Recently introduced (1-3 days)
-  Young = 2,       // Passed initial learning (1-4 weeks)
-  Mature = 3,      // Well-known (1+ months)
-  Relearning = 4   // Was mature but failed, back to learning
+  New = 0, // Never studied
+  Learning = 1, // Recently introduced (1-3 days)
+  Young = 2, // Passed initial learning (1-4 weeks)
+  Mature = 3, // Well-known (1+ months)
+  Relearning = 4, // Was mature but failed, back to learning
 }
 
 /**
@@ -36,16 +36,16 @@ export interface WordProgress {
   id: string
   userId: string
   wordId: string
-  stage: SRSStage                // Learning stage (0-4)
-  easeFactor: number             // SM-2 ease factor (1.3-2.5)
-  intervalDays: number           // Days between reviews
-  nextReviewDate: string         // ISO date string for next review
-  lastReviewedAt?: string        // Last time this word was reviewed
-  totalReviews: number           // Total number of reviews
-  correctReviews: number         // Number of correct reviews
-  incorrectReviews: number       // Number of incorrect reviews
-  currentStreak: number          // Consecutive correct answers
-  updatedAt?: string             // Last update timestamp
+  stage: SRSStage // Learning stage (0-4)
+  easeFactor: number // SM-2 ease factor (1.3-2.5)
+  intervalDays: number // Days between reviews
+  nextReviewDate: string // ISO date string for next review
+  lastReviewedAt?: string // Last time this word was reviewed
+  totalReviews: number // Total number of reviews
+  correctReviews: number // Number of correct reviews
+  incorrectReviews: number // Number of incorrect reviews
+  currentStreak: number // Consecutive correct answers
+  updatedAt?: string // Last update timestamp
 }
 
 // ============================================================================
@@ -58,10 +58,10 @@ export interface WordProgress {
 export interface Word {
   id: string
   listId: string
-  term: string                  // The word to learn (e.g., "Apple")
-  translation: string           // Translation or definition (e.g., "A fruit")
-  definition?: string           // Optional detailed definition
-  exampleSentence?: string      // Optional example usage
+  term: string // The word to learn (e.g., "Apple")
+  translation: string // Translation or definition (e.g., "A fruit")
+  definition?: string // Optional detailed definition
+  exampleSentence?: string // Optional example usage
   createdAt: string
 }
 
@@ -70,9 +70,9 @@ export interface Word {
  * Used for displaying words with their learning status and for today's puzzles
  */
 export interface WordWithProgress extends Word {
-  source_language: string        // Language being learned
-  target_language: string        // User's native language
-  progress?: WordProgress        // Optional SRS progress data
+  source_language: string // Language being learned
+  target_language: string // User's native language
+  progress?: WordProgress // Optional SRS progress data
 }
 
 /**
@@ -82,11 +82,11 @@ export interface WordList {
   id: string
   user_id: string
   name: string
-  source_language: string        // Language being learned
-  target_language: string        // User's native language
+  source_language: string // Language being learned
+  target_language: string // User's native language
   created_at: string
   updated_at: string
-  wordCount?: number             // Optional: included when fetched with counts
+  wordCount?: number // Optional: included when fetched with counts
 }
 
 // ============================================================================
@@ -97,9 +97,9 @@ export interface WordList {
  * Represents where one word crosses another in the puzzle grid
  */
 export interface Crossing {
-  position: number              // Position in current word (0-indexed)
-  otherWordId: string          // ID of the word that crosses this one
-  otherWordPosition: number    // Position in the other word (0-indexed)
+  position: number // Position in current word (0-indexed)
+  otherWordId: string // ID of the word that crosses this one
+  otherWordPosition: number // Position in the other word (0-indexed)
 }
 
 /**
@@ -107,13 +107,13 @@ export interface Crossing {
  */
 export interface PlacedWord {
   id: string
-  word: string                  // The actual word text
-  clue: string                  // The clue shown to the user (translation)
-  x: number                     // Starting X coordinate in grid
-  y: number                     // Starting Y coordinate in grid
+  word: string // The actual word text
+  clue: string // The clue shown to the user (translation)
+  x: number // Starting X coordinate in grid
+  y: number // Starting Y coordinate in grid
   direction: 'horizontal' | 'vertical'
-  number: number                // Clue number (1, 2, 3, etc.)
-  crossings: Crossing[]         // All crossing points with other words
+  number: number // Clue number (1, 2, 3, etc.)
+  crossings: Crossing[] // All crossing points with other words
 }
 
 /**
@@ -121,9 +121,9 @@ export interface PlacedWord {
  */
 export interface Puzzle {
   id: string
-  gridSize: number              // Grid dimensions (e.g., 15 = 15x15 grid)
-  placedWords: PlacedWord[]     // All words placed in the puzzle
-  grid: (string | null)[][]     // 2D array of letters (null = empty cell)
+  gridSize: number // Grid dimensions (e.g., 15 = 15x15 grid)
+  placedWords: PlacedWord[] // All words placed in the puzzle
+  grid: (string | null)[][] // 2D array of letters (null = empty cell)
 }
 
 // ============================================================================
@@ -136,10 +136,65 @@ export interface Puzzle {
 export interface PuzzleSession {
   id: string
   userId: string
-  listId?: string               // Optional: the word list this puzzle is from
+  listId?: string // Optional: the word list this puzzle is from
   startedAt: string
   completedAt?: string
-  puzzleData: Puzzle[]          // Array of puzzles in this session
+  puzzleData: Puzzle[] // Array of puzzles in this session
   totalWords: number
   correctWords: number
+}
+
+// ============================================================================
+// Word List Sharing Types
+// ============================================================================
+
+/**
+ * Sharing modes for word lists
+ */
+export type ShareMode = 'copy' | 'collaborative'
+
+/**
+ * A shared word list with metadata
+ */
+export interface SharedList {
+  id: string
+  original_list_id: string
+  share_token: string
+  share_mode: ShareMode
+  created_by: string
+  created_at: string
+  expires_at?: string
+  is_active: boolean
+  access_count: number
+  last_accessed_at?: string
+}
+
+/**
+ * A shared list with additional details for display
+ */
+export interface SharedListWithDetails extends SharedList {
+  original_list: {
+    id: string
+    name: string
+    source_language: string
+    target_language: string
+    wordCount: number
+  }
+}
+
+/**
+ * A collaborator on a shared list
+ */
+export interface Collaborator {
+  id: string
+  shared_list_id: string
+  user_id: string
+  joined_at: string
+  role: 'owner' | 'member'
+  user?: {
+    id: string
+    email: string
+    full_name?: string
+  }
+  isOnline?: boolean
 }
