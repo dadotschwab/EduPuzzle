@@ -12,6 +12,7 @@ import { AccountSettings } from './pages/Settings/AccountSettings'
 import { SubscriptionSettings } from './pages/Settings/SubscriptionSettings'
 import { SubscriptionSuccess } from './pages/SubscriptionSuccess'
 import { SubscriptionCancel } from './pages/SubscriptionCancel'
+import { SharedList } from './pages/SharedList'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/shared/:token" element={<SharedList />} />
 
       {/* Protected routes */}
       <Route
