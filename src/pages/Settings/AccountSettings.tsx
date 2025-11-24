@@ -42,8 +42,8 @@ export function AccountSettings() {
         setEmailDialogOpen(false)
         setSuccess('')
       }, 2000)
-    } catch (err: any) {
-      setError(err.message || 'Failed to update email')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update email')
     } finally {
       setLoading(false)
     }
@@ -78,8 +78,8 @@ export function AccountSettings() {
       setPasswordStep(2)
       setError('')
       setSuccess('')
-    } catch (err: any) {
-      setError(err.message || 'Failed to verify password')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to verify password')
     } finally {
       setLoading(false)
     }
@@ -123,8 +123,8 @@ export function AccountSettings() {
         setPasswordStep(1)
         setSuccess('')
       }, 2000)
-    } catch (err: any) {
-      setError(err.message || 'Failed to update password')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update password')
     } finally {
       setLoading(false)
     }
@@ -225,7 +225,7 @@ export function AccountSettings() {
             <DialogDescription>
               {passwordStep === 1
                 ? 'First, verify your current password to continue.'
-                : 'Choose a new password. Make sure it\'s at least 6 characters long.'}
+                : "Choose a new password. Make sure it's at least 6 characters long."}
             </DialogDescription>
           </DialogHeader>
 

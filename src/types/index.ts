@@ -163,10 +163,10 @@ export interface SharedList {
   share_mode: ShareMode
   created_by: string
   created_at: string
-  expires_at?: string
+  expires_at?: string | null
   is_active: boolean
   access_count: number
-  last_accessed_at?: string
+  last_accessed_at?: string | null
 }
 
 /**
@@ -197,4 +197,59 @@ export interface Collaborator {
     full_name?: string
   }
   isOnline?: boolean
+}
+
+// ============================================================================
+// Database Row Types (for direct Supabase queries)
+// ============================================================================
+
+/**
+ * Raw word row from database
+ */
+export interface WordRow {
+  id: string
+  list_id: string
+  term: string
+  translation: string
+  definition?: string | null
+  example_sentence?: string | null
+  created_at: string
+}
+
+/**
+ * Raw word list row from database
+ */
+export interface WordListRow {
+  id: string
+  user_id: string
+  name: string
+  source_language: string
+  target_language: string
+  created_at: string
+  updated_at: string
+  is_shared?: boolean
+  shared_at?: string | null
+}
+
+/**
+ * Joined collaborator data from list_collaborators with shared_lists
+ */
+export interface JoinedCollaborativeList {
+  shared_list_id: string
+  role: string
+  joined_at: string
+  shared_list: {
+    id: string
+    original_list_id: string
+    share_mode: string
+    original_list?: WordListRow
+  } | null
+}
+
+/**
+ * Result from create_shared_list RPC
+ */
+export interface CreateSharedListResult {
+  id: string
+  share_token: string
 }

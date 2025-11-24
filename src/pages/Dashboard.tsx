@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWordLists, useDeleteWordList } from '@/hooks/useWordLists'
 import { useDueWordsCount } from '@/hooks/useTodaysPuzzles'
+import { useJoinedCollaborativeLists } from '@/hooks/useSharedLists'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,6 +10,7 @@ import { CreateWordListDialog } from '@/components/words/CreateWordListDialog'
 import { EditWordListDialog } from '@/components/words/EditWordListDialog'
 import { CreateWordDialog } from '@/components/words/CreateWordDialog'
 import { ShareWordListDialog } from '@/components/words/ShareWordListDialog'
+import { LeaveCollaborativeListDialog } from '@/components/words/LeaveCollaborativeListDialog'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -36,8 +38,10 @@ import {
   PuzzleIcon,
   Share,
   Users,
+  LogOut,
 } from 'lucide-react'
 import type { WordList } from '@/types'
+import type { WordListWithCount } from '@/hooks/useWordLists'
 
 export function Dashboard() {
   const navigate = useNavigate()
@@ -46,11 +50,32 @@ export function Dashboard() {
   const [addWordDialogOpen, setAddWordDialogOpen] = useState(false)
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false)
   const [selectedList, setSelectedList] = useState<WordList | null>(null)
   const [listToDelete, setListToDelete] = useState<{ id: string; name: string } | null>(null)
-  const { data: wordLists, isLoading } = useWordLists({ withCounts: true })
+  const [listToLeave, setListToLeave] = useState<{ sharedListId: string; name: string } | null>(
+    null
+  )
+  const { data: wordLists, isLoading } = useWordLists({ withCounts: true }) as {
+    data: WordListWithCount[] | undefined
+    isLoading: boolean
+  }
+  const { data: joinedLists } = useJoinedCollaborativeLists()
   const deleteMutation = useDeleteWordList()
   const { data: dueCount } = useDueWordsCount()
+
+  // Create a map of original_list_id -> shared_list_id for joined collaborative lists
+  const joinedListsMap = useMemo(() => {
+    const map = new Map<string, string>()
+    if (joinedLists) {
+      for (const item of joinedLists) {
+        if (item.shared_list?.original_list_id) {
+          map.set(item.shared_list.original_list_id, item.shared_list.id)
+        }
+      }
+    }
+    return map
+  }, [joinedLists])
 
   const handleDeleteConfirm = async () => {
     if (!listToDelete) return
@@ -151,7 +176,7 @@ export function Dashboard() {
                           <p className="text-sm text-muted-foreground">
                             {list.wordCount} {list.wordCount === 1 ? 'word' : 'words'}
                           </p>
-                          {(list as any).is_shared && (
+                          {list.is_shared && (
                             <div className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
                               <Users className="h-3 w-3" />
                               <span>Shared</span>
@@ -188,6 +213,22 @@ export function Dashboard() {
                               Share List
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
+                            {/* Show Leave option for collaborative lists the user has joined */}
+                            {joinedListsMap.has(list.id) && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setListToLeave({
+                                    sharedListId: joinedListsMap.get(list.id)!,
+                                    name: list.name,
+                                  })
+                                  setLeaveDialogOpen(true)
+                                }}
+                                className="text-orange-600 focus:text-orange-600"
+                              >
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Leave List
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                               onClick={() => {
                                 setListToDelete({ id: list.id, name: list.name })
@@ -269,8 +310,9 @@ export function Dashboard() {
               <AlertDialogTitle>Delete Word List</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to delete "{listToDelete?.name}"? This will permanently delete
-                the list and all {wordLists?.find((l) => l.id === listToDelete?.id)?.wordCount || 0}{' '}
-                words in it. This action cannot be undone.
+                the list and all{' '}
+                {wordLists?.find((l: WordList) => l.id === listToDelete?.id)?.wordCount || 0} words
+                in it. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -281,6 +323,19 @@ export function Dashboard() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Leave Collaborative List Dialog */}
+        {listToLeave && (
+          <LeaveCollaborativeListDialog
+            open={leaveDialogOpen}
+            onOpenChange={(open) => {
+              setLeaveDialogOpen(open)
+              if (!open) setListToLeave(null)
+            }}
+            sharedListId={listToLeave.sharedListId}
+            listName={listToLeave.name}
+          />
+        )}
       </div>
     </AppLayout>
   )

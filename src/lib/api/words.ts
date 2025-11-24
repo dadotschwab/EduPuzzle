@@ -38,11 +38,12 @@ interface WordUpdateData {
  */
 export async function getWords(listId: string): Promise<Word[]> {
   return query(
-    () => supabase
-      .from('words')
-      .select('*')
-      .eq('list_id', listId)
-      .order('created_at', { ascending: true }),
+    () =>
+      supabase
+        .from('words')
+        .select('*')
+        .eq('list_id', listId)
+        .order('created_at', { ascending: true }),
     { table: 'words', operation: 'select' }
   )
 }
@@ -54,10 +55,10 @@ export async function getWords(listId: string): Promise<Word[]> {
  * @throws SupabaseQueryError if word not found or database query fails
  */
 export async function getWord(id: string): Promise<Word> {
-  return query(
-    () => supabase.from('words').select('*').eq('id', id).single(),
-    { table: 'words', operation: 'select' }
-  )
+  return query(() => supabase.from('words').select('*').eq('id', id).single(), {
+    table: 'words',
+    operation: 'select',
+  })
 }
 
 /**
@@ -82,11 +83,8 @@ export async function createWord(word: {
   }
 
   return mutate(
-    () => supabase
-      .from('words')
-      .insert(insertData)
-      .select()
-      .single(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    () => (supabase.from('words') as any).insert(insertData).select().single(),
     { table: 'words', operation: 'insert' }
   )
 }
@@ -115,11 +113,12 @@ export async function createWords(
   }))
 
   return mutate(
-    () => supabase
-      .from('words')
-      .insert(insertData)
-      .select(),
-    { table: 'words', operation: 'insert' }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    () => (supabase.from('words') as any).insert(insertData).select(),
+    {
+      table: 'words',
+      operation: 'insert',
+    }
   )
 }
 
@@ -143,17 +142,15 @@ export async function updateWord(
   if (updates.term !== undefined) updateData.term = updates.term
   if (updates.translation !== undefined) updateData.translation = updates.translation
   if (updates.definition !== undefined) updateData.definition = updates.definition
-  if (updates.exampleSentence !== undefined)
-    updateData.example_sentence = updates.exampleSentence
+  if (updates.exampleSentence !== undefined) updateData.example_sentence = updates.exampleSentence
 
   return mutate(
-    () => supabase
-      .from('words')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single(),
-    { table: 'words', operation: 'update' }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    () => (supabase.from('words') as any).update(updateData).eq('id', id).select().single(),
+    {
+      table: 'words',
+      operation: 'update',
+    }
   )
 }
 
@@ -163,10 +160,10 @@ export async function updateWord(
  * @throws SupabaseQueryError if database operation fails
  */
 export async function deleteWord(id: string): Promise<void> {
-  await mutate(
-    () => supabase.from('words').delete().eq('id', id),
-    { table: 'words', operation: 'delete' }
-  )
+  await mutate(() => supabase.from('words').delete().eq('id', id), {
+    table: 'words',
+    operation: 'delete',
+  })
 }
 
 /**
@@ -175,8 +172,8 @@ export async function deleteWord(id: string): Promise<void> {
  * @throws SupabaseQueryError if database operation fails
  */
 export async function deleteWords(ids: string[]): Promise<void> {
-  await mutate(
-    () => supabase.from('words').delete().in('id', ids),
-    { table: 'words', operation: 'delete' }
-  )
+  await mutate(() => supabase.from('words').delete().in('id', ids), {
+    table: 'words',
+    operation: 'delete',
+  })
 }

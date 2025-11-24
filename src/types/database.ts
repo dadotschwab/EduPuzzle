@@ -3,6 +3,38 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface Database {
   public: {
     Tables: {
+      stripe_webhook_events: {
+        Row: {
+          id: string
+          event_id: string
+          event_type: string
+          customer_id: string | null
+          subscription_id: string | null
+          user_id: string | null
+          processed_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          event_type: string
+          customer_id?: string | null
+          subscription_id?: string | null
+          user_id?: string | null
+          processed_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          event_type?: string
+          customer_id?: string | null
+          subscription_id?: string | null
+          user_id?: string | null
+          processed_at?: string
+          created_at?: string
+        }
+      }
       users: {
         Row: {
           id: string

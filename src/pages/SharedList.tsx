@@ -38,17 +38,13 @@ export function SharedList() {
 
     setIsImporting(true)
     try {
-      const result = await importMutation.mutateAsync({
+      await importMutation.mutateAsync({
         token,
         mode: sharedList.share_mode,
       })
 
-      // Navigate to the imported/joined list
-      if (sharedList.share_mode === 'copy') {
-        navigate(`/word-lists/${result}`)
-      } else {
-        navigate(`/word-lists/${sharedList.original_list.id}`)
-      }
+      // Navigate to dashboard after successful import/join
+      navigate('/app')
     } catch (error) {
       console.error('Failed to import/join shared list:', error)
     } finally {
@@ -66,13 +62,13 @@ export function SharedList() {
 
     setIsImporting(true)
     try {
-      const result = await importMutation.mutateAsync({
+      await importMutation.mutateAsync({
         token,
         mode: 'copy',
       })
 
-      // Navigate to the imported list
-      navigate(`/word-lists/${result}`)
+      // Navigate to dashboard after successful import
+      navigate('/app')
     } catch (error) {
       console.error('Failed to import shared list:', error)
     } finally {

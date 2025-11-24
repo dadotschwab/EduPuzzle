@@ -7,7 +7,7 @@
 
 import { useState } from 'react'
 import { useCreateShareLink } from '@/hooks/useSharedLists'
-import type { ShareMode } from '@/types'
+import type { ShareMode, CreateSharedListResult } from '@/types'
 
 /**
  * Hook for managing share link generation and clipboard operations
@@ -21,8 +21,16 @@ export function useShareLink() {
    */
   const generateShareLink = async (listId: string, shareMode: ShareMode) => {
     try {
-      const result = (await createShareLinkMutation.mutateAsync({ listId, shareMode })) as any
-      const shareToken = result.share_token
+      const result = await createShareLinkMutation.mutateAsync({ listId, shareMode })
+      // PostgreSQL RETURNS TABLE comes back as an array, so access first element
+      const resultArray = result as CreateSharedListResult[] | CreateSharedListResult
+      const shareToken = Array.isArray(resultArray)
+        ? resultArray[0]?.share_token
+        : resultArray?.share_token
+
+      if (!shareToken) {
+        throw new Error('No share token returned from server')
+      }
 
       // Construct the full share URL
       const baseUrl = window.location.origin

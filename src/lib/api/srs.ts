@@ -25,9 +25,11 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
   // Fetch all user's words with their progress
   // We'll filter client-side for more reliable and clear logic
   const data = await query(
-    () => supabase
-      .from('words')
-      .select(`
+    () =>
+      supabase
+        .from('words')
+        .select(
+          `
         id,
         list_id,
         term,
@@ -57,14 +59,45 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
           current_streak,
           updated_at
         )
-      `)
-      .eq('word_lists.user_id', userId)
-      .eq('word_progress.user_id', userId),
+      `
+        )
+        .eq('word_lists.user_id', userId)
+        .eq('word_progress.user_id', userId),
     { table: 'words', operation: 'select' }
   )
 
+  // Define raw row type for Supabase query result
+  interface WordQueryRow {
+    id: string
+    list_id: string
+    term: string
+    translation: string
+    definition: string | null
+    example_sentence: string | null
+    created_at: string
+    word_lists: {
+      source_language: string
+      target_language: string
+    }
+    word_progress: Array<{
+      id: string
+      user_id: string
+      word_id: string
+      stage: number
+      ease_factor: number
+      interval_days: number
+      next_review_date: string | null
+      last_reviewed_at: string | null
+      total_reviews: number
+      correct_reviews: number
+      incorrect_reviews: number
+      current_streak: number
+      updated_at: string | null
+    }> | null
+  }
+
   // Transform to WordWithProgress format
-  const allWords: WordWithProgress[] = (data || []).map((row: any) => {
+  const allWords: WordWithProgress[] = (data || []).map((row: WordQueryRow) => {
     const wordList = row.word_lists
     const progress = row.word_progress?.[0]
 
@@ -73,8 +106,8 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
       listId: row.list_id,
       term: row.term,
       translation: row.translation,
-      definition: row.definition,
-      example_sentence: row.example_sentence,
+      definition: row.definition ?? undefined,
+      exampleSentence: row.example_sentence ?? undefined,
       createdAt: row.created_at,
       source_language: wordList.source_language,
       target_language: wordList.target_language,
@@ -86,13 +119,13 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
             stage: progress.stage as SRSStage,
             easeFactor: progress.ease_factor,
             intervalDays: progress.interval_days,
-            nextReviewDate: progress.next_review_date,
-            lastReviewedAt: progress.last_reviewed_at,
+            nextReviewDate: progress.next_review_date ?? '',
+            lastReviewedAt: progress.last_reviewed_at ?? undefined,
             totalReviews: progress.total_reviews,
             correctReviews: progress.correct_reviews,
             incorrectReviews: progress.incorrect_reviews,
             currentStreak: progress.current_streak,
-            updatedAt: progress.updated_at,
+            updatedAt: progress.updated_at ?? undefined,
           }
         : undefined,
     }
@@ -103,7 +136,7 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
   let reviewedTodayCount = 0
   let notDueYetCount = 0
 
-  const words = allWords.filter(word => {
+  const words = allWords.filter((word) => {
     // Include new words (no progress = need first practice)
     if (!word.progress) {
       newWordsCount++
@@ -129,11 +162,18 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
     return isDue // Only include if due today or overdue
   })
 
-  console.log(`[SRS API] Filter breakdown: ${newWordsCount} new words, ${reviewedTodayCount} already reviewed today, ${notDueYetCount} not due yet`)
+  console.log(
+    `[SRS API] Filter breakdown: ${newWordsCount} new words, ${reviewedTodayCount} already reviewed today, ${notDueYetCount} not due yet`
+  )
 
-  console.log(`[SRS API] Found ${allWords.length} total words, ${words.length} due today (filtered out ${allWords.length - words.length} not due or already reviewed)`)
+  console.log(
+    `[SRS API] Found ${allWords.length} total words, ${words.length} due today (filtered out ${allWords.length - words.length} not due or already reviewed)`
+  )
   if (words.length > 0) {
-    console.log(`[SRS API] Sample due words:`, words.slice(0, 5).map(w => `${w.term} (next: ${w.progress?.nextReviewDate || 'none'})`))
+    console.log(
+      `[SRS API] Sample due words:`,
+      words.slice(0, 5).map((w) => `${w.term} (next: ${w.progress?.nextReviewDate || 'none'})`)
+    )
   } else {
     console.log(`[SRS API] No words due today!`)
   }
@@ -161,10 +201,7 @@ export async function fetchDueWordsCount(userId: string): Promise<number> {
  * - Mature (stage 3): incorrect → Relearning (stage 4)
  * - Relearning (stage 4): correct with interval ≥ 7 → Young (stage 2)
  */
-function calculateNextReview(
-  progress: WordProgress,
-  wasCorrect: boolean
-): Partial<WordProgress> {
+function calculateNextReview(progress: WordProgress, wasCorrect: boolean): Partial<WordProgress> {
   const updates: Partial<WordProgress> = {
     lastReviewedAt: new Date().toISOString(),
     totalReviews: progress.totalReviews + 1,
@@ -232,15 +269,30 @@ export async function updateWordProgress(
   userId: string,
   wasCorrect: boolean
 ): Promise<void> {
+  // Define the word_progress row type
+  interface WordProgressRow {
+    id: string
+    user_id: string
+    word_id: string
+    stage: number
+    ease_factor: number
+    interval_days: number
+    next_review_date: string
+    last_reviewed_at: string | null
+    total_reviews: number
+    correct_reviews: number
+    incorrect_reviews: number
+    current_streak: number
+    updated_at: string | null
+  }
+
   // Fetch current progress (use maybeSingle to handle new words)
-  // Cast to any to work around Supabase type inference issues
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: progressData, error: fetchError } = await supabase
+  const { data: progressData, error: fetchError } = (await supabase
     .from('word_progress')
     .select('*')
     .eq('word_id', wordId)
     .eq('user_id', userId)
-    .maybeSingle() as any
+    .maybeSingle()) as { data: WordProgressRow | null; error: Error | null }
 
   if (fetchError) throw fetchError
 
@@ -272,12 +324,15 @@ export async function updateWordProgress(
       current_streak: wasCorrect ? 1 : 0,
     }
 
-    await mutate(
-      () => (supabase.from('word_progress') as any).insert(initialProgress),
-      { table: 'word_progress', operation: 'insert' }
-    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    await mutate(() => (supabase.from('word_progress') as any).insert(initialProgress), {
+      table: 'word_progress',
+      operation: 'insert',
+    })
 
-    console.log(`  Created: next_review=${initialProgress.next_review_date}, interval=${initialProgress.interval_days}, stage=${initialProgress.stage}`)
+    console.log(
+      `  Created: next_review=${initialProgress.next_review_date}, interval=${initialProgress.interval_days}, stage=${initialProgress.stage}`
+    )
     return
   }
 
@@ -289,27 +344,29 @@ export async function updateWordProgress(
     easeFactor: progressData.ease_factor,
     intervalDays: progressData.interval_days,
     nextReviewDate: progressData.next_review_date,
-    lastReviewedAt: progressData.last_reviewed_at,
+    lastReviewedAt: progressData.last_reviewed_at ?? undefined,
     totalReviews: progressData.total_reviews,
     correctReviews: progressData.correct_reviews,
     incorrectReviews: progressData.incorrect_reviews,
     currentStreak: progressData.current_streak,
-    updatedAt: progressData.updated_at,
+    updatedAt: progressData.updated_at ?? undefined,
   }
 
   // Calculate updates using SM-2
   const updates = calculateNextReview(currentProgress, wasCorrect)
 
   console.log(`[SRS API] Updating word ${wordId}: ${wasCorrect ? 'correct' : 'incorrect'}`)
-  console.log(`  Previous: next_review=${currentProgress.nextReviewDate}, interval=${currentProgress.intervalDays}, stage=${currentProgress.stage}`)
-  console.log(`  New: next_review=${updates.nextReviewDate}, interval=${updates.intervalDays}, stage=${updates.stage}`)
+  console.log(
+    `  Previous: next_review=${currentProgress.nextReviewDate}, interval=${currentProgress.intervalDays}, stage=${currentProgress.stage}`
+  )
+  console.log(
+    `  New: next_review=${updates.nextReviewDate}, interval=${updates.intervalDays}, stage=${updates.stage}`
+  )
 
   // Update database
-  // Cast to any to work around Supabase type inference issues
   await mutate(
-    () => (supabase.from('word_progress') as any)
-      .update(updates)
-      .eq('id', progressData.id),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    () => (supabase.from('word_progress') as any).update(updates).eq('id', progressData.id),
     { table: 'word_progress', operation: 'update' }
   )
 }

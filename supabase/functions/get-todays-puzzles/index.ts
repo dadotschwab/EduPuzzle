@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Edge Function: Get Today's Puzzles
  *
@@ -10,8 +11,16 @@
  * @module functions/get-todays-puzzles
  */
 
+// @ts-expect-error - Deno imports not recognized by TypeScript
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+// @ts-expect-error - Deno imports not recognized by TypeScript
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined
+  }
+}
 import { generatePuzzles } from './generator.ts'
 import type { Word } from './types.ts'
 
@@ -66,26 +75,23 @@ serve(async (req) => {
     // Get user from JWT
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseClient.auth.getUser(token)
 
     if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     console.log(`[Edge Function] Fetching puzzles for user: ${user.id}`)
@@ -95,7 +101,8 @@ serve(async (req) => {
 
     const { data: dueWordsData, error: fetchError } = await supabaseClient
       .from('words')
-      .select(`
+      .select(
+        `
         id,
         list_id,
         term,
@@ -125,7 +132,8 @@ serve(async (req) => {
           current_streak,
           updated_at
         )
-      `)
+      `
+      )
       .eq('word_lists.user_id', user.id)
 
     if (fetchError) {
@@ -168,12 +176,14 @@ serve(async (req) => {
           listName: list.name,
           source_language: list.source_language,
           target_language: list.target_language,
-          progress: progress ? {
-            nextReviewDate: progress.next_review_date,
-            stage: progress.stage,
-            easeFactor: progress.ease_factor,
-            intervalDays: progress.interval_days,
-          } : undefined,
+          progress: progress
+            ? {
+                nextReviewDate: progress.next_review_date,
+                stage: progress.stage,
+                easeFactor: progress.ease_factor,
+                intervalDays: progress.interval_days,
+              }
+            : undefined,
         }
       })
 
@@ -190,7 +200,9 @@ serve(async (req) => {
     const wordsToUse = prioritizedWords.slice(0, MAX_WORDS_PER_SESSION)
 
     if (wordsToUse.length < dueWords.length) {
-      console.log(`[Edge Function] Limited to ${wordsToUse.length} most overdue words (${dueWords.length} total due)`)
+      console.log(
+        `[Edge Function] Limited to ${wordsToUse.length} most overdue words (${dueWords.length} total due)`
+      )
     }
 
     // Step 3: Check if we have enough words
@@ -221,7 +233,7 @@ serve(async (req) => {
     }
 
     // Step 4: Create cache key from sorted word IDs
-    const wordIds = wordsToUse.map(w => w.id).sort()
+    const wordIds = wordsToUse.map((w) => w.id).sort()
 
     // Step 4: Check cache
     const { data: cachedData, error: cacheError } = await supabaseClient
@@ -262,22 +274,21 @@ serve(async (req) => {
     const response: TodaysPuzzlesResponse = {
       puzzles,
       totalWords: dueWords.length, // Show total words due, not just what we're using
-      message: wordsToUse.length < dueWords.length
-        ? `Showing ${wordsToUse.length} most overdue words (${dueWords.length} total due)`
-        : undefined,
+      message:
+        wordsToUse.length < dueWords.length
+          ? `Showing ${wordsToUse.length} most overdue words (${dueWords.length} total due)`
+          : undefined,
     }
 
     // Step 6: Cache the result for 24 hours
     const validUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
 
-    const { error: cacheInsertError } = await supabaseClient
-      .from('puzzle_cache')
-      .upsert({
-        user_id: user.id,
-        word_ids: wordIds,
-        puzzle_data: response,
-        valid_until: validUntil,
-      })
+    const { error: cacheInsertError } = await supabaseClient.from('puzzle_cache').upsert({
+      user_id: user.id,
+      word_ids: wordIds,
+      puzzle_data: response,
+      valid_until: validUntil,
+    })
 
     if (cacheInsertError) {
       console.error('[Edge Function] Failed to cache puzzles:', cacheInsertError)
@@ -286,13 +297,9 @@ serve(async (req) => {
       console.log('[Edge Function] Cached puzzles until', validUntil)
     }
 
-    return new Response(
-      JSON.stringify(response),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
-
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   } catch (error) {
     console.error('[Edge Function] Error:', error)
     return new Response(

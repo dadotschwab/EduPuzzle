@@ -11,7 +11,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { query, mutate } from './supabaseClient'
-import type { Database } from '@/types/database'
+import type { Database, Json } from '@/types/database'
 import type { Word, Puzzle } from '@/types'
 import { logger } from '@/lib/logger'
 
@@ -45,10 +45,7 @@ export interface PuzzleSession {
  * // Returns 30 random words from the list
  * ```
  */
-export async function getRandomWordsForPuzzle(
-  listId: string,
-  count: number = 30
-): Promise<Word[]> {
+export async function getRandomWordsForPuzzle(listId: string, count: number = 30): Promise<Word[]> {
   logger.debug(`Getting ${count} random words from list ${listId}`)
 
   // First, get total word count to verify we have enough words
@@ -68,17 +65,20 @@ export async function getRandomWordsForPuzzle(
   }
 
   if (totalWords < count) {
-    logger.warn(`List only has ${totalWords} words, but ${count} were requested. Using all available.`)
+    logger.warn(
+      `List only has ${totalWords} words, but ${count} were requested. Using all available.`
+    )
   }
 
   // Fetch random words using consistent ordering
   const data = await query(
-    () => supabase
-      .from('words')
-      .select('*')
-      .eq('list_id', listId)
-      .limit(Math.min(count, totalWords))
-      .order('id', { ascending: false }),
+    () =>
+      supabase
+        .from('words')
+        .select('*')
+        .eq('list_id', listId)
+        .limit(Math.min(count, totalWords))
+        .order('id', { ascending: false }),
     { table: 'words', operation: 'select' }
   )
 
@@ -130,18 +130,15 @@ export async function savePuzzleSession(
   const insertData: PuzzleSessionInsert = {
     user_id: userId,
     list_id: listId,
-    puzzle_data: puzzles as Database['public']['Tables']['puzzle_sessions']['Row']['puzzle_data'],
+    puzzle_data: puzzles as unknown as Json,
     total_words: totalWords,
     correct_words: 0,
     started_at: new Date().toISOString(),
   }
 
   const data = await mutate(
-    () => supabase
-      .from('puzzle_sessions')
-      .insert(insertData)
-      .select()
-      .single(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    () => (supabase.from('puzzle_sessions') as any).insert(insertData).select().single(),
     { table: 'puzzle_sessions', operation: 'insert' }
   )
 
@@ -172,13 +169,18 @@ export async function createPuzzleSession(session: {
   const insertData: PuzzleSessionInsert = {
     user_id: user.id,
     list_id: session.listId,
-    puzzle_data: session.puzzleData as Database['public']['Tables']['puzzle_sessions']['Row']['puzzle_data'],
+    puzzle_data:
+      session.puzzleData as Database['public']['Tables']['puzzle_sessions']['Row']['puzzle_data'],
     total_words: session.totalWords,
   }
 
   return mutate(
-    () => supabase.from('puzzle_sessions').insert(insertData).select().single(),
-    { table: 'puzzle_sessions', operation: 'insert' }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    () => (supabase.from('puzzle_sessions') as any).insert(insertData).select().single(),
+    {
+      table: 'puzzle_sessions',
+      operation: 'insert',
+    }
   )
 }
 
@@ -192,12 +194,9 @@ export async function completePuzzleSession(
   }
 
   return mutate(
-    () => supabase
-      .from('puzzle_sessions')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars -- Supabase type inference limitation
+    () =>
+      (supabase.from('puzzle_sessions') as any).update(updateData).eq('id', id).select().single(),
     { table: 'puzzle_sessions', operation: 'update' }
   )
 }
@@ -212,8 +211,5 @@ export async function getPuzzleSessions(listId?: string): Promise<PuzzleSession[
     query_builder.eq('list_id', listId)
   }
 
-  return query(
-    () => query_builder,
-    { table: 'puzzle_sessions', operation: 'select' }
-  )
+  return query(() => query_builder, { table: 'puzzle_sessions', operation: 'select' })
 }

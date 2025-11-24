@@ -20,6 +20,7 @@ import type { WordList } from '@/types'
 
 export interface WordListWithCount extends WordList {
   wordCount: number
+  is_shared?: boolean | null
 }
 
 /**
@@ -33,27 +34,93 @@ export function useWordLists(options?: { withCounts?: boolean }) {
 
   return useQuery({
     queryKey: withCounts ? ['wordLists', 'withCounts'] : ['wordLists'],
-    queryFn: withCounts ? getWordListsWithCounts : getWordLists,
+    queryFn: withCounts ? getWordListsWithCounts : () => getWordLists(),
   })
 }
 
+/** Type for collaboration query result */
+interface CollaborationResult {
+  shared_list: {
+    original_list: WordListRow | null
+  } | null
+}
+
+/** Raw word list row from database */
+interface WordListRow {
+  id: string
+  user_id: string | null
+  name: string
+  source_language: string
+  target_language: string
+  created_at: string | null
+  updated_at: string | null
+  is_shared?: boolean | null
+  shared_at?: string | null
+}
+
 /**
- * Fetches word lists with word counts
+ * Fetches word lists with word counts for the current user
+ * Only returns lists that the user owns OR is a collaborator on
  * @returns Promise resolving to word lists with counts
  */
 async function getWordListsWithCounts(): Promise<WordListWithCount[]> {
-  // Get all word lists
-  const { data: lists, error: listsError } = await supabase
+  // Get current user
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return []
+
+  // Get lists the user owns
+  const { data: ownedLists, error: ownedError } = await supabase
     .from('word_lists')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
-  if (listsError) throw listsError
-  if (!lists) return []
+  if (ownedError) throw ownedError
+
+  // Get lists the user collaborates on (via list_collaborators)
+  const { data: collaborations, error: collabError } = await supabase
+    .from('list_collaborators')
+    .select(
+      `
+      shared_list:shared_lists(
+        original_list:word_lists(*)
+      )
+    `
+    )
+    .eq('user_id', user.id)
+
+  if (collabError) throw collabError
+
+  // Extract collaborated lists
+  const collaboratedLists: WordListRow[] = []
+  if (collaborations) {
+    for (const collab of collaborations as unknown as CollaborationResult[]) {
+      if (collab.shared_list?.original_list) {
+        collaboratedLists.push(collab.shared_list.original_list)
+      }
+    }
+  }
+
+  // Combine and deduplicate lists (user might own a list they also collaborate on)
+  const allLists: WordListRow[] = [...((ownedLists || []) as unknown as WordListRow[])]
+  const ownedIds = new Set(allLists.map((l) => l.id))
+
+  for (const list of collaboratedLists) {
+    if (!ownedIds.has(list.id)) {
+      allLists.push(list)
+    }
+  }
+
+  // Sort by created_at descending
+  allLists.sort(
+    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+  )
 
   // Get word counts for each list
   const listsWithCounts = await Promise.all(
-    lists.map(async (list: any) => {
+    allLists.map(async (list) => {
       const { count, error } = await supabase
         .from('words')
         .select('*', { count: 'exact', head: true })
@@ -62,7 +129,14 @@ async function getWordListsWithCounts(): Promise<WordListWithCount[]> {
       if (error) throw error
 
       return {
-        ...list,
+        id: list.id,
+        user_id: list.user_id || '',
+        name: list.name,
+        source_language: list.source_language,
+        target_language: list.target_language,
+        created_at: list.created_at || '',
+        updated_at: list.updated_at || '',
+        is_shared: list.is_shared,
         wordCount: count || 0,
       } as WordListWithCount
     })

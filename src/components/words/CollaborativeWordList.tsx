@@ -17,10 +17,11 @@ import type { WordList } from '@/types'
 
 interface CollaborativeWordListProps {
   wordList: WordList
-  isOwner: boolean
+  /** Whether the current user owns this list (reserved for future use) */
+  isOwner?: boolean
 }
 
-export function CollaborativeWordList({ wordList, isOwner }: CollaborativeWordListProps) {
+export function CollaborativeWordList({ wordList }: CollaborativeWordListProps) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [newWord, setNewWord] = useState({
     term: '',
@@ -30,11 +31,10 @@ export function CollaborativeWordList({ wordList, isOwner }: CollaborativeWordLi
   })
 
   const { data: words, isLoading } = useWords(wordList.id)
-  const { addWord, updateWord, deleteWord, onlineCollaborators, isConnected } =
-    useCollaborativeLists({
-      listId: wordList.id,
-      enabled: true, // Always enabled for collaborative lists
-    })
+  const { addWord, deleteWord, isConnected } = useCollaborativeLists({
+    listId: wordList.id,
+    enabled: true, // Always enabled for collaborative lists
+  })
 
   const handleAddWord = async () => {
     if (!newWord.term.trim() || !newWord.translation.trim()) return

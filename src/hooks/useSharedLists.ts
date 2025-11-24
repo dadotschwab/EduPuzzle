@@ -14,6 +14,9 @@ import {
   importSharedListCopy,
   joinCollaborativeList,
   getUserSharedLists,
+  leaveCollaborativeListDelete,
+  leaveCollaborativeListKeepCopy,
+  getJoinedCollaborativeLists,
 } from '@/lib/api/sharedLists'
 
 /**
@@ -77,6 +80,45 @@ export function useUserSharedLists() {
     queryFn: async () => {
       if (!user?.id) throw new Error('User not authenticated')
       return await getUserSharedLists(user.id)
+    },
+    enabled: !!user?.id,
+  })
+}
+
+/**
+ * Hook for leaving a collaborative list
+ */
+export function useLeaveCollaborativeList() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ sharedListId, keepCopy }: { sharedListId: string; keepCopy: boolean }) => {
+      if (keepCopy) {
+        return await leaveCollaborativeListKeepCopy(sharedListId)
+      } else {
+        return await leaveCollaborativeListDelete(sharedListId)
+      }
+    },
+    onSuccess: () => {
+      // Invalidate word lists to refresh the dashboard
+      queryClient.invalidateQueries({ queryKey: ['wordLists'] })
+      queryClient.invalidateQueries({ queryKey: ['collaborativeLists'] })
+      queryClient.invalidateQueries({ queryKey: ['joinedCollaborativeLists'] })
+    },
+  })
+}
+
+/**
+ * Hook for getting collaborative lists the user has joined
+ */
+export function useJoinedCollaborativeLists() {
+  const { user } = useAuth()
+
+  return useQuery({
+    queryKey: ['joinedCollaborativeLists', user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not authenticated')
+      return await getJoinedCollaborativeLists(user.id)
     },
     enabled: !!user?.id,
   })

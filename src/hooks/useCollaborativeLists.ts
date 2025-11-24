@@ -24,6 +24,17 @@ interface UseCollaborativeListsReturn {
   isConnected: boolean
 }
 
+/** Database row type for words table */
+interface WordRow {
+  id: string
+  list_id: string | null
+  term: string
+  translation: string
+  definition: string | null
+  example_sentence: string | null
+  created_at: string | null
+}
+
 /**
  * Hook for managing real-time collaborative word list operations
  */
@@ -101,15 +112,15 @@ export function useCollaborativeLists({
       })
 
       try {
-        const { data, error } = await supabase
-          .from('words')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+        const { data, error } = await (supabase.from('words') as any)
           .insert({
             list_id: listId,
             term: wordData.term,
             translation: wordData.translation,
-            definition: wordData.definition,
-            example_sentence: wordData.exampleSentence,
-          } as any)
+            definition: wordData.definition ?? null,
+            example_sentence: wordData.exampleSentence ?? null,
+          })
           .select()
           .single()
 
@@ -117,7 +128,18 @@ export function useCollaborativeLists({
 
         // Replace optimistic update with real data
         queryClient.setQueryData(['words', listId], (old: Word[] | undefined) => {
-          return old?.map((word) => (word.id === tempId ? { ...(data as any), listId } : word))
+          if (!data) return old
+          const row = data as WordRow
+          const newWord: Word = {
+            id: row.id,
+            listId: row.list_id ?? listId,
+            term: row.term,
+            translation: row.translation,
+            definition: row.definition ?? undefined,
+            exampleSentence: row.example_sentence ?? undefined,
+            createdAt: row.created_at ?? new Date().toISOString(),
+          }
+          return old?.map((word) => (word.id === tempId ? newWord : word))
         })
       } catch (error) {
         // Rollback optimistic update
@@ -150,15 +172,15 @@ export function useCollaborativeLists({
       })
 
       try {
-        const { error } = (await supabase
-          .from('words')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+        const { error } = await (supabase.from('words') as any)
           .update({
             term: updates.term,
             translation: updates.translation,
-            definition: updates.definition,
-            example_sentence: updates.exampleSentence,
-          } as any)
-          .eq('id', wordId)) as any
+            definition: updates.definition ?? null,
+            example_sentence: updates.exampleSentence ?? null,
+          })
+          .eq('id', wordId)
 
         if (error) throw error
       } catch (error) {

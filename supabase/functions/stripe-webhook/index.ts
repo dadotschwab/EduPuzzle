@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Edge Function: Stripe Webhook Handler (PUBLIC ENDPOINT)
  *
@@ -17,8 +18,17 @@
  * @module functions/stripe-webhook
  */
 
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined
+  }
+  serve(handler: (request: Request) => Promise<Response>): void
+}
+
 // Follow Supabase's official Stripe webhook pattern
+// @ts-expect-error - Deno imports not recognized by TypeScript
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+// @ts-expect-error - Deno imports not recognized by TypeScript
 import Stripe from 'https://esm.sh/stripe@14?target=denonext'
 
 // Initialize Stripe with proper configuration

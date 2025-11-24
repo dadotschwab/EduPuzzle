@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback, memo } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DialogFormButtons } from '@/components/ui/dialog-form-buttons'
@@ -21,9 +27,13 @@ interface WordRow {
 
 const MAX_ROWS = 10
 
-export const CreateWordDialog = memo(function CreateWordDialog({ open, onOpenChange, listId }: CreateWordDialogProps) {
+export const CreateWordDialog = memo(function CreateWordDialog({
+  open,
+  onOpenChange,
+  listId,
+}: CreateWordDialogProps) {
   const [rows, setRows] = useState<WordRow[]>([
-    { id: '1', term: '', translation: '', exampleSentence: '' }
+    { id: '1', term: '', translation: '', exampleSentence: '' },
   ])
   const createMutation = useCreateWords()
 
@@ -35,13 +45,11 @@ export const CreateWordDialog = memo(function CreateWordDialog({ open, onOpenCha
   }, [open])
 
   const handleInputChange = useCallback((id: string, field: keyof WordRow, value: string) => {
-    setRows(prevRows => {
-      const updatedRows = prevRows.map(row =>
-        row.id === id ? { ...row, [field]: value } : row
-      )
+    setRows((prevRows) => {
+      const updatedRows = prevRows.map((row) => (row.id === id ? { ...row, [field]: value } : row))
 
       // Auto-add new row if current row has both term and translation filled
-      const currentRow = updatedRows.find(r => r.id === id)
+      const currentRow = updatedRows.find((r) => r.id === id)
       const isLastRow = updatedRows[updatedRows.length - 1].id === id
 
       if (
@@ -55,7 +63,7 @@ export const CreateWordDialog = memo(function CreateWordDialog({ open, onOpenCha
           id: Date.now().toString(),
           term: '',
           translation: '',
-          exampleSentence: ''
+          exampleSentence: '',
         })
       }
 
@@ -63,38 +71,44 @@ export const CreateWordDialog = memo(function CreateWordDialog({ open, onOpenCha
     })
   }, [])
 
-  const handleRemoveRow = useCallback((id: string) => {
-    if (rows.length > 1) {
-      setRows(prevRows => prevRows.filter(row => row.id !== id))
-    }
-  }, [])
+  const handleRemoveRow = useCallback(
+    (id: string) => {
+      if (rows.length > 1) {
+        setRows((prevRows) => prevRows.filter((row) => row.id !== id))
+      }
+    },
+    [rows.length]
+  )
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
 
-    // Filter out empty rows (only include rows with both term and translation)
-    const validWords = rows
-      .filter(row => row.term.trim() && row.translation.trim())
-      .map(row => ({
-        listId,
-        term: row.term.trim(),
-        translation: row.translation.trim(),
-        exampleSentence: row.exampleSentence.trim() || undefined,
-      }))
+      // Filter out empty rows (only include rows with both term and translation)
+      const validWords = rows
+        .filter((row) => row.term.trim() && row.translation.trim())
+        .map((row) => ({
+          listId,
+          term: row.term.trim(),
+          translation: row.translation.trim(),
+          exampleSentence: row.exampleSentence.trim() || undefined,
+        }))
 
-    if (validWords.length === 0) {
-      return
-    }
+      if (validWords.length === 0) {
+        return
+      }
 
-    try {
-      await createMutation.mutateAsync(validWords)
-      onOpenChange(false)
-    } catch (error) {
-      console.error('Failed to create words:', error)
-    }
-  }, [listId, rows, createMutation, onOpenChange])
+      try {
+        await createMutation.mutateAsync(validWords)
+        onOpenChange(false)
+      } catch (error) {
+        console.error('Failed to create words:', error)
+      }
+    },
+    [listId, rows, createMutation, onOpenChange]
+  )
 
-  const hasValidWords = rows.some(row => row.term.trim() && row.translation.trim())
+  const hasValidWords = rows.some((row) => row.term.trim() && row.translation.trim())
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -102,7 +116,8 @@ export const CreateWordDialog = memo(function CreateWordDialog({ open, onOpenCha
         <DialogHeader>
           <DialogTitle>Add Words</DialogTitle>
           <DialogDescription>
-            Add up to {MAX_ROWS} words at once. A new row will appear automatically when you fill in both word and translation.
+            Add up to {MAX_ROWS} words at once. A new row will appear automatically when you fill in
+            both word and translation.
           </DialogDescription>
         </DialogHeader>
 
@@ -155,7 +170,7 @@ export const CreateWordDialog = memo(function CreateWordDialog({ open, onOpenCha
           <div className="mt-6 pt-4 border-t">
             <DialogFormButtons
               onCancel={() => onOpenChange(false)}
-              submitLabel={`Add ${rows.filter(r => r.term.trim() && r.translation.trim()).length} Word(s)`}
+              submitLabel={`Add ${rows.filter((r) => r.term.trim() && r.translation.trim()).length} Word(s)`}
               loadingLabel="Adding..."
               isLoading={createMutation.isPending}
               submitDisabled={!hasValidWords}

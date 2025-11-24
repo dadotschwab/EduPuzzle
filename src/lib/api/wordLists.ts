@@ -16,35 +16,38 @@ export async function getWordLists(params?: { withCounts?: boolean }): Promise<W
   if (params?.withCounts) {
     const { data, error } = await supabase
       .from('word_lists')
-      .select(`
+      .select(
+        `
         *,
         wordCount:words(count)
-      `)
+      `
+      )
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data?.map(list => ({
-      ...list,
-      wordCount: Array.isArray(list.wordCount) && list.wordCount.length > 0 
-        ? (list.wordCount[0] as { count: number }).count 
-        : 0
-    })) || []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    return (
+      (data as any)?.map((list: any) => ({
+        ...list,
+        wordCount:
+          Array.isArray(list.wordCount) && list.wordCount.length > 0
+            ? (list.wordCount[0] as { count: number }).count
+            : 0,
+      })) || []
+    )
   }
 
   return query(
-    () => supabase
-      .from('word_lists')
-      .select('*')
-      .order('created_at', { ascending: false }),
+    () => supabase.from('word_lists').select('*').order('created_at', { ascending: false }),
     { table: 'word_lists', operation: 'select' }
   )
 }
 
 export async function getWordList(id: string): Promise<WordList> {
-  return query(
-    () => supabase.from('word_lists').select('*').eq('id', id).single(),
-    { table: 'word_lists', operation: 'select' }
-  )
+  return query(() => supabase.from('word_lists').select('*').eq('id', id).single(), {
+    table: 'word_lists',
+    operation: 'select',
+  })
 }
 
 export async function createWordList(wordList: {
@@ -65,8 +68,12 @@ export async function createWordList(wordList: {
   }
 
   return mutate(
-    () => supabase.from('word_lists').insert(insertData).select().single(),
-    { table: 'word_lists', operation: 'insert' }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    () => (supabase.from('word_lists') as any).insert(insertData).select().single(),
+    {
+      table: 'word_lists',
+      operation: 'insert',
+    }
   )
 }
 
@@ -84,19 +91,14 @@ export async function updateWordList(
   if (updates.target_language !== undefined) updateData.target_language = updates.target_language
 
   return mutate(
-    () => supabase
-      .from('word_lists')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    () => (supabase.from('word_lists') as any).update(updateData).eq('id', id).select().single(),
     { table: 'word_lists', operation: 'update' }
   )
 }
 
 export async function deleteWordList(id: string): Promise<void> {
-  await mutate(
-    () => supabase.from('word_lists').delete().eq('id', id),
-    { table: 'word_lists', operation: 'delete' }
-  )
+  // DELETE operations return null data on success, so we handle errors directly
+  const { error } = await supabase.from('word_lists').delete().eq('id', id)
+  if (error) throw error
 }
