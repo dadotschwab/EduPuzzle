@@ -25,68 +25,6 @@ export class SupabaseQueryError extends Error {
   }
 }
 
-
-
-  // Treat null data as an error for consistency
-  if (data === null) {
-    throw new SupabaseQueryError(
-      {
-        message: 'Query returned null data',
-        code: 'NULL_DATA',
-        details: '',
-        hint: '',
-      } as PostgrestError,
-      context?.table,
-      context?.operation
-    )
-  }
-
-  return data
-}
-
-/**
- * Executes a Supabase mutation (insert, update, delete) with error handling
- * Similar to query() but optimized for mutations
- *
- * @param mutationFn - Function that returns a Supabase mutation result
- * @param context - Optional context for better error messages
- * @returns The mutation data
- * @throws SupabaseQueryError if the mutation fails
- *
- * @example
- * ```typescript
- * const newWord = await mutate(
- *   () => supabase.from('words').insert(wordData).select().single(),
- *   { table: 'words', operation: 'insert' }
- * )
- * ```
- */
-export async function mutate<T>(
-  mutateFn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,
-  context?: { table?: string; operation?: string }
-): Promise<T> {
-  const { data, error } = await mutateFn()
-
-  if (error) {
-    throw new SupabaseQueryError(error, context?.table, context?.operation)
-  }
-
-  if (data === null) {
-    throw new SupabaseQueryError(
-      {
-        message: 'Mutation returned null data',
-        code: 'NULL_DATA',
-        details: '',
-        hint: '',
-      } as PostgrestError,
-      context?.table,
-      context?.operation
-    )
-  }
-
-  return data
-}
-
 // Enhanced query wrapper with auth guarding
 export async function query<T>(
   queryFn: () => PromiseLike<{ data: T | null; error: PostgrestError | null }>,

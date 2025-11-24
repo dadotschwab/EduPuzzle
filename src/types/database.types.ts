@@ -1,10 +1,4 @@
-[?25l[?2004h
-                                                                                                 
-  >  1. gqalsczfephexbserzqp [name: CroosWordVocab, org: yygpmcztahaflwgvlvdn, region: eu-west-1]
-                                                                                                 
-                                                                                                 
-    ↑/k up • ↓/j down • / filter • q quit • ? more                                               
-                                                                                                 [6A [J[2K[?2004l[?25h[?1002l[?1003l[?1006lexport type Json =
+export type Json =
   | string
   | number
   | boolean
