@@ -137,7 +137,7 @@ export async function savePuzzleSession(
   }
 
   const data = await mutate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    // TODO: Remove 'as any' once database types are regenerated after migration
     () => (supabase.from('puzzle_sessions') as any).insert(insertData).select().single(),
     { table: 'puzzle_sessions', operation: 'insert' }
   )
@@ -175,7 +175,7 @@ export async function createPuzzleSession(session: {
   }
 
   return mutate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    // TODO: Remove 'as any' once database types are regenerated after migration
     () => (supabase.from('puzzle_sessions') as any).insert(insertData).select().single(),
     {
       table: 'puzzle_sessions',
@@ -194,7 +194,7 @@ export async function completePuzzleSession(
   }
 
   return mutate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars -- Supabase type inference limitation
+    // TODO: Remove 'as any' once database types are regenerated after migration
     () =>
       (supabase.from('puzzle_sessions') as any).update(updateData).eq('id', id).select().single(),
     { table: 'puzzle_sessions', operation: 'update' }

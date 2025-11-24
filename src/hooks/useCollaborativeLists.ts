@@ -112,7 +112,7 @@ export function useCollaborativeLists({
       })
 
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+        // TODO: Remove 'as any' once database types are regenerated after migration
         const { data, error } = await (supabase.from('words') as any)
           .insert({
             list_id: listId,
@@ -172,7 +172,7 @@ export function useCollaborativeLists({
       })
 
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+        // TODO: Remove 'as any' once database types are regenerated after migration
         const { error } = await (supabase.from('words') as any)
           .update({
             term: updates.term,

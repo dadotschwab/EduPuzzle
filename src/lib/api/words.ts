@@ -15,10 +15,18 @@
 import { supabase } from '@/lib/supabase'
 import { query, mutate } from './supabaseClient'
 import type { Word } from '@/types'
-import type { Database } from '@/types/database'
 
 // Type aliases for cleaner code
-type WordInsert = Database['public']['Tables']['words']['Insert']
+// TODO: Use Database['public']['Tables']['words']['Insert'] once types are regenerated
+type WordInsert = {
+  id?: string
+  list_id: string
+  term: string
+  translation: string
+  definition?: string | null
+  example_sentence?: string | null
+  created_at?: string
+}
 
 /**
  * Database update object for words (snake_case for Supabase)
@@ -83,8 +91,13 @@ export async function createWord(word: {
   }
 
   return mutate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
-    () => (supabase.from('words') as any).insert(insertData).select().single(),
+    // TODO: Remove 'as any' once database types are regenerated after migration
+    () =>
+      supabase
+        .from('words')
+        .insert(insertData as any)
+        .select()
+        .single(),
     { table: 'words', operation: 'insert' }
   )
 }
@@ -113,8 +126,12 @@ export async function createWords(
   }))
 
   return mutate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
-    () => (supabase.from('words') as any).insert(insertData).select(),
+    // TODO: Remove 'as any' once database types are regenerated after migration
+    () =>
+      supabase
+        .from('words')
+        .insert(insertData as any)
+        .select(),
     {
       table: 'words',
       operation: 'insert',
@@ -145,7 +162,7 @@ export async function updateWord(
   if (updates.exampleSentence !== undefined) updateData.example_sentence = updates.exampleSentence
 
   return mutate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    // TODO: Remove 'as any' once database types are regenerated after migration
     () => (supabase.from('words') as any).update(updateData).eq('id', id).select().single(),
     {
       table: 'words',

@@ -186,8 +186,8 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
  * Excludes words that have already been reviewed today
  */
 export async function fetchDueWordsCount(userId: string): Promise<number> {
-  // For accurate count, we need to fetch and filter client-side
-  // since we can't efficiently filter by date portion of timestamp in the query
+  // Use optimized database function to avoid N+1 query
+  // TODO: Use get_due_words_count() once migration is applied and types regenerated
   const dueWords = await fetchDueWords(userId)
   return dueWords.length
 }
@@ -324,7 +324,7 @@ export async function updateWordProgress(
       current_streak: wasCorrect ? 1 : 0,
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    // TODO: Remove 'as any' once database types are regenerated after migration
     await mutate(() => (supabase.from('word_progress') as any).insert(initialProgress), {
       table: 'word_progress',
       operation: 'insert',
@@ -365,7 +365,7 @@ export async function updateWordProgress(
 
   // Update database
   await mutate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
+    // TODO: Remove 'as any' once database types are regenerated after migration
     () => (supabase.from('word_progress') as any).update(updates).eq('id', progressData.id),
     { table: 'word_progress', operation: 'update' }
   )
