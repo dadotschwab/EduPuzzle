@@ -94,15 +94,21 @@ export function SharedList() {
 
   // Error state
   if (sharedListError || !sharedList) {
+    const isExpired = sharedListError?.message?.includes('expired')
+
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertCircle className="h-5 w-5" />
-              Invalid Link
+              {isExpired ? 'Link Expired' : 'Invalid Link'}
             </CardTitle>
-            <CardDescription>This shared list link is invalid or has expired.</CardDescription>
+            <CardDescription>
+              {isExpired
+                ? 'This shared list link has expired and is no longer available.'
+                : 'This shared list link is invalid or has been removed.'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => navigate('/')} className="w-full">

@@ -28,6 +28,10 @@ export function ShareLinkDisplay({ link, shareMode, onCopy }: ShareLinkDisplayPr
     }
   }
 
+  const handleCopyClick = () => {
+    onCopy()
+  }
+
   return (
     <div className="space-y-3">
       <div>
@@ -46,7 +50,7 @@ export function ShareLinkDisplay({ link, shareMode, onCopy }: ShareLinkDisplayPr
         <Button
           size="sm"
           variant="outline"
-          onClick={onCopy}
+          onClick={handleCopyClick}
           className="shrink-0"
           aria-label="Copy link to clipboard"
         >

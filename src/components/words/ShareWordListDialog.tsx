@@ -36,6 +36,7 @@ export function ShareWordListDialog({ open, onOpenChange, wordList }: ShareWordL
       console.log('Share link generated successfully')
     } catch (error) {
       console.error('Failed to generate share link:', error)
+      // Could add toast notification here if toast library is available
     }
   }
 
