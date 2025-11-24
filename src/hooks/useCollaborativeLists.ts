@@ -9,6 +9,8 @@ import { useEffect, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useSequentialOperations } from './useSequentialOperations'
+import { useConflictResolution } from './useConflictResolution'
 import type { Word } from '@/types'
 
 interface UseCollaborativeListsOptions {
@@ -24,17 +26,6 @@ interface UseCollaborativeListsReturn {
   isConnected: boolean
 }
 
-/** Database row type for words table */
-interface WordRow {
-  id: string
-  list_id: string | null
-  term: string
-  translation: string
-  definition: string | null
-  example_sentence: string | null
-  created_at: string | null
-}
-
 /**
  * Hook for managing real-time collaborative word list operations
  */
@@ -44,6 +35,13 @@ export function useCollaborativeLists({
 }: UseCollaborativeListsOptions): UseCollaborativeListsReturn {
   const { user } = useAuth()
   const queryClient = useQueryClient()
+  const { addToQueue } = useSequentialOperations()
+  const { resolveConflict } = useConflictResolution({
+    onConflict: (_local, _remote) => {
+      // Simple strategy: prefer local changes for user-initiated actions
+      return 'local'
+    },
+  })
 
   // Track connection status
   const isConnected = true // Supabase handles connection internally
@@ -97,59 +95,47 @@ export function useCollaborativeLists({
     async (wordData: Omit<Word, 'id'>) => {
       if (!user || !listId) throw new Error('User not authenticated or list not specified')
 
-      // Optimistic update
-      const tempId = `temp-${Date.now()}`
-      const optimisticWord: Word = {
-        ...wordData,
-        id: tempId,
-        listId,
-        createdAt: new Date().toISOString(),
-      }
+      return addToQueue(async () => {
+        const tempId = `temp-${Date.now()}-${Math.random()}`
 
-      // Add to cache optimistically
-      queryClient.setQueryData(['words', listId], (old: Word[] | undefined) => {
-        return old ? [...old, optimisticWord] : [optimisticWord]
-      })
+        return resolveConflict(
+          // Actual operation
+          async () => {
+            // TODO: Remove 'as any' once database types are regenerated after migration
+            const { data, error } = await (supabase.from('words') as any)
+              .insert({
+                list_id: listId,
+                term: wordData.term,
+                translation: wordData.translation,
+                definition: wordData.definition ?? null,
+                example_sentence: wordData.exampleSentence ?? null,
+              })
+              .select()
+              .single()
 
-      try {
-        // TODO: Remove 'as any' once database types are regenerated after migration
-        const { data, error } = await (supabase.from('words') as any)
-          .insert({
-            list_id: listId,
-            term: wordData.term,
-            translation: wordData.translation,
-            definition: wordData.definition ?? null,
-            example_sentence: wordData.exampleSentence ?? null,
-          })
-          .select()
-          .single()
-
-        if (error) throw error
-
-        // Replace optimistic update with real data
-        queryClient.setQueryData(['words', listId], (old: Word[] | undefined) => {
-          if (!data) return old
-          const row = data as WordRow
-          const newWord: Word = {
-            id: row.id,
-            listId: row.list_id ?? listId,
-            term: row.term,
-            translation: row.translation,
-            definition: row.definition ?? undefined,
-            exampleSentence: row.example_sentence ?? undefined,
-            createdAt: row.created_at ?? new Date().toISOString(),
+            if (error) throw error
+            return data
+          },
+          // Query key
+          ['words', listId],
+          // Optimistic update
+          (old: Word[] | undefined) => {
+            const optimisticWord: Word = {
+              ...wordData,
+              id: tempId,
+              listId,
+              createdAt: new Date().toISOString(),
+            }
+            return old ? [...old, optimisticWord] : [optimisticWord]
+          },
+          // Rollback update
+          (old: Word[] | undefined) => {
+            return old?.filter((word) => word.id !== tempId) || []
           }
-          return old?.map((word) => (word.id === tempId ? newWord : word))
-        })
-      } catch (error) {
-        // Rollback optimistic update
-        queryClient.setQueryData(['words', listId], (old: Word[] | undefined) => {
-          return old?.filter((word) => word.id !== tempId)
-        })
-        throw error
-      }
+        )
+      })
     },
-    [user, listId, queryClient]
+    [user, listId, addToQueue, resolveConflict]
   )
 
   /**
@@ -159,41 +145,47 @@ export function useCollaborativeLists({
     async (wordId: string, updates: Partial<Word>) => {
       if (!user || !listId) throw new Error('User not authenticated or list not specified')
 
-      // Store original word for rollback
-      let originalWord: Word | undefined
-      queryClient.setQueryData(['words', listId], (old: Word[] | undefined) => {
-        return old?.map((word) => {
-          if (word.id === wordId) {
-            originalWord = { ...word }
-            return { ...word, ...updates }
+      return addToQueue(async () => {
+        // Store original for rollback
+        let originalWord: Word | undefined
+
+        return resolveConflict(
+          // Actual operation
+          async () => {
+            // TODO: Remove 'as any' once database types are regenerated after migration
+            const { error } = await (supabase.from('words') as any)
+              .update({
+                term: updates.term,
+                translation: updates.translation,
+                definition: updates.definition ?? null,
+                example_sentence: updates.exampleSentence ?? null,
+              })
+              .eq('id', wordId)
+
+            if (error) throw error
+          },
+          // Query key
+          ['words', listId],
+          // Optimistic update
+          (old: Word[] | undefined) => {
+            return (
+              old?.map((word) => {
+                if (word.id === wordId) {
+                  originalWord = { ...word }
+                  return { ...word, ...updates }
+                }
+                return word
+              }) || []
+            )
+          },
+          // Rollback update
+          (old: Word[] | undefined) => {
+            return old?.map((word) => (word.id === wordId ? originalWord || word : word)) || []
           }
-          return word
-        })
+        )
       })
-
-      try {
-        // TODO: Remove 'as any' once database types are regenerated after migration
-        const { error } = await (supabase.from('words') as any)
-          .update({
-            term: updates.term,
-            translation: updates.translation,
-            definition: updates.definition ?? null,
-            example_sentence: updates.exampleSentence ?? null,
-          })
-          .eq('id', wordId)
-
-        if (error) throw error
-      } catch (error) {
-        // Rollback optimistic update
-        if (originalWord) {
-          queryClient.setQueryData(['words', listId], (old: Word[] | undefined) => {
-            return old?.map((word) => (word.id === wordId ? originalWord! : word))
-          })
-        }
-        throw error
-      }
     },
-    [user, listId, queryClient]
+    [user, listId, addToQueue, resolveConflict]
   )
 
   /**
@@ -203,33 +195,42 @@ export function useCollaborativeLists({
     async (wordId: string) => {
       if (!user || !listId) throw new Error('User not authenticated or list not specified')
 
-      // Store original word for rollback
-      let deletedWord: Word | undefined
-      queryClient.setQueryData(['words', listId], (old: Word[] | undefined) => {
-        return old?.filter((word) => {
-          if (word.id === wordId) {
-            deletedWord = { ...word }
-            return false
+      return addToQueue(async () => {
+        // Store deleted word for rollback
+        let deletedWord: Word | undefined
+
+        return resolveConflict(
+          // Actual operation
+          async () => {
+            const { error } = await supabase.from('words').delete().eq('id', wordId)
+
+            if (error) throw error
+          },
+          // Query key
+          ['words', listId],
+          // Optimistic update
+          (old: Word[] | undefined) => {
+            return (
+              old?.filter((word) => {
+                if (word.id === wordId) {
+                  deletedWord = { ...word }
+                  return false
+                }
+                return true
+              }) || []
+            )
+          },
+          // Rollback update
+          (old: Word[] | undefined) => {
+            if (deletedWord) {
+              return old ? [...old, deletedWord] : [deletedWord]
+            }
+            return old || []
           }
-          return true
-        })
+        )
       })
-
-      try {
-        const { error } = await supabase.from('words').delete().eq('id', wordId)
-
-        if (error) throw error
-      } catch (error) {
-        // Rollback optimistic update
-        if (deletedWord) {
-          queryClient.setQueryData(['words', listId], (old: Word[] | undefined) => {
-            return old ? [...old, deletedWord!] : [deletedWord!]
-          })
-        }
-        throw error
-      }
     },
-    [user, listId, queryClient]
+    [user, listId, addToQueue, resolveConflict]
   )
 
   return {
