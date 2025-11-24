@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -52,7 +52,7 @@ export function InteractiveDemo({ className }: InteractiveDemoProps) {
   const [generatedPuzzle, setGeneratedPuzzle] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const handleGenerateDemo = async () => {
+  const handleGenerateDemo = useCallback(async () => {
     const words = inputWords
       .split(',')
       .map((w) => w.trim())
@@ -77,7 +77,7 @@ export function InteractiveDemo({ className }: InteractiveDemoProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [inputWords])
 
   return (
     <section id="demo" className={`py-20 bg-white ${className || ''}`}>
@@ -104,13 +104,21 @@ export function InteractiveDemo({ className }: InteractiveDemoProps) {
               />
             </div>
 
-            <Button onClick={handleGenerateDemo} disabled={loading} className="w-full" size="lg">
+            <Button
+              onClick={handleGenerateDemo}
+              disabled={loading}
+              className="w-full"
+              size="lg"
+              aria-describedby={error ? 'demo-error' : undefined}
+            >
               {loading ? 'Generating Puzzle...' : 'Create Puzzle'}
             </Button>
 
             {error && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-red-600 text-sm">{error}</p>
+                <p id="demo-error" className="text-red-600 text-sm" role="alert">
+                  {error}
+                </p>
               </div>
             )}
 

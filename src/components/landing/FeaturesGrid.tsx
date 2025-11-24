@@ -2,6 +2,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Brain, BookOpen, Users, Zap, Target, Trophy } from 'lucide-react'
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver'
 import { cn } from '@/lib/utils'
+import { memo } from 'react'
 
 interface FeaturesGridProps {
   className?: string
@@ -50,7 +51,7 @@ const features: Feature[] = [
   },
 ]
 
-export function FeaturesGrid({ className }: FeaturesGridProps) {
+export const FeaturesGrid = memo(function FeaturesGrid({ className }: FeaturesGridProps) {
   const { ref, isIntersecting } = useIntersectionObserver({
     threshold: 0.1,
     triggerOnce: true,
@@ -92,4 +93,4 @@ export function FeaturesGrid({ className }: FeaturesGridProps) {
       </div>
     </section>
   )
-}
+})

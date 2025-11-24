@@ -18,11 +18,15 @@ export function HeroSection({ onCtaClick }: HeroSectionProps) {
     <section
       id="hero"
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      aria-labelledby="hero-heading"
     >
       <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20" />
       <div className="relative z-10 text-center max-w-4xl mx-auto px-4">
         <AnimatedPuzzle className="mb-8 animate-bounce-in" />
-        <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent animate-fade-in">
+        <h1
+          id="hero-heading"
+          className="text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent animate-fade-in"
+        >
           Master Vocabulary with AI-Powered Puzzles
         </h1>
         <p className="text-xl text-gray-600 mt-6 animate-slide-up">

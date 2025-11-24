@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo } from 'react'
 import { cn } from '@/lib/utils'
 
 interface AnimatedPuzzleProps {
@@ -14,7 +14,7 @@ const gridData = [
   ['G', 'A', 'M', 'E', 'S'],
 ]
 
-export function AnimatedPuzzle({ className }: AnimatedPuzzleProps) {
+export const AnimatedPuzzle = memo(function AnimatedPuzzle({ className }: AnimatedPuzzleProps) {
   const [animatedCells, setAnimatedCells] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -68,4 +68,4 @@ export function AnimatedPuzzle({ className }: AnimatedPuzzleProps) {
       </div>
     </div>
   )
-}
+})

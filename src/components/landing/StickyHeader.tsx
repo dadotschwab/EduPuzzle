@@ -34,8 +34,12 @@ export function StickyHeader({ activeSection, onNavigate }: StickyHeaderProps) {
   }, [])
 
   return (
-    <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b z-50">
-      <nav className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+    <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b z-50" role="banner">
+      <nav
+        className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between"
+        role="navigation"
+        aria-label="Main navigation"
+      >
         <div className="flex items-center space-x-8">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             EduPuzzle
