@@ -5,15 +5,15 @@
  * presence indicators, and real-time synchronization.
  */
 
-import { useState } from 'react'
+import { useState, memo, useCallback, useMemo } from 'react'
 import { useWords } from '@/hooks/useWords'
 import { useCollaborativeLists } from '@/hooks/useCollaborativeLists'
 import { CollaboratorPresence } from '@/components/words/CollaboratorPresence'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Users, Loader2 } from 'lucide-react'
-import type { WordList } from '@/types'
+import { Plus, Users, Loader2, Trash2 } from 'lucide-react'
+import type { WordList, Word } from '@/types'
 
 interface CollaborativeWordListProps {
   wordList: WordList
@@ -21,7 +21,51 @@ interface CollaborativeWordListProps {
   isOwner?: boolean
 }
 
-export function CollaborativeWordList({ wordList }: CollaborativeWordListProps) {
+interface WordItemProps {
+  word: Word
+  onDelete: (wordId: string) => void
+}
+
+const WordItem = memo(({ word, onDelete }: WordItemProps) => {
+  const handleDelete = useCallback(() => {
+    onDelete(word.id)
+  }, [word.id, onDelete])
+
+  return (
+    <Card className="relative">
+      <CardContent className="pt-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-4">
+              <h3 className="font-semibold text-lg">{word.term}</h3>
+              <span className="text-muted-foreground">→</span>
+              <p className="text-lg">{word.translation}</p>
+            </div>
+
+            {word.definition && <p className="text-sm text-muted-foreground">{word.definition}</p>}
+
+            {word.exampleSentence && (
+              <p className="text-sm italic text-muted-foreground">"{word.exampleSentence}"</p>
+            )}
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDelete}
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+})
+
+WordItem.displayName = 'WordItem'
+
+const CollaborativeWordList = memo(({ wordList }: CollaborativeWordListProps) => {
   const [showAddForm, setShowAddForm] = useState(false)
   const [newWord, setNewWord] = useState({
     term: '',
@@ -36,7 +80,7 @@ export function CollaborativeWordList({ wordList }: CollaborativeWordListProps) 
     enabled: true, // Always enabled for collaborative lists
   })
 
-  const handleAddWord = async () => {
+  const handleAddWord = useCallback(async () => {
     if (!newWord.term.trim() || !newWord.translation.trim()) return
 
     try {
@@ -54,15 +98,26 @@ export function CollaborativeWordList({ wordList }: CollaborativeWordListProps) 
     } catch (error) {
       console.error('Failed to add word:', error)
     }
-  }
+  }, [addWord, newWord, wordList.id])
 
-  const handleDeleteWord = async (wordId: string) => {
-    try {
-      await deleteWord(wordId)
-    } catch (error) {
-      console.error('Failed to delete word:', error)
-    }
-  }
+  const handleDeleteWord = useCallback(
+    async (wordId: string) => {
+      try {
+        await deleteWord(wordId)
+      } catch (error) {
+        console.error('Failed to delete word:', error)
+      }
+    },
+    [deleteWord]
+  )
+
+  // Memoize words list to prevent unnecessary re-renders
+  const wordItems = useMemo(
+    () =>
+      words?.map((word) => <WordItem key={word.id} word={word} onDelete={handleDeleteWord} />) ||
+      [],
+    [words, handleDeleteWord]
+  )
 
   if (isLoading) {
     return (
@@ -178,40 +233,7 @@ export function CollaborativeWordList({ wordList }: CollaborativeWordListProps) 
       {/* Words list */}
       <div className="space-y-3">
         {words && words.length > 0 ? (
-          words.map((word) => (
-            <Card key={word.id} className="relative">
-              <CardContent className="pt-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-4">
-                      <h3 className="font-semibold text-lg">{word.term}</h3>
-                      <span className="text-muted-foreground">→</span>
-                      <p className="text-lg">{word.translation}</p>
-                    </div>
-
-                    {word.definition && (
-                      <p className="text-sm text-muted-foreground">{word.definition}</p>
-                    )}
-
-                    {word.exampleSentence && (
-                      <p className="text-sm italic text-muted-foreground">
-                        "{word.exampleSentence}"
-                      </p>
-                    )}
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteWord(word.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+          wordItems
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <p>No words in this list yet.</p>
@@ -231,4 +253,8 @@ export function CollaborativeWordList({ wordList }: CollaborativeWordListProps) 
       )}
     </div>
   )
-}
+})
+
+CollaborativeWordList.displayName = 'CollaborativeWordList'
+
+export { CollaborativeWordList }
