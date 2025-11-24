@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CreateWordListDialog } from '@/components/words/CreateWordListDialog'
 import { EditWordListDialog } from '@/components/words/EditWordListDialog'
 import { CreateWordDialog } from '@/components/words/CreateWordDialog'
+import { ShareWordListDialog } from '@/components/words/ShareWordListDialog'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -25,7 +26,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { BookOpen, Plus, MoreVertical, Edit, Trash2, PlayCircle, PuzzleIcon } from 'lucide-react'
+import {
+  BookOpen,
+  Plus,
+  MoreVertical,
+  Edit,
+  Trash2,
+  PlayCircle,
+  PuzzleIcon,
+  Share,
+} from 'lucide-react'
 import type { WordList } from '@/types'
 
 export function Dashboard() {
@@ -33,6 +43,7 @@ export function Dashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [addWordDialogOpen, setAddWordDialogOpen] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedList, setSelectedList] = useState<WordList | null>(null)
   const [listToDelete, setListToDelete] = useState<{ id: string; name: string } | null>(null)
@@ -79,9 +90,14 @@ export function Dashboard() {
 
         {/* Action Buttons */}
         <div className="flex gap-4 mb-8">
-          <Button size="lg" onClick={() => navigate('/app/todays-puzzles')} className="flex-1 md:flex-none">
+          <Button
+            size="lg"
+            onClick={() => navigate('/app/todays-puzzles')}
+            className="flex-1 md:flex-none"
+          >
             <PlayCircle className="w-5 h-5 mr-2" />
-            Learn Today's Words{dueCount && dueCount > 0 ? ` (${dueCount > 99 ? '99+' : dueCount})` : ''}
+            Learn Today's Words
+            {dueCount && dueCount > 0 ? ` (${dueCount > 99 ? '99+' : dueCount})` : ''}
           </Button>
           <Button
             size="lg"
@@ -153,6 +169,15 @@ export function Dashboard() {
                               <Edit className="w-4 h-4 mr-2" />
                               Edit List
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedList(list)
+                                setShareDialogOpen(true)
+                              }}
+                            >
+                              <Share className="w-4 h-4 mr-2" />
+                              Share List
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => {
@@ -215,6 +240,11 @@ export function Dashboard() {
               onOpenChange={setEditDialogOpen}
               wordList={selectedList}
             />
+            <ShareWordListDialog
+              open={shareDialogOpen}
+              onOpenChange={setShareDialogOpen}
+              wordList={selectedList}
+            />
             <CreateWordDialog
               open={addWordDialogOpen}
               onOpenChange={setAddWordDialogOpen}
@@ -230,8 +260,8 @@ export function Dashboard() {
               <AlertDialogTitle>Delete Word List</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to delete "{listToDelete?.name}"? This will permanently delete
-                the list and all {wordLists?.find(l => l.id === listToDelete?.id)?.wordCount || 0} words in it.
-                This action cannot be undone.
+                the list and all {wordLists?.find((l) => l.id === listToDelete?.id)?.wordCount || 0}{' '}
+                words in it. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
