@@ -9,8 +9,8 @@ export function SignupForm() {
   const [success, setSuccess] = useState(false)
   const navigate = useNavigate()
 
-  const handleSignup = async (email: string, password: string) => {
-    await signUp(email, password)
+  const handleSignup = async (email: string, password: string, name?: string) => {
+    await signUp(email, password, name || '')
     setSuccess(true)
     // Wait a moment then redirect
     setTimeout(() => navigate('/app'), 2000)

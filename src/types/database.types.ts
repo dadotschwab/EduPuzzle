@@ -216,6 +216,7 @@ export type Database = {
           created_at: string | null
           email: string
           id: string
+          name: string
           stripe_customer_id: string | null
           subscription_end_date: string | null
           subscription_status: string | null
@@ -225,6 +226,7 @@ export type Database = {
           created_at?: string | null
           email: string
           id?: string
+          name: string
           stripe_customer_id?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null
@@ -234,6 +236,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           id?: string
+          name?: string
           stripe_customer_id?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null

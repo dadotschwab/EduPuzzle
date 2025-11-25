@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 interface AuthFormProps {
   mode: 'login' | 'signup'
-  onSubmit: (email: string, password: string) => Promise<void>
+  onSubmit: (email: string, password: string, name?: string) => Promise<void>
   title: string
   description: string
   submitLabel: string
@@ -39,6 +39,7 @@ export function AuthForm({
   loadingLabel,
   alternateLink,
 }: AuthFormProps) {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -51,6 +52,10 @@ export function AuthForm({
 
     // Validate password confirmation for signup
     if (mode === 'signup') {
+      if (!name.trim()) {
+        setError('Please enter your name')
+        return
+      }
       if (password !== confirmPassword) {
         setError('Passwords do not match')
         return
@@ -63,7 +68,7 @@ export function AuthForm({
 
     setLoading(true)
     try {
-      await onSubmit(email, password)
+      await onSubmit(email, password, mode === 'signup' ? name : undefined)
     } catch (err) {
       setError(err instanceof Error ? err.message : `Failed to ${mode === 'login' ? 'sign in' : 'create account'}`)
     } finally {
@@ -79,6 +84,23 @@ export function AuthForm({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name Field (Signup only) */}
+          {mode === 'signup' && (
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">This is how we'll greet you</p>
+            </div>
+          )}
+
           {/* Email Field */}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
