@@ -67,7 +67,11 @@ export function useStreak() {
       if (error instanceof StreakApiError && error.statusCode === 401) {
         return false
       }
-      // Retry network/server errors up to 3 times
+      // Don't retry server errors (likely missing tables) after 1 attempt
+      if (error instanceof StreakApiError && error.statusCode === 500) {
+        return false
+      }
+      // Retry network/client errors up to 3 times
       return failureCount < 3
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

@@ -53,6 +53,14 @@ export async function getStreakData(): Promise<StreakData> {
     .single()
 
   if (streakError && streakError.code !== 'PGRST116') {
+    // Check if it's a table not found error (migration not run yet)
+    if (
+      streakError.message?.includes('relation') &&
+      streakError.message?.includes('does not exist')
+    ) {
+      console.warn('[getStreakData] Streak tables not found - migration may not be run yet')
+      return { userStreak: null, todaysCompletion: null, yesterdayCompletion: null }
+    }
     throw new StreakApiError(streakError.message, 500)
   }
 
@@ -65,6 +73,14 @@ export async function getStreakData(): Promise<StreakData> {
     .single()
 
   if (todayError && todayError.code !== 'PGRST116') {
+    // Check if it's a table not found error (migration not run yet)
+    if (
+      todayError.message?.includes('relation') &&
+      todayError.message?.includes('does not exist')
+    ) {
+      console.warn('[getStreakData] Streak tables not found - migration may not be run yet')
+      return { userStreak: userStreak || null, todaysCompletion: null, yesterdayCompletion: null }
+    }
     throw new StreakApiError(todayError.message, 500)
   }
 
@@ -77,6 +93,18 @@ export async function getStreakData(): Promise<StreakData> {
     .single()
 
   if (yesterdayError && yesterdayError.code !== 'PGRST116') {
+    // Check if it's a table not found error (migration not run yet)
+    if (
+      yesterdayError.message?.includes('relation') &&
+      yesterdayError.message?.includes('does not exist')
+    ) {
+      console.warn('[getStreakData] Streak tables not found - migration may not be run yet')
+      return {
+        userStreak: userStreak || null,
+        todaysCompletion: todaysCompletion || null,
+        yesterdayCompletion: null,
+      }
+    }
     throw new StreakApiError(yesterdayError.message, 500)
   }
 

@@ -60,8 +60,8 @@ export function StreakDisplay({ className }: StreakDisplayProps) {
     )
   }
 
-  // Error state
-  if (error) {
+  // Error state - only show for actual errors, not missing tables
+  if (error && errorType !== 'server') {
     return (
       <div
         className={`flex items-center gap-4 p-4 bg-red-50 rounded-lg border border-red-200 ${className}`}
@@ -85,6 +85,28 @@ export function StreakDisplay({ className }: StreakDisplayProps) {
         >
           Retry
         </button>
+      </div>
+    )
+  }
+
+  // If server error (likely missing tables), show a placeholder instead of breaking
+  if (error && errorType === 'server') {
+    return (
+      <div
+        className={`flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 ${className}`}
+      >
+        <div className="text-gray-400">
+          <Flame className="w-6 h-6" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-700">Streak system coming soon!</p>
+          <p className="text-xs text-gray-500">
+            Daily learning streaks will be available after the next update.
+          </p>
+        </div>
+        <Badge variant="secondary" className="ml-auto">
+          Soon
+        </Badge>
       </div>
     )
   }
