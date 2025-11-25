@@ -27,6 +27,8 @@ import { SubscriptionGate } from '@/components/auth/SubscriptionGate'
 import { HelpCircle } from 'lucide-react'
 import { useTodaysPuzzles, useCompletePuzzle, useCurrentPuzzle } from '@/hooks/useTodaysPuzzles'
 import { usePuzzleSolver } from '@/hooks/usePuzzleSolver'
+import { useStreak } from '@/hooks/useStreak'
+import { useDueWordsCount } from '@/hooks/useTodaysPuzzles'
 import { markPuzzleCompleted, getFirstUncompletedPuzzleIndex } from '@/lib/utils/puzzleProgress'
 import { getTodayDate } from '@/lib/utils/helpers'
 
@@ -39,7 +41,9 @@ export function TodaysPuzzles() {
 
   // Fetch today's due words and generate puzzles
   const { data: puzzleData, isLoading, error } = useTodaysPuzzles()
+  const { data: dueWordsCount } = useDueWordsCount()
   const completePuzzle = useCompletePuzzle()
+  const { recordCompletion } = useStreak()
 
   // Track which puzzle we're showing
   const [currentPuzzleIndex, setCurrentPuzzleIndex] = useState(0)
@@ -125,7 +129,7 @@ export function TodaysPuzzles() {
   }, [queryClient])
 
   /**
-   * Ends the puzzle, validates all words, and updates SRS progress
+   * Ends the puzzle, validates all words, and updates SRS progress and streak
    */
   const handleEndPuzzle = () => {
     solver.handleEndPuzzle((validationResults) => {
@@ -141,6 +145,13 @@ export function TodaysPuzzles() {
       }))
 
       completePuzzle.mutate(srsUpdates)
+
+      // Record puzzle completion for streak tracking
+      recordCompletion({
+        puzzlesCompleted: 1, // This puzzle was completed
+        wordsCompleted: puzzle.placedWords.length, // Words in this puzzle
+        dueWordsCount: dueWordsCount || 0, // Total due words today
+      })
 
       // Mark that we need to invalidate on unmount (if user navigates away)
       hasPendingInvalidationRef.current = true

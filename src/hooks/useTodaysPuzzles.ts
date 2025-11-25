@@ -11,6 +11,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchDueWordsCount, batchUpdateWordProgress } from '@/lib/api/srs'
+import { recordDailyCompletion } from '@/lib/api/streak'
 import { supabase } from '@/lib/supabase'
 import { getCurrentPuzzle } from '@/lib/utils/helpers'
 import type { Puzzle } from '@/types'
@@ -61,8 +62,8 @@ export function useTodaysPuzzles() {
 
       console.log(
         `[TodaysPuzzles] Received ${response.puzzles.length} puzzles ` +
-        `(${response.totalWords} total words) ` +
-        `${response.cached ? '[CACHED]' : '[FRESH]'}`
+          `(${response.totalWords} total words) ` +
+          `${response.cached ? '[CACHED]' : '[FRESH]'}`
       )
 
       return response
@@ -101,10 +102,25 @@ export function useCompletePuzzle() {
       if (!user) throw new Error('User not authenticated')
       return batchUpdateWordProgress(updates, user.id)
     },
-    onSuccess: () => {
+    onSuccess: (_, updates) => {
       // ✅ SAFE: Update counts immediately (for dashboard badges)
       queryClient.invalidateQueries({ queryKey: ['dueWordsCount'] })
       queryClient.invalidateQueries({ queryKey: ['wordProgress'] })
+
+      // Record word completion for streak tracking
+      // Note: dueWordsCount will be updated after this mutation completes
+      // We'll get the updated count from the queryClient
+      const dueWordsData = queryClient.getQueryData(['dueWordsCount', user?.id])
+      const dueWordsCount = (dueWordsData as any)?.count || 0
+
+      recordDailyCompletion({
+        puzzlesCompleted: 0, // Words only, not puzzles
+        wordsCompleted: updates.length, // Number of words reviewed
+        dueWordsCount: dueWordsCount,
+      }).catch((error) => {
+        console.error('[useCompletePuzzle] Failed to record word completion for streak:', error)
+        // Don't fail the mutation if streak recording fails
+      })
 
       // ❌ DON'T invalidate todaysPuzzles here - causes layout bug!
       // Puzzle regeneration happens when user advances or navigates away
