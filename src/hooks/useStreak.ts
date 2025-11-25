@@ -103,7 +103,8 @@ export function useStreak() {
       console.log('[useStreak] Cleaning up realtime subscription')
       supabase.removeChannel(channel)
     }
-  }, [user?.id, isAuthenticated, query])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, isAuthenticated])
 
   // Mutation for recording completions
   const recordCompletionMutation = useMutation<

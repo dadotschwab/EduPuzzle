@@ -87,7 +87,8 @@ export function useBuddy(): UseBuddyReturn {
       console.log('[useBuddy] Cleaning up realtime subscription')
       supabase.removeChannel(channel)
     }
-  }, [user?.id, isAuthenticated, query])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, isAuthenticated])
 
   // Mutations for buddy operations
   const generateInviteMutation = useMutation({
