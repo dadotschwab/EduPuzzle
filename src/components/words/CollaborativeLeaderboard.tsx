@@ -5,7 +5,7 @@
  * Includes opt-in/out functionality and real-time updates.
  */
 
-import { type ReactElement } from 'react'
+import { type ReactElement, memo } from 'react'
 import { useLeaderboard } from '@/hooks/useLeaderboard'
 import { LeaderboardEntry } from './LeaderboardEntry'
 import { LeaderboardToggle } from './LeaderboardToggle'
@@ -25,8 +25,9 @@ interface CollaborativeLeaderboardProps {
 /**
  * CollaborativeLeaderboard - Displays ranked collaborators with SRS-based scores
  * Shows top performers in collaborative word lists with opt-in/out controls
+ * Memoized to prevent unnecessary re-renders
  */
-export function CollaborativeLeaderboard({
+export const CollaborativeLeaderboard = memo(function CollaborativeLeaderboard({
   sharedListId,
   currentUserId,
 }: CollaborativeLeaderboardProps): ReactElement {
@@ -87,7 +88,7 @@ export function CollaborativeLeaderboard({
       </CardContent>
     </Card>
   )
-}
+})
 
 function LeaderboardSkeleton(): ReactElement {
   return (

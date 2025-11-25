@@ -22,7 +22,8 @@ declare const Deno: {
   }
 }
 import { generatePuzzles } from './generator.ts'
-import type { Word } from './types.ts'
+import type { Word, Puzzle } from './types.ts'
+import { logger } from '../_shared/logger.ts'
 
 interface WordWithProgress extends Word {
   listName: string
@@ -36,8 +37,41 @@ interface WordWithProgress extends Word {
   }
 }
 
+// Database response type for words query
+interface WordDatabaseResponse {
+  id: string
+  list_id: string
+  term: string
+  translation: string
+  definition: string | null
+  example_sentence: string | null
+  created_at: string
+  word_lists: {
+    id: string
+    name: string
+    source_language: string
+    target_language: string
+    user_id: string
+  }
+  word_progress: Array<{
+    id: string
+    user_id: string
+    word_id: string
+    stage: number
+    ease_factor: number
+    interval_days: number
+    next_review_date: string
+    last_reviewed_at: string | null
+    total_reviews: number
+    correct_reviews: number
+    incorrect_reviews: number
+    current_streak: number
+    updated_at: string
+  }> | null
+}
+
 interface TodaysPuzzlesResponse {
-  puzzles: any[] // Puzzle objects
+  puzzles: Puzzle[] // Puzzle objects
   totalWords: number
   message?: string
   cached?: boolean
@@ -54,7 +88,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -94,7 +128,7 @@ serve(async (req) => {
       })
     }
 
-    console.log(`[Edge Function] Fetching puzzles for user: ${user.id}`)
+    logger.info('Fetching puzzles for user', { userId: user.id })
 
     // Step 1: Fetch due words
     const today = new Date().toISOString().split('T')[0]
@@ -137,13 +171,13 @@ serve(async (req) => {
       .eq('word_lists.user_id', user.id)
 
     if (fetchError) {
-      console.error('[Edge Function] Error fetching due words:', fetchError)
+      logger.error('[Edge Function] Error fetching due words:', fetchError)
       throw fetchError
     }
 
     // Filter for due words (client-side filtering since Supabase query is complex)
-    const dueWords: WordWithProgress[] = (dueWordsData || [])
-      .filter((word: any) => {
+    const dueWords: WordWithProgress[] = ((dueWordsData as WordDatabaseResponse[]) || [])
+      .filter((word) => {
         const progress = word.word_progress?.[0]
 
         // New words (no progress yet) are due
@@ -161,7 +195,7 @@ serve(async (req) => {
 
         return isDue && !alreadyReviewedToday
       })
-      .map((word: any) => {
+      .map((word) => {
         const list = word.word_lists
         const progress = word.word_progress?.[0]
 
@@ -187,7 +221,7 @@ serve(async (req) => {
         }
       })
 
-    console.log(`[Edge Function] Found ${dueWords.length} due words`)
+    logger.info('Found due words', { count: dueWords.length })
 
     // Step 2: Prioritize most overdue words and limit to prevent timeout
     const prioritizedWords = dueWords.sort((a, b) => {
@@ -200,9 +234,10 @@ serve(async (req) => {
     const wordsToUse = prioritizedWords.slice(0, MAX_WORDS_PER_SESSION)
 
     if (wordsToUse.length < dueWords.length) {
-      console.log(
-        `[Edge Function] Limited to ${wordsToUse.length} most overdue words (${dueWords.length} total due)`
-      )
+      logger.info('Limited words for performance', {
+        used: wordsToUse.length,
+        total: dueWords.length,
+      })
     }
 
     // Step 3: Check if we have enough words
@@ -245,10 +280,10 @@ serve(async (req) => {
       .maybeSingle()
 
     if (cachedData && !cacheError) {
-      console.log('[Edge Function] Cache HIT - returning cached puzzles')
+      logger.info('Cache hit - returning cached puzzles')
       return new Response(
         JSON.stringify({
-          ...(cachedData.puzzle_data as any),
+          ...(cachedData.puzzle_data as TodaysPuzzlesResponse),
           cached: true,
         } as TodaysPuzzlesResponse),
         {
@@ -257,11 +292,13 @@ serve(async (req) => {
       )
     }
 
-    console.log('[Edge Function] Cache MISS - generating new puzzles')
+    logger.info('Cache miss - generating new puzzles')
 
     // Step 5: Generate puzzles with deterministic seed
     const seed = wordIds.join('|') // Same words = same seed = same puzzle
-    console.log(`[Edge Function] Using seed: ${seed.substring(0, 50)}...`)
+    logger.info('Using deterministic seed for puzzle generation', {
+      seedPrefix: seed.substring(0, 50),
+    })
 
     const puzzles = await generatePuzzles(wordsToUse, {
       maxGridSize: 16,
@@ -269,7 +306,7 @@ serve(async (req) => {
       seed,
     })
 
-    console.log(`[Edge Function] Generated ${puzzles.length} puzzles`)
+    logger.info('Generated puzzles', { count: puzzles.length })
 
     const response: TodaysPuzzlesResponse = {
       puzzles,
@@ -291,17 +328,17 @@ serve(async (req) => {
     })
 
     if (cacheInsertError) {
-      console.error('[Edge Function] Failed to cache puzzles:', cacheInsertError)
+      logger.error('[Edge Function] Failed to cache puzzles:', cacheInsertError)
       // Continue anyway - we have the puzzles generated
     } else {
-      console.log('[Edge Function] Cached puzzles until', validUntil)
+      logger.info('Cached puzzles', { validUntil })
     }
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('[Edge Function] Error:', error)
+    logger.error('[Edge Function] Error:', error)
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Internal server error',

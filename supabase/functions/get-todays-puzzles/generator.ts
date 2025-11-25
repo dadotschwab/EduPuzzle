@@ -38,7 +38,7 @@ function generatePuzzleAttempt(
 
   for (const word of words) {
     if (attempts >= config.maxAttemptsPerWord * words.length) {
-      if (!silent) console.log('Max attempts reached, stopping generation')
+      if (!silent) logger.info('Max attempts reached, stopping generation')
       break
     }
 
@@ -121,7 +121,7 @@ async function generatePuzzle(
   }
 
   if (!bestPuzzle) {
-    console.error('Failed to place any words after all attempts')
+    logger.error('Failed to place any words after all attempts')
     return null
   }
 
@@ -138,13 +138,13 @@ async function generatePuzzle(
 
   const connected = isConnected(grid)
   if (!connected) {
-    console.warn('Generated puzzle has disconnected components')
+    logger.warn('Generated puzzle has disconnected components')
   }
 
   const endTime = performance.now()
   const timeElapsed = endTime - startTime
 
-  console.log(`Generated puzzle in ${timeElapsed.toFixed(0)}ms - ${bestPlacedCount}/${words.length} words - ${bestPuzzle.gridSize}x${bestPuzzle.gridSize} grid - ${connected ? 'connected' : 'disconnected'}`)
+  logger.info(`Generated puzzle in ${timeElapsed.toFixed(0)}ms - ${bestPlacedCount}/${words.length} words - ${bestPuzzle.gridSize}x${bestPuzzle.gridSize} grid - ${connected ? 'connected' : 'disconnected'}`)
 
   return bestPuzzle
 }
@@ -246,7 +246,7 @@ function convertToPuzzle(grid: Grid): Puzzle {
   const cropped = cropToSquare(uncropped)
 
   if (cropped.gridSize < uncropped.gridSize) {
-    console.log(`Cropped: ${uncropped.gridSize}x${uncropped.gridSize} → ${cropped.gridSize}x${cropped.gridSize}`)
+    logger.info(`Cropped: ${uncropped.gridSize}x${uncropped.gridSize} → ${cropped.gridSize}x${cropped.gridSize}`)
   }
 
   return {
@@ -285,7 +285,7 @@ export async function generatePuzzles(
 ): Promise<Puzzle[]> {
   if (words.length === 0) return []
 
-  console.log(`Generating puzzles for ${words.length} words`)
+  logger.info(`Generating puzzles for ${words.length} words`)
 
   // Step 1: Cluster words
   let clusters = clusterWords(words, {
@@ -295,13 +295,13 @@ export async function generatePuzzles(
   })
 
   const stats = getClusteringStats(clusters)
-  console.log(`Created ${clusters.length} clusters - Avg size: ${stats.avgClusterSize.toFixed(1)}, Difficulty: ${stats.difficultyBreakdown.easy}E/${stats.difficultyBreakdown.medium}M/${stats.difficultyBreakdown.hard}H`)
+  logger.info(`Created ${clusters.length} clusters - Avg size: ${stats.avgClusterSize.toFixed(1)}, Difficulty: ${stats.difficultyBreakdown.easy}E/${stats.difficultyBreakdown.medium}M/${stats.difficultyBreakdown.hard}H`)
 
   if (!validateClustering(clusters, words)) {
-    console.warn('Clustering did not cover all words!')
+    logger.warn('Clustering did not cover all words!')
   }
 
-  console.log(`Clustering details - Avg compatibility: ${stats.avgScore.toFixed(1)}`)
+  logger.info(`Clustering details - Avg compatibility: ${stats.avgScore.toFixed(1)}`)
 
   // Step 2: Generate puzzles
   const puzzles: Puzzle[] = []
@@ -309,7 +309,7 @@ export async function generatePuzzles(
 
   for (let i = 0; i < clusters.length; i++) {
     const cluster = clusters[i]
-    console.log(`Puzzle ${i + 1}/${clusters.length}: ${cluster.words.length} words (${cluster.difficulty})`)
+    logger.info(`Puzzle ${i + 1}/${clusters.length}: ${cluster.words.length} words (${cluster.difficulty})`)
 
     const puzzle = await generatePuzzle(cluster.words, config)
 
@@ -320,11 +320,11 @@ export async function generatePuzzles(
       const unplaced = cluster.words.filter(w => !placedIds.has(w.id))
 
       if (unplaced.length > 0) {
-        console.log(`${unplaced.length} words not placed: ${unplaced.map(w => w.term).join(', ')}`)
+        logger.info(`${unplaced.length} words not placed: ${unplaced.map(w => w.term).join(', ')}`)
 
         if (i < clusters.length - 1) {
           const remainingClusters = clusters.slice(i + 1)
-          console.log(`Redistributing to ${remainingClusters.length} remaining clusters`)
+          logger.info(`Redistributing to ${remainingClusters.length} remaining clusters`)
 
           const updatedClusters = redistributeFailedWords(unplaced, remainingClusters)
           clusters = [...clusters.slice(0, i + 1), ...updatedClusters]
@@ -333,20 +333,20 @@ export async function generatePuzzles(
         }
       }
     } else {
-      console.warn(`Failed to generate puzzle for cluster ${i + 1}`)
+      logger.warn(`Failed to generate puzzle for cluster ${i + 1}`)
       allFailedWords.push(...cluster.words)
     }
   }
 
   // Step 3: Retry failed words (only if >= 5 words, to avoid tiny puzzles)
   if (allFailedWords.length >= 5) {
-    console.log(`Final retry: ${allFailedWords.length} unplaced words`)
+    logger.info(`Final retry: ${allFailedWords.length} unplaced words`)
 
     const retryPuzzles = await retryFailedWords(allFailedWords, config)
     puzzles.push(...retryPuzzles)
   } else if (allFailedWords.length > 0) {
-    console.log(`Skipping retry for ${allFailedWords.length} failed words (too few to create meaningful puzzle)`)
-    console.log(`Failed words will be available in next batch: ${allFailedWords.map(w => w.term).join(', ')}`)
+    logger.info(`Skipping retry for ${allFailedWords.length} failed words (too few to create meaningful puzzle)`)
+    logger.info(`Failed words will be available in next batch: ${allFailedWords.map(w => w.term).join(', ')}`)
   }
 
   // Step 4: Filter out puzzles with too few words (minimum 5 words)
@@ -358,14 +358,14 @@ export async function generatePuzzles(
     const removedWords = puzzles
       .filter(p => p.placedWords.length < MIN_PUZZLE_SIZE)
       .flatMap(p => p.placedWords.map(w => w.word))
-    console.log(`Filtered out ${removed} small puzzle(s) with <${MIN_PUZZLE_SIZE} words`)
-    console.log(`Words from small puzzles will be available in next batch: ${removedWords.join(', ')}`)
+    logger.info(`Filtered out ${removed} small puzzle(s) with <${MIN_PUZZLE_SIZE} words`)
+    logger.info(`Words from small puzzles will be available in next batch: ${removedWords.join(', ')}`)
   }
 
   const totalPlaced = filteredPuzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
   const coverage = (totalPlaced / words.length * 100).toFixed(1)
 
-  console.log(`Generated ${filteredPuzzles.length} puzzles - ${totalPlaced}/${words.length} words (${coverage}% coverage)`)
+  logger.info(`Generated ${filteredPuzzles.length} puzzles - ${totalPlaced}/${words.length} words (${coverage}% coverage)`)
 
   return filteredPuzzles
 }

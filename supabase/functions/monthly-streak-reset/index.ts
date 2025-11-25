@@ -29,7 +29,7 @@ serve(async (req) => {
     // 1. Verify service role key (cron jobs should use service role)
     const authHeader = req.headers.get('Authorization')
     if (!authHeader || !authHeader.includes('Bearer')) {
-      console.error('[monthly-streak-reset] No valid Authorization header found')
+      logger.error('[monthly-streak-reset] No valid Authorization header found')
       return new Response(JSON.stringify({ error: 'Unauthorized - Service role required' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -47,13 +47,13 @@ serve(async (req) => {
       },
     })
 
-    console.log('[monthly-streak-reset] Starting monthly streak freeze refill...')
+    logger.info('[monthly-streak-reset] Starting monthly streak freeze refill...')
 
     // 3. Call the database function to refill streak freezes
     const { data, error } = await supabase.rpc('refill_streak_freezes')
 
     if (error) {
-      console.error('[monthly-streak-reset] Database function error:', error)
+      logger.error('[monthly-streak-reset] Database function error:', error)
       return new Response(
         JSON.stringify({
           error: 'Failed to refill streak freezes',
@@ -66,7 +66,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`[monthly-streak-reset] Successfully refilled freezes for ${data} users`)
+    logger.info(`[monthly-streak-reset] Successfully refilled freezes for ${data} users`)
 
     // 4. Return success response
     return new Response(
@@ -82,7 +82,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('[monthly-streak-reset] Unexpected error:', error)
+    logger.error('[monthly-streak-reset] Unexpected error:', error)
     return new Response(
       JSON.stringify({
         error: 'Internal server error during monthly streak reset',

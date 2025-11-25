@@ -1,42 +1,92 @@
 // Input validation functions for Supabase Edge Functions
 // Basic validation without external dependencies
 
+// Stripe Event type definition
+interface StripeEvent {
+  id: string
+  type: string
+  created: number
+  data: {
+    object: Record<string, unknown>
+  }
+}
+
+// Stripe Subscription type definition
+interface StripeSubscription {
+  object: 'subscription'
+  id: string
+  customer: string
+  status:
+    | 'incomplete'
+    | 'incomplete_expired'
+    | 'trialing'
+    | 'active'
+    | 'past_due'
+    | 'canceled'
+    | 'unpaid'
+  current_period_end?: number
+  cancel_at_period_end?: boolean
+}
+
+// Stripe Invoice type definition
+interface StripeInvoice {
+  object: 'invoice'
+  id: string
+  customer: string
+  status: 'draft' | 'open' | 'paid' | 'void' | 'uncollectible'
+  subscription?: string
+  amount_due?: number
+}
+
+// Validation result types
+type ValidationSuccess<T> = { success: true; data: T }
+type ValidationFailure = { success: false; error: string }
+type ValidationResult<T> = ValidationSuccess<T> | ValidationFailure
+
 // Stripe webhook event validation
-export function validateStripeEvent(
-  event: any
-): { success: true; data: any } | { success: false; error: string } {
+export function validateStripeEvent(event: unknown): ValidationResult<StripeEvent> {
   if (!event || typeof event !== 'object') {
     return { success: false, error: 'Event must be an object' }
   }
 
-  if (!event.id || typeof event.id !== 'string') {
+  const evt = event as Record<string, unknown>
+
+  if (!evt.id || typeof evt.id !== 'string') {
     return { success: false, error: 'Event must have a valid id' }
   }
 
-  if (!event.type || typeof event.type !== 'string') {
+  if (!evt.type || typeof evt.type !== 'string') {
     return { success: false, error: 'Event must have a valid type' }
   }
 
-  if (typeof event.created !== 'number') {
+  if (typeof evt.created !== 'number') {
     return { success: false, error: 'Event must have a valid created timestamp' }
   }
 
-  if (!event.data || typeof event.data !== 'object') {
+  if (!evt.data || typeof evt.data !== 'object') {
     return { success: false, error: 'Event must have valid data' }
   }
 
-  return { success: true, data: event }
+  return {
+    success: true,
+    data: {
+      id: evt.id,
+      type: evt.type,
+      created: evt.created as number,
+      data: evt.data as { object: Record<string, unknown> },
+    },
+  }
 }
 
 // Subscription data validation
-export function validateSubscriptionData(
-  data: any
-): { success: true; data: any } | { success: false; error: string } {
+export function validateSubscriptionData(data: unknown): ValidationResult<StripeSubscription> {
   if (!data || typeof data !== 'object') {
     return { success: false, error: 'Subscription data must be an object' }
   }
 
-  if (data.object !== 'subscription') {
+  const sub = data as Record<string, unknown>
+
+  if (sub.object !== 'subscription') {
     return { success: false, error: 'Object must be a subscription' }
   }
 
@@ -49,50 +99,54 @@ export function validateSubscriptionData(
     'canceled',
     'unpaid',
   ]
-  if (!validStatuses.includes(data.status)) {
+  if (!validStatuses.includes(sub.status as string)) {
     return { success: false, error: 'Invalid subscription status' }
   }
 
-  if (!data.customer || typeof data.customer !== 'string') {
+  if (!sub.customer || typeof sub.customer !== 'string') {
     return { success: false, error: 'Subscription must have a valid customer ID' }
   }
 
-  return { success: true, data }
+  return { success: true, data: data as StripeSubscription }
 }
 
 // Invoice data validation
-export function validateInvoiceData(
-  data: any
-): { success: true; data: any } | { success: false; error: string } {
+export function validateInvoiceData(data: unknown): ValidationResult<StripeInvoice> {
   if (!data || typeof data !== 'object') {
     return { success: false, error: 'Invoice data must be an object' }
   }
 
-  if (data.object !== 'invoice') {
+  const invoice = data as Record<string, unknown>
+
+  if (invoice.object !== 'invoice') {
     return { success: false, error: 'Object must be an invoice' }
   }
 
   const validStatuses = ['draft', 'open', 'paid', 'void', 'uncollectible']
-  if (!validStatuses.includes(data.status)) {
+  if (!validStatuses.includes(invoice.status as string)) {
     return { success: false, error: 'Invalid invoice status' }
   }
 
-  if (!data.customer || typeof data.customer !== 'string') {
+  if (!invoice.customer || typeof invoice.customer !== 'string') {
     return { success: false, error: 'Invoice must have a valid customer ID' }
   }
 
-  return { success: true, data }
-} // Request sanitization
-export function sanitizeRequest(request: Request): {
+  return { success: true, data: data as StripeInvoice }
+}
+
+// Sanitized request data
+interface SanitizedRequest {
   method: string
   url: string
   headers: Record<string, string>
-  body?: any
-} {
-  const sanitized = {
+}
+
+// Request sanitization
+export function sanitizeRequest(request: Request): SanitizedRequest {
+  const sanitized: SanitizedRequest = {
     method: request.method,
     url: request.url,
-    headers: {} as Record<string, string>,
+    headers: {},
   }
 
   // Only include safe headers

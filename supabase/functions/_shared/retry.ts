@@ -1,11 +1,20 @@
 // Retry logic with exponential backoff for Supabase Edge Functions
 
+/**
+ * Error interface for retryable errors
+ */
+interface RetryableError {
+  name?: string
+  message?: string
+  status?: number
+}
+
 interface RetryOptions {
   maxRetries: number
   baseDelay: number // milliseconds
   maxDelay: number // milliseconds
   backoffFactor: number
-  retryableErrors?: (error: any) => boolean
+  retryableErrors?: (error: RetryableError) => boolean
 }
 
 const defaultRetryOptions: RetryOptions = {
@@ -13,7 +22,7 @@ const defaultRetryOptions: RetryOptions = {
   baseDelay: 1000, // 1 second
   maxDelay: 30000, // 30 seconds
   backoffFactor: 2,
-  retryableErrors: (error) => {
+  retryableErrors: (error: RetryableError) => {
     // Retry on network errors, timeouts, and 5xx status codes
     if (error?.name === 'NetworkError' || error?.name === 'TimeoutError') {
       return true
@@ -30,7 +39,7 @@ const defaultRetryOptions: RetryOptions = {
     }
 
     // Retry on server errors (5xx)
-    if (error?.status >= 500) {
+    if (error?.status && error.status >= 500) {
       return true
     }
 
@@ -43,7 +52,7 @@ export async function withRetry<T>(
   options: Partial<RetryOptions> = {}
 ): Promise<T> {
   const opts = { ...defaultRetryOptions, ...options }
-  let lastError: any
+  let lastError: RetryableError | unknown
 
   for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
     try {
@@ -56,8 +65,8 @@ export async function withRetry<T>(
         break
       }
 
-      // Check if error is retryable
-      if (!opts.retryableErrors?.(error)) {
+      // Check if error is retryable (cast to RetryableError for type checking)
+      if (!opts.retryableErrors?.(error as RetryableError)) {
         break
       }
 
@@ -68,7 +77,7 @@ export async function withRetry<T>(
       const jitter = delay * 0.25 * (Math.random() * 2 - 1)
       const finalDelay = Math.max(0, delay + jitter)
 
-      console.log(
+      logger.info(
         `Retry attempt ${attempt + 1}/${opts.maxRetries} after ${finalDelay.toFixed(0)}ms delay`
       )
 

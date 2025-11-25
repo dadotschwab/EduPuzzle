@@ -1,4 +1,4 @@
-import { type ReactElement } from 'react'
+import { type ReactElement, memo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Clock } from 'lucide-react'
@@ -7,8 +7,13 @@ import type { LearningTimeData } from '@/types/performance.types'
 /**
  * BestLearningTime - Shows optimal learning hours based on success rates
  * Highlights the best time for studying with hourly breakdown
+ * Memoized to prevent unnecessary re-renders
  */
-export function BestLearningTime({ data }: { data: LearningTimeData[] }): ReactElement {
+export const BestLearningTime = memo(function BestLearningTime({
+  data,
+}: {
+  data: LearningTimeData[]
+}): ReactElement {
   const bestTime = data.reduce((best, current) =>
     current.successRate > best.successRate ? current : best
   )
@@ -47,4 +52,4 @@ export function BestLearningTime({ data }: { data: LearningTimeData[] }): ReactE
       </CardContent>
     </Card>
   )
-}
+})

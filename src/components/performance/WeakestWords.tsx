@@ -1,4 +1,4 @@
-import { type ReactElement } from 'react'
+import { type ReactElement, memo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertTriangle } from 'lucide-react'
@@ -7,8 +7,13 @@ import type { WeakWord } from '@/types/performance.types'
 /**
  * WeakestWords - Shows words with lowest accuracy rates
  * Displays top 5 words needing improvement with actionable insights
+ * Memoized to prevent unnecessary re-renders
  */
-export function WeakestWords({ data }: { data: WeakWord[] }): ReactElement {
+export const WeakestWords = memo(function WeakestWords({
+  data,
+}: {
+  data: WeakWord[]
+}): ReactElement {
   if (data.length === 0) {
     return (
       <Card>
@@ -55,4 +60,4 @@ export function WeakestWords({ data }: { data: WeakWord[] }): ReactElement {
       </CardContent>
     </Card>
   )
-}
+})

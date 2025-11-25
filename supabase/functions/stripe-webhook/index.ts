@@ -27,7 +27,7 @@ declare const Deno: {
 
 // Follow Supabase's official Stripe webhook pattern
 // @ts-expect-error - Deno imports not recognized by TypeScript
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 // @ts-expect-error - Deno imports not recognized by TypeScript
 import Stripe from 'https://esm.sh/stripe@14?target=denonext'
 
@@ -41,6 +41,7 @@ import {
 import { detectSuspiciousPatterns, logSecurityEvent } from '../_shared/security.ts'
 import { checkWebhookIdempotency, storeWebhookResult } from '../_shared/idempotency.ts'
 import { withRetry, stripeCircuitBreaker } from '../_shared/retry.ts'
+import { logger } from '../_shared/logger.ts'
 
 // Initialize Stripe with proper configuration
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') as string, {
@@ -78,14 +79,14 @@ function mapStripeStatus(stripeStatus: string): SubscriptionStatus {
   }
 }
 
-console.log('Hello from Stripe Webhook!')
+logger.info('Stripe Webhook initialized')
 
 Deno.serve(async (request) => {
   const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
   const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
 
   if (!stripeSecretKey || !webhookSecret) {
-    console.error('Missing required environment variables')
+    logger.error('Missing required environment variables')
     return new Response('Server configuration error', { status: 500 })
   }
 
@@ -99,7 +100,7 @@ Deno.serve(async (request) => {
     })
   }
 
-  console.log('Webhook request received:', request.method, request.url)
+  logger.info('Webhook request received', { method: request.method, url: request.url })
 
   // Security Layer 1: Rate Limiting
   if (checkRateLimit(request)) {
@@ -118,7 +119,7 @@ Deno.serve(async (request) => {
     // Get Stripe signature from headers
     const signature = request.headers.get('Stripe-Signature')
     if (!signature) {
-      console.error('No Stripe signature in request headers')
+      logger.error('No Stripe signature in request headers')
       return new Response('Missing Stripe signature', { status: 400 })
     }
 
@@ -136,11 +137,11 @@ Deno.serve(async (request) => {
         cryptoProvider
       )
     } catch (err) {
-      console.error('Webhook signature verification failed:', err.message)
+      logger.error('Webhook signature verification failed:', err.message)
       return new Response(err.message, { status: 400 })
     }
 
-    console.log(`🔔 Event received: ${receivedEvent.id} - Type: ${receivedEvent.type}`, {
+    logger.info(`Event received: ${receivedEvent.id} - Type: ${receivedEvent.type}`, {
       customer: receivedEvent.data.object.customer,
       subscription: receivedEvent.data.object.subscription,
       amount: receivedEvent.data.object.amount_total || receivedEvent.data.object.amount,
@@ -150,7 +151,7 @@ Deno.serve(async (request) => {
     // Security Layer 3: Idempotency Check
     const idempotencyCheck = await checkWebhookIdempotency(receivedEvent.id)
     if (idempotencyCheck.isDuplicate) {
-      console.log(`Duplicate webhook event ${receivedEvent.id}, skipping processing`)
+      logger.info(`Duplicate webhook event ${receivedEvent.id}, skipping processing`)
       return new Response('Event already processed', { status: 200 })
     }
 
@@ -159,7 +160,7 @@ Deno.serve(async (request) => {
     if (!eventValidation.success) {
       logSecurityEvent('Invalid webhook event structure', {
         eventId: receivedEvent.id,
-        error: eventValidation.error
+        error: eventValidation.error,
       })
       return new Response('Invalid event structure', { status: 400 })
     }
@@ -178,7 +179,7 @@ Deno.serve(async (request) => {
       logSecurityEvent('Invalid webhook event data', {
         eventId: receivedEvent.id,
         eventType: receivedEvent.type,
-        error: dataValidation.error
+        error: dataValidation.error,
       })
       return new Response('Invalid event data', { status: 400 })
     }
@@ -195,71 +196,80 @@ Deno.serve(async (request) => {
       const supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
 
       // Process the event based on its type
-        `Event ${receivedEvent.id} already processed at ${existingEvent.processed_at}, skipping`
-      )
-      return new Response(JSON.stringify({ ok: true, skipped: true }), { status: 200 })
-    }
+      // Check if event was already processed
+      const { data: existingEvent, error: eventCheckError } = await supabaseClient
+        .from('stripe_webhook_events')
+        .select('processed_at')
+        .eq('event_id', receivedEvent.id)
+        .single()
 
-    if (eventCheckError && eventCheckError.code !== 'PGRST116') {
-      // PGRST116 = no rows found
-      console.error('Error checking for duplicate event:', eventCheckError)
-      // Continue processing but log the error
-    }
-
-    // Handle different event types
-    let processingResult: { userId: string; newStatus: string } | null = null
-    switch (receivedEvent.type) {
-      case 'checkout.session.completed': {
-        const session = receivedEvent.data.object as Stripe.Checkout.Session
-        processingResult = await handleCheckoutCompleted(supabaseClient, stripe, session)
-        break
+      if (existingEvent) {
+        logger.info(
+          `Event ${receivedEvent.id} already processed at ${existingEvent.processed_at}, skipping`
+        )
+        return new Response(JSON.stringify({ ok: true, skipped: true }), { status: 200 })
       }
 
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated': {
-        const subscription = receivedEvent.data.object as Stripe.Subscription
-        processingResult = await handleSubscriptionUpdated(supabaseClient, subscription)
-        break
+      if (eventCheckError && eventCheckError.code !== 'PGRST116') {
+        // PGRST116 = no rows found
+        logger.error('Error checking for duplicate event:', eventCheckError)
+        // Continue processing but log the error
       }
 
-      case 'customer.subscription.deleted': {
-        const subscription = receivedEvent.data.object as Stripe.Subscription
-        processingResult = await handleSubscriptionDeleted(supabaseClient, subscription)
-        break
+      // Handle different event types
+      let processingResult: { userId: string; newStatus: string } | null = null
+      switch (receivedEvent.type) {
+        case 'checkout.session.completed': {
+          const session = receivedEvent.data.object as Stripe.Checkout.Session
+          processingResult = await handleCheckoutCompleted(supabaseClient, stripe, session)
+          break
+        }
+
+        case 'customer.subscription.created':
+        case 'customer.subscription.updated': {
+          const subscription = receivedEvent.data.object as Stripe.Subscription
+          processingResult = await handleSubscriptionUpdated(supabaseClient, subscription)
+          break
+        }
+
+        case 'customer.subscription.deleted': {
+          const subscription = receivedEvent.data.object as Stripe.Subscription
+          processingResult = await handleSubscriptionDeleted(supabaseClient, subscription)
+          break
+        }
+
+        case 'invoice.payment_succeeded': {
+          const invoice = receivedEvent.data.object as Stripe.Invoice
+          processingResult = await handlePaymentSucceeded(supabaseClient, stripe, invoice)
+          break
+        }
+
+        case 'invoice.payment_failed': {
+          const invoice = receivedEvent.data.object as Stripe.Invoice
+          processingResult = await handlePaymentFailed(supabaseClient, invoice)
+          break
+        }
+
+        default:
+          logger.warn(`Unhandled event type: ${receivedEvent.type}`)
       }
 
-      case 'invoice.payment_succeeded': {
-        const invoice = receivedEvent.data.object as Stripe.Invoice
-        processingResult = await handlePaymentSucceeded(supabaseClient, stripe, invoice)
-        break
-      }
+      // Log successful event processing for deduplication
+      const eventData = receivedEvent.data.object
+      await supabaseClient.from('stripe_webhook_events').insert({
+        event_id: receivedEvent.id,
+        event_type: receivedEvent.type,
+        customer_id: eventData.customer,
+        subscription_id: eventData.subscription,
+        user_id: processingResult?.userId,
+      })
 
-      case 'invoice.payment_failed': {
-        const invoice = receivedEvent.data.object as Stripe.Invoice
-        processingResult = await handlePaymentFailed(supabaseClient, invoice)
-        break
-      }
-
-      default:
-        console.log(`Unhandled event type: ${receivedEvent.type}`)
-    }
-
-    // Log successful event processing for deduplication
-    const eventData = receivedEvent.data.object
-    await supabaseClient.from('stripe_webhook_events').insert({
-      event_id: receivedEvent.id,
-      event_type: receivedEvent.type,
-      customer_id: eventData.customer,
-      subscription_id: eventData.subscription,
-      user_id: processingResult?.userId,
-    })
-
-    console.log(`✅ Successfully processed event: ${receivedEvent.type}`, {
-      eventId: receivedEvent.id,
-      customerId: eventData.customer,
-      userId: processingResult?.userId,
-      newStatus: processingResult?.newStatus,
-    })
+      logger.info(`Successfully processed event: ${receivedEvent.type}`, {
+        eventId: receivedEvent.id,
+        customerId: eventData.customer,
+        userId: processingResult?.userId,
+        newStatus: processingResult?.newStatus,
+      })
 
       // Store successful processing result for idempotency
       storeWebhookResult(receivedEvent.id, { success: true })
@@ -268,25 +278,22 @@ Deno.serve(async (request) => {
     }
 
     // Execute with circuit breaker and retry logic
-    const result = await withRetry(
-      () => stripeCircuitBreaker.execute(processEvent),
-      {
-        maxRetries: 3,
-        baseDelay: 1000,
-        retryableErrors: (error) => {
-          // Retry on database connection issues, temporary Stripe issues, etc.
-          return error?.message?.includes('connection') ||
-                 error?.message?.includes('timeout') ||
-                 error?.status >= 500
-        }
-      }
-    )
-
-    return result
+    return await withRetry(() => stripeCircuitBreaker.execute(processEvent), {
+      maxRetries: 3,
+      baseDelay: 1000,
+      retryableErrors: (error) => {
+        // Retry on database connection issues, temporary Stripe issues, etc.
+        return Boolean(
+          error?.message?.includes('connection') ||
+            error?.message?.includes('timeout') ||
+            (error?.status && error.status >= 500)
+        )
+      },
+    })
   } catch (error) {
-    console.error('❌ Webhook error:', error)
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
-    console.error('Error details:', {
+    logger.error('❌ Webhook error:', error)
+    logger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    logger.error('Error details:', {
       message: error instanceof Error ? error.message : String(error),
       type: typeof error,
       keys: error instanceof Object ? Object.keys(error) : [],
@@ -310,18 +317,18 @@ Deno.serve(async (request) => {
  * Creates or updates user subscription status
  */
 async function handleCheckoutCompleted(
-  supabase: any,
+  supabase: SupabaseClient,
   stripe: Stripe,
   session: Stripe.Checkout.Session
 ): Promise<{ userId: string; newStatus: string } | null> {
-  console.log('Handling checkout.session.completed:', session.id)
+  logger.info('Handling checkout.session.completed', { sessionId: session.id })
 
   const customerId = session.customer as string
   const subscriptionId = session.subscription as string
   const userId = session.metadata?.supabase_user_id
 
   if (!userId) {
-    console.error('No supabase_user_id in session metadata')
+    logger.error('No supabase_user_id in session metadata')
     return null
   }
 
@@ -343,11 +350,11 @@ async function handleCheckoutCompleted(
     .eq('id', userId)
 
   if (error) {
-    console.error('Failed to update user after checkout:', error)
+    logger.error('Failed to update user after checkout:', error)
     throw error
   }
 
-  console.log(`User ${userId} subscription status set to ${newStatus}`)
+  logger.info(`User subscription status updated`, { userId, newStatus })
   return { userId, newStatus }
 }
 
@@ -355,10 +362,10 @@ async function handleCheckoutCompleted(
  * Handle subscription updates (renewals, changes, etc.)
  */
 async function handleSubscriptionUpdated(
-  supabase: any,
+  supabase: SupabaseClient,
   subscription: Stripe.Subscription
 ): Promise<{ userId: string; newStatus: string } | null> {
-  console.log('Handling subscription update:', subscription.id)
+  logger.info('Handling subscription update', { subscriptionId: subscription.id })
 
   const customerId = subscription.customer as string
   const userId = subscription.metadata?.supabase_user_id
@@ -375,7 +382,7 @@ async function handleSubscriptionUpdated(
   const { data: user, error: userError } = await userQuery.single()
 
   if (userError || !user) {
-    console.error('Could not find user for subscription:', subscription.id)
+    logger.error('Could not find user for subscription:', subscription.id)
     return null
   }
 
@@ -393,11 +400,11 @@ async function handleSubscriptionUpdated(
     .eq('id', user.id)
 
   if (error) {
-    console.error('Failed to update subscription status:', error)
+    logger.error('Failed to update subscription status:', error)
     throw error
   }
 
-  console.log(`User ${user.id} subscription updated to ${newStatus}`)
+  logger.info(`User subscription updated`, { userId: user.id, newStatus })
   return { userId: user.id, newStatus }
 }
 
@@ -405,10 +412,10 @@ async function handleSubscriptionUpdated(
  * Handle subscription deletion (cancellation)
  */
 async function handleSubscriptionDeleted(
-  supabase: any,
+  supabase: SupabaseClient,
   subscription: Stripe.Subscription
 ): Promise<{ userId: string; newStatus: string } | null> {
-  console.log('Handling subscription deletion:', subscription.id)
+  logger.info('Handling subscription deletion', { subscriptionId: subscription.id })
 
   const customerId = subscription.customer as string
 
@@ -420,7 +427,7 @@ async function handleSubscriptionDeleted(
     .single()
 
   if (userError || !user) {
-    console.error('Could not find user for cancelled subscription')
+    logger.error('Could not find user for cancelled subscription')
     return null
   }
 
@@ -434,11 +441,11 @@ async function handleSubscriptionDeleted(
     .eq('id', user.id)
 
   if (error) {
-    console.error('Failed to mark subscription as cancelled:', error)
+    logger.error('Failed to mark subscription as cancelled:', error)
     throw error
   }
 
-  console.log(`User ${user.id} subscription cancelled`)
+  logger.info(`User subscription cancelled`, { userId: user.id })
   return { userId: user.id, newStatus: 'cancelled' }
 }
 
@@ -446,11 +453,11 @@ async function handleSubscriptionDeleted(
  * Handle successful payment (renewal)
  */
 async function handlePaymentSucceeded(
-  supabase: any,
+  supabase: SupabaseClient,
   stripe: Stripe,
   invoice: Stripe.Invoice
 ): Promise<{ userId: string; newStatus: string } | null> {
-  console.log('Handling payment success:', invoice.id)
+  logger.info('Handling payment success', { invoiceId: invoice.id })
 
   // Only process subscription invoices
   if (!invoice.subscription) {
@@ -470,7 +477,7 @@ async function handlePaymentSucceeded(
     .single()
 
   if (userError || !user) {
-    console.error('Could not find user for payment')
+    logger.error('Could not find user for payment')
     return null
   }
 
@@ -487,11 +494,11 @@ async function handlePaymentSucceeded(
     .eq('id', user.id)
 
   if (error) {
-    console.error('Failed to update after payment success:', error)
+    logger.error('Failed to update after payment success:', error)
     throw error
   }
 
-  console.log(`User ${user.id} payment processed successfully, status: ${newStatus}`)
+  logger.info(`User payment processed successfully`, { userId: user.id, newStatus })
   return { userId: user.id, newStatus }
 }
 
@@ -499,10 +506,10 @@ async function handlePaymentSucceeded(
  * Handle failed payment
  */
 async function handlePaymentFailed(
-  supabase: any,
+  supabase: SupabaseClient,
   invoice: Stripe.Invoice
 ): Promise<{ userId: string; newStatus: string } | null> {
-  console.log('Handling payment failure:', invoice.id)
+  logger.info('Handling payment failure', { invoiceId: invoice.id })
 
   const customerId = invoice.customer as string
 
@@ -514,7 +521,7 @@ async function handlePaymentFailed(
     .single()
 
   if (userError || !user) {
-    console.error('Could not find user for failed payment')
+    logger.error('Could not find user for failed payment')
     return null
   }
 
@@ -527,10 +534,10 @@ async function handlePaymentFailed(
     .eq('id', user.id)
 
   if (error) {
-    console.error('Failed to update after payment failure:', error)
+    logger.error('Failed to update after payment failure:', error)
     throw error
   }
 
-  console.log(`User ${user.id} payment failed - marked as past_due`)
+  logger.warn(`User payment failed - marked as past_due`, { userId: user.id })
   return { userId: user.id, newStatus: 'past_due' }
 }

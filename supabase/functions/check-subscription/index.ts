@@ -13,6 +13,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import Stripe from 'https://esm.sh/stripe@14.10.0?target=deno'
+import { logger } from '../_shared/logger.ts'
 
 /**
  * CORS headers for Edge Function
@@ -41,14 +42,14 @@ serve(async (req) => {
     // 1. Check for Authorization header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      console.error('[check-subscription] No Authorization header found')
+      logger.error('[check-subscription] No Authorization header found')
       return new Response(JSON.stringify({ error: 'No Authorization header provided' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    console.log(
+    logger.info(
       '[check-subscription] Authorization header present:',
       authHeader.substring(0, 20) + '...'
     )
@@ -60,17 +61,17 @@ serve(async (req) => {
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
 
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-      console.error('[check-subscription] Missing Supabase environment variables')
-      console.error('[check-subscription] Has URL:', !!supabaseUrl)
-      console.error('[check-subscription] Has Anon Key:', !!supabaseAnonKey)
-      console.error('[check-subscription] Has Service Key:', !!supabaseServiceKey)
+      logger.error('[check-subscription] Missing Supabase environment variables')
+      logger.error('[check-subscription] Has URL:', !!supabaseUrl)
+      logger.error('[check-subscription] Has Anon Key:', !!supabaseAnonKey)
+      logger.error('[check-subscription] Has Service Key:', !!supabaseServiceKey)
       return new Response(JSON.stringify({ error: 'Server configuration error' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    console.log('[check-subscription] Environment variables loaded successfully')
+    logger.info('[check-subscription] Environment variables loaded successfully')
 
     // 3. Create service client for authentication validation
     // Use service role to verify the JWT directly
@@ -81,7 +82,7 @@ serve(async (req) => {
       },
     })
 
-    console.log('[check-subscription] Service client created, validating token...')
+    logger.info('[check-subscription] Service client created, validating token...')
 
     // 4. Extract token from Authorization header
     const token = authHeader.replace('Bearer ', '')
@@ -93,9 +94,9 @@ serve(async (req) => {
     } = await serviceClient.auth.getUser(token)
 
     if (authError) {
-      console.error('[check-subscription] Auth error:', authError.message)
-      console.error('[check-subscription] Auth error status:', authError.status)
-      console.error('[check-subscription] Auth error code:', authError.code)
+      logger.error('[check-subscription] Auth error:', authError.message)
+      logger.error('[check-subscription] Auth error status:', authError.status)
+      logger.error('[check-subscription] Auth error code:', authError.code)
       return new Response(
         JSON.stringify({
           error: 'Authentication failed',
@@ -110,14 +111,14 @@ serve(async (req) => {
     }
 
     if (!user) {
-      console.error('[check-subscription] No user found after auth')
+      logger.error('[check-subscription] No user found after auth')
       return new Response(JSON.stringify({ error: 'No user found' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    console.log(`[check-subscription] User authenticated: ${user.id}`)
+    logger.info(`[check-subscription] User authenticated: ${user.id}`)
 
     // 6. Get user subscription data with service role (bypasses RLS)
     const { data: userData, error: userError } = await serviceClient
@@ -127,7 +128,7 @@ serve(async (req) => {
       .maybeSingle()
 
     if (userError) {
-      console.error('[check-subscription] Database query error:', userError.message)
+      logger.error('[check-subscription] Database query error:', userError.message)
       return new Response(JSON.stringify({ error: 'Database query failed' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -136,7 +137,7 @@ serve(async (req) => {
 
     // 7. Create user record if it doesn't exist (using service role)
     if (!userData) {
-      console.log(`[check-subscription] User record not found for ${user.id}, creating...`)
+      logger.info(`[check-subscription] User record not found for ${user.id}, creating...`)
 
       // Create user with trial status
       const trialEndDate = new Date()
@@ -154,7 +155,7 @@ serve(async (req) => {
         .single()
 
       if (createError || !newUser) {
-        console.error('[check-subscription] Failed to create user record:', createError)
+        logger.error('[check-subscription] Failed to create user record:', createError)
         return new Response(JSON.stringify({ error: 'Failed to create user record' }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -213,7 +214,7 @@ serve(async (req) => {
           // Trial expired - but check if user has active Stripe subscription before marking as expired
           if (userData.stripe_customer_id && stripeSecretKey) {
             try {
-              console.log(
+              logger.info(
                 '[check-subscription] Trial expired, checking Stripe for active subscription...'
               )
 
@@ -232,7 +233,7 @@ serve(async (req) => {
 
               if (subscriptions.data.length > 0) {
                 // User has active paid subscription despite expired trial
-                console.log(
+                logger.info(
                   '[check-subscription] Found active Stripe subscription, upgrading user status'
                 )
                 hasAccess = true
@@ -256,7 +257,7 @@ serve(async (req) => {
                 break
               }
             } catch (stripeError) {
-              console.error('[check-subscription] Stripe verification failed:', stripeError)
+              logger.error('[check-subscription] Stripe verification failed:', stripeError)
               // Continue with normal trial expiry logic if Stripe check fails
             }
           }
@@ -309,7 +310,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('Error checking subscription:', error)
+    logger.error('Error checking subscription:', error)
 
     return new Response(
       JSON.stringify({

@@ -1,4 +1,4 @@
-import { type ReactElement } from 'react'
+import { type ReactElement, memo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { ActivityData } from '@/types/performance.types'
@@ -6,8 +6,13 @@ import type { ActivityData } from '@/types/performance.types'
 /**
  * WeeklyActivityChart - Bar chart showing daily activity levels
  * Displays puzzles completed per day for the past week
+ * Memoized to prevent unnecessary re-renders
  */
-export function WeeklyActivityChart({ data }: { data: ActivityData[] }): ReactElement {
+export const WeeklyActivityChart = memo(function WeeklyActivityChart({
+  data,
+}: {
+  data: ActivityData[]
+}): ReactElement {
   return (
     <Card>
       <CardHeader>
@@ -33,4 +38,4 @@ export function WeeklyActivityChart({ data }: { data: ActivityData[] }): ReactEl
       </CardContent>
     </Card>
   )
-}
+})

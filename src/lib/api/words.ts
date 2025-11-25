@@ -16,17 +16,10 @@ import { supabase } from '@/lib/supabase'
 import { query, mutate } from './supabaseClient'
 import type { Word } from '@/types'
 
-// Type aliases for cleaner code
-// TODO: Use Database['public']['Tables']['words']['Insert'] once types are regenerated
-type WordInsert = {
-  id?: string
-  list_id: string
-  term: string
-  translation: string
-  definition?: string | null
-  example_sentence?: string | null
-  created_at?: string
-}
+// Type aliases for cleaner code using generated database types
+import type { Database } from '@/types/database.types'
+
+type WordInsert = Database['public']['Tables']['words']['Insert']
 
 /**
  * Database update object for words (snake_case for Supabase)
@@ -100,16 +93,10 @@ export async function createWord(word: {
     example_sentence: word.exampleSentence || null,
   }
 
-  return mutate(
-    // TODO: Remove 'as any' once database types are regenerated after migration
-    () =>
-      supabase
-        .from('words')
-        .insert(insertData as any)
-        .select()
-        .single(),
-    { table: 'words', operation: 'insert' }
-  )
+  return mutate(() => supabase.from('words').insert(insertData).select().single(), {
+    table: 'words',
+    operation: 'insert',
+  })
 }
 
 /**
@@ -135,18 +122,10 @@ export async function createWords(
     example_sentence: w.exampleSentence || null,
   }))
 
-  return mutate(
-    // TODO: Remove 'as any' once database types are regenerated after migration
-    () =>
-      supabase
-        .from('words')
-        .insert(insertData as any)
-        .select(),
-    {
-      table: 'words',
-      operation: 'insert',
-    }
-  )
+  return mutate(() => supabase.from('words').insert(insertData).select(), {
+    table: 'words',
+    operation: 'insert',
+  })
 }
 
 /**
@@ -171,14 +150,10 @@ export async function updateWord(
   if (updates.definition !== undefined) updateData.definition = updates.definition
   if (updates.exampleSentence !== undefined) updateData.example_sentence = updates.exampleSentence
 
-  return mutate(
-    // TODO: Remove 'as any' once database types are regenerated after migration
-    () => (supabase.from('words') as any).update(updateData).eq('id', id).select().single(),
-    {
-      table: 'words',
-      operation: 'update',
-    }
-  )
+  return mutate(() => supabase.from('words').update(updateData).eq('id', id).select().single(), {
+    table: 'words',
+    operation: 'update',
+  })
 }
 
 /**

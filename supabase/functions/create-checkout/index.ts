@@ -10,6 +10,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import Stripe from 'https://esm.sh/stripe@14.10.0?target=deno'
+import { logger } from '../_shared/logger.ts'
 
 /**
  * CORS headers for Edge Function
@@ -28,6 +29,71 @@ interface CheckoutRequest {
 interface CheckoutResponse {
   sessionUrl: string
   sessionId: string
+}
+
+/**
+ * Validates checkout request data
+ */
+function validateCheckoutRequest(
+  body: unknown
+): { success: true; data: CheckoutRequest } | { success: false; error: string } {
+  if (!body || typeof body !== 'object') {
+    return { success: false, error: 'Request body must be an object' }
+  }
+
+  const req = body as Record<string, unknown>
+
+  // Validate priceId if provided
+  if (req.priceId !== undefined) {
+    if (typeof req.priceId !== 'string' || req.priceId.trim().length === 0) {
+      return { success: false, error: 'priceId must be a non-empty string' }
+    }
+
+    // Validate Stripe price ID format (starts with price_)
+    if (!req.priceId.startsWith('price_')) {
+      return {
+        success: false,
+        error: 'priceId must be a valid Stripe price ID (starts with price_)',
+      }
+    }
+  }
+
+  // Validate successUrl if provided
+  if (req.successUrl !== undefined) {
+    if (typeof req.successUrl !== 'string' || req.successUrl.trim().length === 0) {
+      return { success: false, error: 'successUrl must be a non-empty string' }
+    }
+
+    // Validate URL format
+    try {
+      new URL(req.successUrl)
+    } catch {
+      return { success: false, error: 'successUrl must be a valid URL' }
+    }
+  }
+
+  // Validate cancelUrl if provided
+  if (req.cancelUrl !== undefined) {
+    if (typeof req.cancelUrl !== 'string' || req.cancelUrl.trim().length === 0) {
+      return { success: false, error: 'cancelUrl must be a non-empty string' }
+    }
+
+    // Validate URL format
+    try {
+      new URL(req.cancelUrl)
+    } catch {
+      return { success: false, error: 'cancelUrl must be a valid URL' }
+    }
+  }
+
+  return {
+    success: true,
+    data: {
+      priceId: req.priceId as string | undefined,
+      successUrl: req.successUrl as string | undefined,
+      cancelUrl: req.cancelUrl as string | undefined,
+    },
+  }
 }
 
 serve(async (req) => {
@@ -86,15 +152,25 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser(token)
 
     if (authError || !user) {
-      console.error('[create-checkout] Auth error:', authError)
+      logger.error('Authentication failed', authError)
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // 4. Parse request body
-    const body: CheckoutRequest = req.method === 'POST' ? await req.json() : {}
+    // 4. Parse and validate request body
+    const rawBody = req.method === 'POST' ? await req.json() : {}
+
+    const validation = validateCheckoutRequest(rawBody)
+    if (!validation.success) {
+      return new Response(JSON.stringify({ error: validation.error }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const body = validation.data
 
     const priceId = body.priceId || defaultPriceId
     const successUrl =
@@ -134,7 +210,7 @@ serve(async (req) => {
         .eq('id', user.id)
 
       if (updateError) {
-        console.error('Failed to save stripe_customer_id:', updateError)
+        logger.error('Failed to save stripe_customer_id', updateError)
         // Continue anyway - webhook will handle this on successful payment
       }
     }
@@ -179,7 +255,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('Error creating checkout session:', error)
+    logger.error('Error creating checkout session', error)
 
     return new Response(
       JSON.stringify({

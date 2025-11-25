@@ -14,6 +14,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import Stripe from 'https://esm.sh/stripe@14.10.0?target=deno'
+import { logger } from '../_shared/logger.ts'
 
 /**
  * CORS headers for Edge Function
@@ -29,6 +30,44 @@ interface PortalRequest {
 
 interface PortalResponse {
   url: string
+}
+
+/**
+ * Validates portal session request data
+ */
+function validatePortalRequest(
+  body: unknown
+): { success: true; data: PortalRequest } | { success: false; error: string } {
+  if (!body || typeof body !== 'object') {
+    return { success: false, error: 'Request body must be an object' }
+  }
+
+  const req = body as Record<string, unknown>
+
+  // Validate returnUrl if provided
+  if (req.returnUrl !== undefined) {
+    if (typeof req.returnUrl !== 'string' || req.returnUrl.trim().length === 0) {
+      return { success: false, error: 'returnUrl must be a non-empty string' }
+    }
+
+    // Validate URL format
+    try {
+      const url = new URL(req.returnUrl)
+      // Only allow http and https protocols
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return { success: false, error: 'returnUrl must use http or https protocol' }
+      }
+    } catch {
+      return { success: false, error: 'returnUrl must be a valid URL' }
+    }
+  }
+
+  return {
+    success: true,
+    data: {
+      returnUrl: req.returnUrl as string | undefined,
+    },
+  }
 }
 
 serve(async (req) => {
@@ -82,15 +121,25 @@ serve(async (req) => {
     } = await supabaseClient.auth.getUser(token)
 
     if (authError || !user) {
-      console.error('[create-portal-session] Auth error:', authError)
+      logger.error('Authentication failed', authError)
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // 4. Parse request body
-    const body: PortalRequest = req.method === 'POST' ? await req.json() : {}
+    // 4. Parse and validate request body
+    const rawBody = req.method === 'POST' ? await req.json() : {}
+
+    const validation = validatePortalRequest(rawBody)
+    if (!validation.success) {
+      return new Response(JSON.stringify({ error: validation.error }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const body = validation.data
 
     const returnUrl = body.returnUrl || `${req.headers.get('origin')}/settings/subscription`
 
@@ -127,7 +176,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('Error creating portal session:', error)
+    logger.error('Error creating portal session', error)
 
     return new Response(
       JSON.stringify({

@@ -1,4 +1,4 @@
-import { type ReactElement } from 'react'
+import { type ReactElement, memo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import type { StageData } from '@/types/performance.types'
@@ -6,8 +6,13 @@ import type { StageData } from '@/types/performance.types'
 /**
  * StageDistributionChart - Bar chart for word stage distribution (0-6)
  * Visualizes SRS progression across different learning stages
+ * Memoized to prevent unnecessary re-renders
  */
-export function StageDistributionChart({ data }: { data: StageData[] }): ReactElement {
+export const StageDistributionChart = memo(function StageDistributionChart({
+  data,
+}: {
+  data: StageData[]
+}): ReactElement {
   return (
     <Card>
       <CardHeader>
@@ -30,4 +35,4 @@ export function StageDistributionChart({ data }: { data: StageData[] }): ReactEl
       </CardContent>
     </Card>
   )
-}
+})
