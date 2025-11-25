@@ -41,14 +41,9 @@ COMMENT ON COLUMN public.mv_user_insights.stage_5_count IS 'Words in Expert stag
 COMMENT ON COLUMN public.mv_user_insights.stage_6_count IS 'Words in Master stage (6)';
 COMMENT ON COLUMN public.mv_user_insights.global_success_rate IS 'Overall success rate percentage (0-100)';
 
--- Enable RLS on materialized view
-ALTER MATERIALIZED VIEW public.mv_user_insights ENABLE ROW LEVEL SECURITY;
-
--- RLS policy for user access
-CREATE POLICY "users_view_own_insights"
-  ON public.mv_user_insights
-  FOR SELECT
-  USING (auth.uid() = user_id);
+-- Note: Materialized views do not support RLS directly.
+-- Security is implemented at the function level with SECURITY DEFINER
+-- and explicit user validation in the application layer.
 
 -- Function: Get best learning time analysis
 CREATE OR REPLACE FUNCTION public.get_best_learning_time(
