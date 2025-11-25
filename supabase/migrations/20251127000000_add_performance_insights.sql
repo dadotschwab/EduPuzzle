@@ -221,5 +221,5 @@ CREATE TRIGGER trg_refresh_user_insights
   FOR EACH ROW
   EXECUTE FUNCTION public.trg_refresh_user_insights();
 
--- Enable Realtime for performance insights
-ALTER PUBLICATION supabase_realtime ADD TABLE public.mv_user_insights;
+-- Note: Materialized views do not support realtime subscriptions.
+-- Performance insights will be refreshed on-demand or via scheduled jobs.
