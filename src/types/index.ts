@@ -16,16 +16,18 @@
 // ============================================================================
 
 /**
- * SRS learning stages based on SM-2 algorithm
+ * SRS learning stages based on SM-2 algorithm with leaderboard scoring
  * Determines review intervals and progression through the learning curve
- * New → Learning → Young → Mature / Relearning
+ * Extended to 7 stages (0-6) for leaderboard point system
  */
 export enum SRSStage {
-  New = 0, // Never studied
-  Learning = 1, // Recently introduced (1-3 days)
-  Young = 2, // Passed initial learning (1-4 weeks)
-  Mature = 3, // Well-known (1+ months)
-  Relearning = 4, // Was mature but failed, back to learning
+  New = 0, // Never studied (0 points)
+  Learning = 1, // Recently introduced (1-3 days) (1 point)
+  Young = 2, // Passed initial learning (1-4 weeks) (2 points)
+  Mature = 3, // Well-known (1+ months) (4 points)
+  Relearning = 4, // Was mature but failed, back to learning (7 points)
+  Expert = 5, // Advanced mastery (12 points)
+  Master = 6, // Complete mastery (20 points)
 }
 
 /**
@@ -197,6 +199,10 @@ export interface Collaborator {
     full_name?: string
   }
   isOnline?: boolean
+  // Leaderboard fields
+  leaderboard_opted_in?: boolean
+  cached_score?: number
+  score_updated_at?: string
 }
 
 // ============================================================================
@@ -252,4 +258,54 @@ export interface JoinedCollaborativeList {
 export interface CreateSharedListResult {
   id: string
   share_token: string
+}
+
+// ============================================================================
+// Collaborative Leaderboard Types
+// ============================================================================
+
+/**
+ * Stage-based point values for leaderboard scoring
+ * Extended SRS stages 0-6 with corresponding point values
+ */
+export enum LeaderboardPoints {
+  New = 0, // Stage 0: 0 points
+  Learning = 1, // Stage 1: 1 point
+  Young = 2, // Stage 2: 2 points
+  Mature = 4, // Stage 3: 4 points
+  Relearning = 7, // Stage 4: 7 points
+  Expert = 12, // Stage 5: 12 points
+  Master = 20, // Stage 6: 20 points
+}
+
+/**
+ * Leaderboard entry with ranking information
+ */
+export interface LeaderboardEntry {
+  user_id: string
+  user_email: string
+  user_name?: string
+  cached_score: number
+  score_updated_at: string
+  rank: number
+}
+
+/**
+ * Leaderboard statistics for a collaborative list
+ */
+export interface LeaderboardStats {
+  total_participants: number
+  user_rank?: number
+  user_score?: number
+  top_score: number
+  average_score: number
+}
+
+/**
+ * Enhanced collaborator with leaderboard information
+ */
+export interface LeaderboardCollaborator extends Collaborator {
+  leaderboard_opted_in: boolean
+  cached_score: number
+  score_updated_at: string
 }

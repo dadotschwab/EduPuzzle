@@ -25,7 +25,16 @@ export async function getBuddyStatus(): Promise<BuddyData> {
     throw new BuddyApiError(error.message, error.code === 'PGRST116' ? 500 : 400)
   }
 
-  return (data as any)?.[0] || { buddyName: null, hasLearnedToday: false, completionPercentage: 0 }
+  const rawData = (data as any)?.[0]
+  if (!rawData) {
+    return { buddyName: null, hasLearnedToday: false, completionPercentage: 0 }
+  }
+
+  return {
+    buddyName: rawData.buddy_name,
+    hasLearnedToday: rawData.has_learned_today,
+    completionPercentage: rawData.completion_percentage,
+  }
 }
 
 export async function generateBuddyInvite(): Promise<{ inviteToken: string; expiresAt: string }> {
@@ -35,14 +44,9 @@ export async function generateBuddyInvite(): Promise<{ inviteToken: string; expi
     throw new BuddyApiError(error.message, error.code === 'PGRST116' ? 500 : 400)
   }
 
-  const result = data as any
-  if (!result || !result[0]) {
-    throw new BuddyApiError('Failed to generate invite', 500)
-  }
-
   return {
-    inviteToken: result[0].invite_token,
-    expiresAt: result[0].expires_at,
+    inviteToken: data[0].invite_token,
+    expiresAt: data[0].expires_at,
   }
 }
 

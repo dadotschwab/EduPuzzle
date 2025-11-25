@@ -10,9 +10,11 @@ import { TodaysPuzzles } from './pages/TodaysPuzzles'
 import { SettingsLayout } from './pages/Settings/SettingsLayout'
 import { AccountSettings } from './pages/Settings/AccountSettings'
 import { SubscriptionSettings } from './pages/Settings/SubscriptionSettings'
+import { Buddy } from './pages/Settings/Buddy'
 import { SubscriptionSuccess } from './pages/SubscriptionSuccess'
 import { SubscriptionCancel } from './pages/SubscriptionCancel'
 import { SharedList } from './pages/SharedList'
+import { BuddyAccept } from './pages/BuddyAccept'
 
 function App() {
   return (
@@ -22,6 +24,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/shared/:token" element={<SharedList />} />
+      <Route path="/buddy/accept/:token" element={<BuddyAccept />} />
 
       {/* Protected routes */}
       <Route
@@ -75,6 +78,7 @@ function App() {
         <Route index element={<Navigate to="/settings/account" replace />} />
         <Route path="account" element={<AccountSettings />} />
         <Route path="subscription" element={<SubscriptionSettings />} />
+        <Route path="buddy" element={<Buddy />} />
       </Route>
 
       {/* Subscription checkout flow routes */}

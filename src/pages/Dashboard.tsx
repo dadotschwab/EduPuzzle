@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { StreakDisplay } from '@/components/dashboard/StreakDisplay'
+import { BuddyWidget } from '@/components/dashboard/BuddyWidget'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreateWordListDialog } from '@/components/words/CreateWordListDialog'
@@ -122,15 +123,17 @@ export function Dashboard() {
             </p>
           </div>
 
-          {/* Streak Display - positioned next to welcome text on desktop */}
-          <div className="hidden lg:block">
+          {/* Widgets - positioned next to welcome text on desktop */}
+          <div className="hidden lg:flex gap-4">
             <StreakDisplay />
+            <BuddyWidget />
           </div>
         </div>
 
-        {/* Mobile: Show streak below welcome text */}
-        <div className="lg:hidden mb-4">
+        {/* Mobile: Show widgets below welcome text */}
+        <div className="lg:hidden space-y-4 mb-4">
           <StreakDisplay />
+          <BuddyWidget />
         </div>
 
         {/* Action Buttons with vibrant styling */}

@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { User, CreditCard } from 'lucide-react'
+import { User, CreditCard, Users } from 'lucide-react'
 
 const settingsNavItems = [
   {
@@ -13,6 +13,11 @@ const settingsNavItems = [
     href: '/settings/subscription',
     icon: CreditCard,
   },
+  {
+    title: 'Buddy',
+    href: '/settings/buddy',
+    icon: Users,
+  },
 ]
 
 export function SettingsLayout() {
@@ -21,9 +26,7 @@ export function SettingsLayout() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your account settings and preferences
-          </p>
+          <p className="text-muted-foreground mt-2">Manage your account settings and preferences</p>
         </div>
 
         <div className="flex gap-8">

@@ -8,11 +8,14 @@
 import { useState, memo, useCallback, useMemo } from 'react'
 import { useWords } from '@/hooks/useWords'
 import { useCollaborativeLists } from '@/hooks/useCollaborativeLists'
+import { useAuth } from '@/hooks/useAuth'
 import { CollaboratorPresence } from '@/components/words/CollaboratorPresence'
+import { CollaborativeLeaderboard } from '@/components/words/CollaborativeLeaderboard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Users, Loader2, Trash2 } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Plus, Users, Loader2, Trash2, Trophy } from 'lucide-react'
 import type { WordList, Word } from '@/types'
 
 interface CollaborativeWordListProps {
@@ -74,6 +77,7 @@ const CollaborativeWordList = memo(({ wordList }: CollaborativeWordListProps) =>
     exampleSentence: '',
   })
 
+  const { user } = useAuth()
   const { data: words, isLoading } = useWords(wordList.id)
   const { addWord, deleteWord, isConnected } = useCollaborativeLists({
     listId: wordList.id,
@@ -161,6 +165,32 @@ const CollaborativeWordList = memo(({ wordList }: CollaborativeWordListProps) =>
         <CollaboratorPresence collaborators={[]} />
       </div>
 
+      {/* Tabs for Words and Leaderboard */}
+      <Tabs defaultValue="words" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="words">Words</TabsTrigger>
+          <TabsTrigger value="leaderboard" className="flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Leaderboard
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="words" className="space-y-3">
+          {words && words.length > 0 ? (
+            wordItems
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No words in this list yet.</p>
+              <p className="text-sm mt-1">Add the first word to get started!</p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="leaderboard">
+          <CollaborativeLeaderboard sharedListId={wordList.id} currentUserId={user?.id || ''} />
+        </TabsContent>
+      </Tabs>
+
       {/* Add word form */}
       {showAddForm && (
         <Card>
@@ -229,18 +259,6 @@ const CollaborativeWordList = memo(({ wordList }: CollaborativeWordListProps) =>
           </CardContent>
         </Card>
       )}
-
-      {/* Words list */}
-      <div className="space-y-3">
-        {words && words.length > 0 ? (
-          wordItems
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No words in this list yet.</p>
-            <p className="text-sm mt-1">Add the first word to get started!</p>
-          </div>
-        )}
-      </div>
 
       {/* Add word button */}
       {!showAddForm && (
