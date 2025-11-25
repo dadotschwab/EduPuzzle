@@ -558,7 +558,31 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      mv_user_insights: {
+        Row: {
+          global_success_rate: number | null
+          stage_0_count: number | null
+          stage_1_count: number | null
+          stage_2_count: number | null
+          stage_3_count: number | null
+          stage_4_count: number | null
+          stage_5_count: number | null
+          stage_6_count: number | null
+          total_correct_reviews: number | null
+          total_reviews: number | null
+          total_words_learned: number | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "word_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       calculate_leaderboard_score: {
@@ -587,6 +611,15 @@ export type Database = {
         }[]
       }
       generate_share_token: { Args: never; Returns: string }
+      get_best_learning_time: {
+        Args: { p_user_id: string }
+        Returns: {
+          hour_of_day: number
+          success_rate: number
+          successful_reviews: number
+          total_reviews: number
+        }[]
+      }
       get_collaborative_leaderboard: {
         Args: { p_shared_list_id: string }
         Returns: {
@@ -599,6 +632,27 @@ export type Database = {
         }[]
       }
       get_due_words_count: { Args: { user_id_param: string }; Returns: number }
+      get_weakest_words: {
+        Args: { p_limit?: number; p_user_id: string }
+        Returns: {
+          last_reviewed_at: string
+          success_rate: number
+          successful_reviews: number
+          total_reviews: number
+          word_id: string
+          word_term: string
+          word_translation: string
+        }[]
+      }
+      get_weekly_activity: {
+        Args: { p_user_id: string }
+        Returns: {
+          activity_date: string
+          day_name: string
+          puzzle_sessions_count: number
+          words_reviewed_count: number
+        }[]
+      }
       import_shared_list_copy: {
         Args: { p_share_token: string }
         Returns: string
@@ -631,6 +685,7 @@ export type Database = {
         }[]
       }
       refill_streak_freezes: { Args: never; Returns: number }
+      refresh_user_insights: { Args: never; Returns: boolean }
       toggle_leaderboard_opt_in: {
         Args: { p_opt_in: boolean; p_shared_list_id: string }
         Returns: boolean
