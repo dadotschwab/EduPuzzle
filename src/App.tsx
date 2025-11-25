@@ -11,6 +11,7 @@ import { SettingsLayout } from './pages/Settings/SettingsLayout'
 import { AccountSettings } from './pages/Settings/AccountSettings'
 import { SubscriptionSettings } from './pages/Settings/SubscriptionSettings'
 import { Buddy } from './pages/Settings/Buddy'
+import { PerformanceStats } from './pages/Settings/PerformanceStats'
 import { SubscriptionSuccess } from './pages/SubscriptionSuccess'
 import { SubscriptionCancel } from './pages/SubscriptionCancel'
 import { SharedList } from './pages/SharedList'
@@ -79,6 +80,7 @@ function App() {
         <Route path="account" element={<AccountSettings />} />
         <Route path="subscription" element={<SubscriptionSettings />} />
         <Route path="buddy" element={<Buddy />} />
+        <Route path="stats" element={<PerformanceStats />} />
       </Route>
 
       {/* Subscription checkout flow routes */}

@@ -8,6 +8,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { StreakDisplay } from '@/components/dashboard/StreakDisplay'
 import { BuddyWidget } from '@/components/dashboard/BuddyWidget'
+import { PerformanceInsights } from '@/components/dashboard/PerformanceInsights'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreateWordListDialog } from '@/components/words/CreateWordListDialog'
@@ -127,6 +128,7 @@ export function Dashboard() {
           <div className="hidden lg:flex gap-4">
             <StreakDisplay />
             <BuddyWidget />
+            <PerformanceInsights />
           </div>
         </div>
 
@@ -134,6 +136,7 @@ export function Dashboard() {
         <div className="lg:hidden space-y-4 mb-4">
           <StreakDisplay />
           <BuddyWidget />
+          <PerformanceInsights />
         </div>
 
         {/* Action Buttons with vibrant styling */}

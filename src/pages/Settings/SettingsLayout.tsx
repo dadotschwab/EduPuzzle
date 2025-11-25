@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { User, CreditCard, Users } from 'lucide-react'
+import { User, CreditCard, Users, BarChart3 } from 'lucide-react'
 
 const settingsNavItems = [
   {
@@ -17,6 +17,11 @@ const settingsNavItems = [
     title: 'Buddy',
     href: '/settings/buddy',
     icon: Users,
+  },
+  {
+    title: 'Stats',
+    href: '/settings/stats',
+    icon: BarChart3,
   },
 ]
 

@@ -1,6 +1,23 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+[?25l[?2004h
+                                                                                                 
+  >  1. gqalsczfephexbserzqp [name: CroosWordVocab, org: yygpmcztahaflwgvlvdn, region: eu-west-1]
+                                                                                                 
+                                                                                                 
+    ↑/k up • ↓/j down • / filter • q quit • ? more                                               
+                                                                                                 [6A [J[2K[?2004l[?25h[?1002l[?1003l[?1006lexport type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
+  }
   public: {
     Tables: {
       daily_completions: {
@@ -42,55 +59,52 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'daily_completions_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "daily_completions_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
       list_collaborators: {
         Row: {
+          cached_score: number | null
           id: string
           joined_at: string | null
+          leaderboard_opted_in: boolean | null
           role: string | null
+          score_updated_at: string | null
           shared_list_id: string
           user_id: string
-          // Leaderboard columns
-          leaderboard_opted_in: boolean
-          cached_score: number
-          score_updated_at: string
         }
         Insert: {
+          cached_score?: number | null
           id?: string
           joined_at?: string | null
+          leaderboard_opted_in?: boolean | null
           role?: string | null
+          score_updated_at?: string | null
           shared_list_id: string
           user_id: string
-          // Leaderboard columns
-          leaderboard_opted_in?: boolean
-          cached_score?: number
-          score_updated_at?: string
         }
         Update: {
+          cached_score?: number | null
           id?: string
           joined_at?: string | null
+          leaderboard_opted_in?: boolean | null
           role?: string | null
+          score_updated_at?: string | null
           shared_list_id?: string
           user_id?: string
-          // Leaderboard columns
-          leaderboard_opted_in?: boolean
-          cached_score?: number
-          score_updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: 'list_collaborators_shared_list_id_fkey'
-            columns: ['shared_list_id']
+            foreignKeyName: "list_collaborators_shared_list_id_fkey"
+            columns: ["shared_list_id"]
             isOneToOne: false
-            referencedRelation: 'shared_lists'
-            referencedColumns: ['id']
+            referencedRelation: "shared_lists"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -121,11 +135,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'puzzle_cache_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "puzzle_cache_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -162,18 +176,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'puzzle_sessions_list_id_fkey'
-            columns: ['list_id']
+            foreignKeyName: "puzzle_sessions_list_id_fkey"
+            columns: ["list_id"]
             isOneToOne: false
-            referencedRelation: 'word_lists'
-            referencedColumns: ['id']
+            referencedRelation: "word_lists"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'puzzle_sessions_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "puzzle_sessions_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -216,11 +230,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'shared_lists_original_list_id_fkey'
-            columns: ['original_list_id']
+            foreignKeyName: "shared_lists_original_list_id_fkey"
+            columns: ["original_list_id"]
             isOneToOne: false
-            referencedRelation: 'word_lists'
-            referencedColumns: ['id']
+            referencedRelation: "word_lists"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -257,11 +271,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'stripe_webhook_events_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "stripe_webhook_events_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -298,11 +312,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'user_streaks_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "user_streaks_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: true
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -375,11 +389,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'word_lists_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "word_lists_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -394,7 +408,7 @@ export type Database = {
           last_reviewed_at: string | null
           next_review_date: string | null
           repetition_level: number | null
-          stage: number | null // Extended to 0-6 for leaderboard
+          stage: number | null
           total_reviews: number | null
           updated_at: string | null
           user_id: string | null
@@ -410,7 +424,7 @@ export type Database = {
           last_reviewed_at?: string | null
           next_review_date?: string | null
           repetition_level?: number | null
-          stage?: number | null // Extended to 0-6 for leaderboard
+          stage?: number | null
           total_reviews?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -426,7 +440,7 @@ export type Database = {
           last_reviewed_at?: string | null
           next_review_date?: string | null
           repetition_level?: number | null
-          stage?: number | null // Extended to 0-6 for leaderboard
+          stage?: number | null
           total_reviews?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -434,18 +448,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'word_progress_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "word_progress_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'word_progress_word_id_fkey'
-            columns: ['word_id']
+            foreignKeyName: "word_progress_word_id_fkey"
+            columns: ["word_id"]
             isOneToOne: false
-            referencedRelation: 'words'
-            referencedColumns: ['id']
+            referencedRelation: "words"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -482,25 +496,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'word_reviews_session_id_fkey'
-            columns: ['session_id']
+            foreignKeyName: "word_reviews_session_id_fkey"
+            columns: ["session_id"]
             isOneToOne: false
-            referencedRelation: 'puzzle_sessions'
-            referencedColumns: ['id']
+            referencedRelation: "puzzle_sessions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'word_reviews_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "word_reviews_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'word_reviews_word_id_fkey'
-            columns: ['word_id']
+            foreignKeyName: "word_reviews_word_id_fkey"
+            columns: ["word_id"]
             isOneToOne: false
-            referencedRelation: 'words'
-            referencedColumns: ['id']
+            referencedRelation: "words"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -534,11 +548,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'words_list_id_fkey'
-            columns: ['list_id']
+            foreignKeyName: "words_list_id_fkey"
+            columns: ["list_id"]
             isOneToOne: false
-            referencedRelation: 'word_lists'
-            referencedColumns: ['id']
+            referencedRelation: "word_lists"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -548,10 +562,7 @@ export type Database = {
     }
     Functions: {
       calculate_leaderboard_score: {
-        Args: {
-          p_shared_list_id: string
-          p_user_id: string
-        }
+        Args: { p_shared_list_id: string; p_user_id: string }
         Returns: number
       }
       calculate_srs_progress: {
@@ -577,16 +588,14 @@ export type Database = {
       }
       generate_share_token: { Args: never; Returns: string }
       get_collaborative_leaderboard: {
-        Args: {
-          p_shared_list_id: string
-        }
+        Args: { p_shared_list_id: string }
         Returns: {
-          user_id: string
-          user_email: string
-          user_name: string
           cached_score: number
-          score_updated_at: string
           rank: number
+          score_updated_at: string
+          user_email: string
+          user_id: string
+          user_name: string
         }[]
       }
       get_due_words_count: { Args: { user_id_param: string }; Returns: number }
@@ -623,10 +632,7 @@ export type Database = {
       }
       refill_streak_freezes: { Args: never; Returns: number }
       toggle_leaderboard_opt_in: {
-        Args: {
-          p_shared_list_id: string
-          p_opt_in: boolean
-        }
+        Args: { p_opt_in: boolean; p_shared_list_id: string }
         Returns: boolean
       }
     }
@@ -638,3 +644,126 @@ export type Database = {
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const
