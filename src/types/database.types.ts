@@ -447,6 +447,94 @@ export type Database = {
           },
         ]
       }
+      daily_completions: {
+        Row: {
+          completion_date: string
+          created_at: string
+          due_words_count: number
+          freeze_used: boolean
+          id: string
+          puzzles_completed: number
+          streak_maintained: boolean
+          updated_at: string
+          user_id: string
+          words_completed: number
+        }
+        Insert: {
+          completion_date: string
+          created_at?: string
+          due_words_count?: number
+          freeze_used?: boolean
+          id?: string
+          puzzles_completed?: number
+          streak_maintained?: boolean
+          updated_at?: string
+          user_id: string
+          words_completed?: number
+        }
+        Update: {
+          completion_date?: string
+          created_at?: string
+          due_words_count?: number
+          freeze_used?: boolean
+          id?: string
+          puzzles_completed?: number
+          streak_maintained?: boolean
+          updated_at?: string
+          user_id?: string
+          words_completed?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'daily_completions_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      user_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_streak_update: string
+          longest_streak: number
+          streak_freezes_available: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_streak_update?: string
+          longest_streak?: number
+          streak_freezes_available?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_streak_update?: string
+          longest_streak?: number
+          streak_freezes_available?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'user_streaks_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: true
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -491,6 +579,22 @@ export type Database = {
         Args: { p_shared_list_id: string }
         Returns: string
       }
+      process_daily_streak_maintenance: { Args: never; Returns: number }
+      record_daily_completion: {
+        Args: {
+          user_id_param: string
+          puzzles_completed_param?: number
+          words_completed_param?: number
+          due_words_count_param?: number
+        }
+        Returns: {
+          streak_maintained: boolean
+          current_streak: number
+          longest_streak: number
+          freeze_used: boolean
+        }[]
+      }
+      refill_streak_freezes: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never

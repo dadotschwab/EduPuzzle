@@ -6,6 +6,7 @@ import { useJoinedCollaborativeLists } from '@/hooks/useSharedLists'
 import { useAuth } from '@/hooks/useAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
+import { StreakDisplay } from '@/components/dashboard/StreakDisplay'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreateWordListDialog } from '@/components/words/CreateWordListDialog'
@@ -111,13 +112,25 @@ export function Dashboard() {
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with gradient */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-slate-900 via-violet-900 to-slate-900 bg-clip-text text-transparent">
-            Welcome back{user?.name ? `, ${user.name}` : ''}!
-          </h1>
-          <p className="text-slate-600 text-lg">
-            Continue your vocabulary journey with crossword puzzles
-          </p>
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-8">
+          <div className="flex-1">
+            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-slate-900 via-violet-900 to-slate-900 bg-clip-text text-transparent">
+              Welcome back{user?.name ? `, ${user.name}` : ''}!
+            </h1>
+            <p className="text-slate-600 text-lg">
+              Continue your vocabulary journey with crossword puzzles
+            </p>
+          </div>
+
+          {/* Streak Display - positioned next to welcome text on desktop */}
+          <div className="hidden lg:block">
+            <StreakDisplay />
+          </div>
+        </div>
+
+        {/* Mobile: Show streak below welcome text */}
+        <div className="lg:hidden mb-4">
+          <StreakDisplay />
         </div>
 
         {/* Action Buttons with vibrant styling */}
