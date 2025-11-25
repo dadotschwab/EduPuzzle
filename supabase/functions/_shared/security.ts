@@ -98,5 +98,5 @@ export function escapeHtml(text: string): string {
 
 // Log security events
 export function logSecurityEvent(event: string, details: Record<string, any>) {
-  logger.warn(`[SECURITY] ${event}:`, details)
+  console.warn(`[SECURITY] ${event}:`, details)
 }

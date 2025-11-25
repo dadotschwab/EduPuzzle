@@ -44,19 +44,19 @@ class EdgeFunctionLogger {
 
   debug(message: string, context?: LogContext): void {
     if (this.shouldLog('debug')) {
-      logger.info(this.formatMessage('debug', message, context))
+      console.log(this.formatMessage('debug', message, context))
     }
   }
 
   info(message: string, context?: LogContext): void {
     if (this.shouldLog('info')) {
-      logger.info(this.formatMessage('info', message, context))
+      console.log(this.formatMessage('info', message, context))
     }
   }
 
   warn(message: string, context?: LogContext): void {
     if (this.shouldLog('warn')) {
-      logger.warn(this.formatMessage('warn', message, context))
+      console.warn(this.formatMessage('warn', message, context))
     }
   }
 
@@ -72,7 +72,7 @@ class EdgeFunctionLogger {
           : error
 
       const fullContext = { ...context, error: errorDetails }
-      logger.error(this.formatMessage('error', message, fullContext))
+      console.error(this.formatMessage('error', message, fullContext))
     }
   }
 }
