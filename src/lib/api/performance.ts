@@ -15,6 +15,35 @@ export class PerformanceApiError extends Error {
 }
 
 /**
+ * Default performance data structure for when database objects are missing
+ */
+function getDefaultPerformanceData(userId: string): PerformanceInsightsData {
+  return {
+    totalLearned: 0,
+    successRate: 0,
+    weeklyPuzzles: 0,
+    bestLearningTime: null,
+    stageDistribution: [
+      { stage: 0, count: 0 },
+      { stage: 1, count: 0 },
+      { stage: 2, count: 0 },
+      { stage: 3, count: 0 },
+      { stage: 4, count: 0 },
+      { stage: 5, count: 0 },
+      { stage: 6, count: 0 },
+    ],
+    weakestWords: [],
+    weeklyActivity: [],
+    learningTimeData: [],
+    trends: {
+      learned: 0,
+      successRate: 0,
+      puzzles: 0,
+    },
+  }
+}
+
+/**
  * Fetches comprehensive performance insights data
  * Combines materialized view data with analysis functions
  */
@@ -36,8 +65,10 @@ export async function getPerformanceInsights(): Promise<PerformanceInsightsData>
   if (insightsError) {
     // Handle missing materialized view gracefully
     if (insightsError.code === 'PGRST116' || insightsError.message?.includes('does not exist')) {
-      console.warn('[getPerformanceInsights] Performance insights not available yet')
-      throw new PerformanceApiError('Performance insights not available', 503)
+      console.warn(
+        '[getPerformanceInsights] Performance insights not available yet - using default data'
+      )
+      return getDefaultPerformanceData(userId)
     }
     throw new PerformanceApiError(insightsError.message, 500)
   }

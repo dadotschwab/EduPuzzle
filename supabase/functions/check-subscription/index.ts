@@ -72,6 +72,9 @@ serve(async (req) => {
     }
 
     logger.info('[check-subscription] Environment variables loaded successfully')
+    logger.info('[check-subscription] Has Stripe Key:', !!stripeSecretKey)
+
+    logger.info('[check-subscription] Environment variables loaded successfully')
 
     // 3. Create service client for authentication validation
     // Use service role to verify the JWT directly
@@ -260,6 +263,10 @@ serve(async (req) => {
               logger.error('[check-subscription] Stripe verification failed:', stripeError)
               // Continue with normal trial expiry logic if Stripe check fails
             }
+          } else {
+            logger.info(
+              '[check-subscription] No Stripe customer ID or Stripe key available for trial expiry check'
+            )
           }
 
           // Trial expired and no active subscription found

@@ -14,9 +14,10 @@ export const BestLearningTime = memo(function BestLearningTime({
 }: {
   data: LearningTimeData[]
 }): ReactElement {
-  const bestTime = data.reduce((best, current) =>
-    current.successRate > best.successRate ? current : best
-  )
+  const bestTime =
+    data.length > 0
+      ? data.reduce((best, current) => (current.successRate > best.successRate ? current : best))
+      : { hour: 0, successRate: 0 } // Default value for empty data
 
   return (
     <Card>
