@@ -14,7 +14,7 @@ export const StageDistributionChart = memo(function StageDistributionChart({
   data: StageData[]
 }): ReactElement {
   return (
-    <Card className="bg-gradient-to-br from-violet-50 to-purple-50 border-violet-200">
+    <Card className="bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-slate-200/60">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-violet-900">
           <span className="text-2xl">📊</span>

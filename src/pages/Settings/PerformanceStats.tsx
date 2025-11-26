@@ -65,7 +65,7 @@ export function PerformanceStats(): ReactElement {
 
       {/* Key Metrics Overview */}
       <div className="grid gap-4 md:grid-cols-4">
-        <div className="p-6 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200">
+        <div className="p-6 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-slate-200/60">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl">📚</span>
             <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Total Learned</h3>
@@ -74,7 +74,7 @@ export function PerformanceStats(): ReactElement {
           <p className="text-sm text-slate-500 font-semibold mt-1">words mastered</p>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-pink-50 to-rose-50 rounded-3xl border-2 border-pink-200">
+        <div className="p-6 bg-gradient-to-br from-pink-50 to-rose-50 rounded-3xl border-2 border-slate-200/60">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl">🎯</span>
             <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Success Rate</h3>
@@ -83,7 +83,7 @@ export function PerformanceStats(): ReactElement {
           <p className="text-sm text-slate-500 font-semibold mt-1">overall accuracy</p>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl border-2 border-amber-200">
+        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl border-2 border-slate-200/60">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl">🧩</span>
             <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Weekly Puzzles</h3>
@@ -92,7 +92,7 @@ export function PerformanceStats(): ReactElement {
           <p className="text-sm text-slate-500 font-semibold mt-1">this week</p>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl border-2 border-blue-200">
+        <div className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl border-2 border-slate-200/60">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl">⏰</span>
             <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Best Time</h3>
