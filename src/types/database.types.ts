@@ -56,6 +56,39 @@ export type Database = {
           },
         ]
       }
+      buddy_invites: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          invite_token: string
+          inviter_id: string
+          is_active: boolean | null
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          invite_token: string
+          inviter_id: string
+          is_active?: boolean | null
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          inviter_id?: string
+          is_active?: boolean | null
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       buddy_requests: {
         Row: {
           created_at: string | null

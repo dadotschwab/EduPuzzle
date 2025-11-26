@@ -58,9 +58,9 @@ export function useBuddy(): UseBuddyReturn {
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all changes on buddy_relationships
+          event: '*', // Listen to all changes on buddies
           schema: 'public',
-          table: 'buddy_relationships',
+          table: 'buddies',
           filter: `user1_id=eq.${user.id}`,
         },
         (payload) => {
@@ -73,7 +73,7 @@ export function useBuddy(): UseBuddyReturn {
         {
           event: '*',
           schema: 'public',
-          table: 'buddy_relationships',
+          table: 'buddies',
           filter: `user2_id=eq.${user.id}`,
         },
         (payload) => {
