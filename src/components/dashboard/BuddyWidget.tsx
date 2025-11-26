@@ -2,6 +2,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBuddy } from '@/hooks/useBuddy'
+import { useNavigate } from 'react-router-dom'
 
 interface BuddyWidgetProps {
   className?: string
@@ -10,14 +11,14 @@ interface BuddyWidgetProps {
 export function BuddyWidget({ className }: BuddyWidgetProps) {
   const { hasBuddy, buddyName, buddyHasLearnedToday, isLoading, error, isGeneratingInvite } =
     useBuddy()
+  const navigate = useNavigate()
 
   const handleFindBuddy = () => {
-    // Navigate to settings or show modal
-    window.location.href = '/settings/buddy'
+    navigate('/settings/buddy')
   }
 
   const handleManageBuddy = () => {
-    window.location.href = '/settings/buddy'
+    navigate('/settings/buddy')
   }
 
   if (isLoading) {

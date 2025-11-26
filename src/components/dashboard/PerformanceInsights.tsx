@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react'
 import { usePerformanceInsights } from '@/hooks/usePerformanceInsights'
 import { cn } from '@/lib/utils'
+import { useNavigate } from 'react-router-dom'
 
 /**
  * PerformanceInsights - Compact dashboard widget for performance metrics
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils'
  */
 export function PerformanceInsights({ className }: { className?: string }): ReactElement {
   const { data, isLoading, error, retry } = usePerformanceInsights()
+  const navigate = useNavigate()
 
   if (isLoading) {
     return (
@@ -98,7 +100,7 @@ export function PerformanceInsights({ className }: { className?: string }): Reac
           variant="outline"
           size="sm"
           className="w-full"
-          onClick={() => (window.location.href = '/settings/stats')}
+          onClick={() => navigate('/settings/stats')}
         >
           <BarChart3 className="w-3 h-3 mr-1" />
           Details
