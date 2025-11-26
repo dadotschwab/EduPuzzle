@@ -19,13 +19,21 @@ import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 import { useNavigate } from 'react-router-dom'
 
-interface UserProfile {
-  name: string
-  email: string
+/**
+ * Subscription metadata structure from JWT
+ */
+interface SubscriptionMetadata {
+  status: 'active' | 'trial' | 'trialing' | 'expired' | 'canceled' | 'none'
+  has_access: boolean
+  is_trial: boolean
+  expires_at: string | null
+  trial_ends_at: string | null
+  checked_at: string
 }
 
 interface ExtendedUser extends User {
   name?: string
+  subscription?: SubscriptionMetadata
 }
 
 /**
@@ -44,30 +52,74 @@ export function useAuth() {
 
   const fetchUserProfile = async (authUser: User) => {
     try {
+      // Fetch name from users table
       const { data: profile } = await supabase
         .from('users')
         .select('name, email')
         .eq('id', authUser.id)
         .single()
 
+      // Extract subscription from JWT metadata
+      const subscriptionMeta = authUser.app_metadata?.subscription || {
+        status: 'none',
+        has_access: false,
+        is_trial: false,
+        expires_at: null,
+        trial_ends_at: null,
+        checked_at: new Date().toISOString(),
+      }
+
       return {
         ...authUser,
         name: profile?.name || authUser.email?.split('@')[0] || 'User',
+        subscription: subscriptionMeta,
       } as ExtendedUser
     } catch (error) {
       console.error('Error fetching user profile:', error)
       return {
         ...authUser,
         name: authUser.email?.split('@')[0] || 'User',
+        subscription: {
+          status: 'none',
+          has_access: false,
+          is_trial: false,
+          expires_at: null,
+          trial_ends_at: null,
+          checked_at: new Date().toISOString(),
+        },
       } as ExtendedUser
     }
   }
 
   const refreshUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
     if (session?.user) {
       const userWithProfile = await fetchUserProfile(session.user)
       setUser(userWithProfile)
+    }
+  }
+
+  // Force refresh subscription metadata
+  const refreshSubscription = async () => {
+    if (!user) return
+
+    // Call Edge Function to update metadata
+    const { data, error } = await supabase.functions.invoke('update-user-subscription', {
+      body: { userId: user.id },
+    })
+
+    if (!error) {
+      // Refresh the session to get new JWT with updated metadata
+      const {
+        data: { session },
+      } = await supabase.auth.refreshSession()
+
+      if (session?.user) {
+        const userWithProfile = await fetchUserProfile(session.user)
+        setUser(userWithProfile)
+      }
     }
   }
 
@@ -113,6 +165,12 @@ export function useAuth() {
     loading,
     signOut,
     refreshUser,
+    refreshSubscription, // NEW: Force refresh subscription
     isAuthenticated: !!user,
+    // Subscription helpers (no separate hook needed)
+    hasAccess: user?.subscription?.has_access ?? false,
+    isTrial: user?.subscription?.is_trial ?? false,
+    subscriptionStatus: user?.subscription?.status ?? 'none',
+    subscriptionExpiresAt: user?.subscription?.expires_at,
   }
 }

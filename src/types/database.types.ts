@@ -1,10 +1,4 @@
-[?25l[?2004h
-                                                                                                 
-  >  1. gqalsczfephexbserzqp [name: CroosWordVocab, org: yygpmcztahaflwgvlvdn, region: eu-west-1]
-                                                                                                 
-                                                                                                 
-    ↑/k up • ↓/j down • / filter • q quit • ? more                                               
-                                                                                                 [6A [J[2K[?2004l[?25h[?1002l[?1003l[?1006lexport type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -20,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      buddies: {
+        Row: {
+          created_at: string | null
+          id: string
+          user1_id: string
+          user2_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          user1_id: string
+          user2_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user1_id?: string
+          user2_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buddies_user1_id_fkey"
+            columns: ["user1_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buddies_user2_id_fkey"
+            columns: ["user2_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buddy_requests: {
+        Row: {
+          created_at: string | null
+          id: string
+          requester_id: string
+          status: string | null
+          target_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          requester_id: string
+          status?: string | null
+          target_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          requester_id?: string
+          status?: string | null
+          target_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buddy_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buddy_requests_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_completions: {
         Row: {
           completion_date: string
@@ -279,6 +351,38 @@ export type Database = {
           },
         ]
       }
+      subscription_change_logs: {
+        Row: {
+          changed_at: string | null
+          id: string
+          new_subscription_status: string | null
+          old_subscription_status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          changed_at?: string | null
+          id?: string
+          new_subscription_status?: string | null
+          old_subscription_status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          changed_at?: string | null
+          id?: string
+          new_subscription_status?: string | null
+          old_subscription_status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_change_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_streaks: {
         Row: {
           created_at: string | null
@@ -327,6 +431,7 @@ export type Database = {
           id: string
           name: string
           stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           subscription_end_date: string | null
           subscription_status: string | null
           trial_end_date: string | null
@@ -337,6 +442,7 @@ export type Database = {
           id?: string
           name?: string
           stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null
           trial_end_date?: string | null
@@ -347,6 +453,7 @@ export type Database = {
           id?: string
           name?: string
           stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subscription_end_date?: string | null
           subscription_status?: string | null
           trial_end_date?: string | null
@@ -585,24 +692,49 @@ export type Database = {
       }
     }
     Functions: {
+      accept_buddy_invite: {
+        Args: { p_invite_token: string }
+        Returns: undefined
+      }
       calculate_leaderboard_score: {
         Args: { p_shared_list_id: string; p_user_id: string }
         Returns: number
       }
-      calculate_srs_progress: {
-        Args: {
-          user_id_param: string
-          was_correct_param: boolean
-          word_id_param: string
-        }
+      calculate_srs_progress:
+        | {
+            Args: {
+              user_id_param: string
+              was_correct_param: boolean
+              word_id_param: string
+            }
+            Returns: {
+              new_ease_factor: number
+              new_interval_days: number
+              new_next_review_date: string
+              new_stage: number
+            }[]
+          }
+        | {
+            Args: {
+              user_id_param: string
+              was_correct_param: boolean
+              word_id_param: string
+            }
+            Returns: {
+              new_ease_factor: number
+              new_interval_days: number
+              new_next_review_date: string
+              new_stage: number
+            }[]
+          }
+      cleanup_expired_puzzle_cache: { Args: never; Returns: undefined }
+      create_buddy_invite: {
+        Args: never
         Returns: {
-          new_ease_factor: number
-          new_interval_days: number
-          new_next_review_date: string
-          new_stage: number
+          expires_at: string
+          invite_token: string
         }[]
       }
-      cleanup_expired_puzzle_cache: { Args: never; Returns: undefined }
       create_shared_list: {
         Args: { p_list_id: string; p_share_mode: string }
         Returns: {
@@ -618,6 +750,14 @@ export type Database = {
           success_rate: number
           successful_reviews: number
           total_reviews: number
+        }[]
+      }
+      get_buddy_status: {
+        Args: never
+        Returns: {
+          buddy_name: string
+          completion_percentage: number
+          has_learned_today: boolean
         }[]
       }
       get_collaborative_leaderboard: {
@@ -686,8 +826,21 @@ export type Database = {
       }
       refill_streak_freezes: { Args: never; Returns: number }
       refresh_user_insights: { Args: never; Returns: boolean }
+      remove_buddy_relationship: { Args: never; Returns: undefined }
       toggle_leaderboard_opt_in: {
         Args: { p_opt_in: boolean; p_shared_list_id: string }
+        Returns: boolean
+      }
+      user_is_collaborator_on_list: {
+        Args: { p_list_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      user_is_leaderboard_collaborator: {
+        Args: { p_shared_list_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      user_owns_shared_list: {
+        Args: { p_shared_list_id: string; p_user_id: string }
         Returns: boolean
       }
     }

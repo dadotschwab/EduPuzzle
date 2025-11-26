@@ -8,7 +8,7 @@
  */
 
 import { ReactNode, memo, useCallback } from 'react'
-import { useSubscription } from '@/hooks/useSubscription'
+import { useAuth } from '@/hooks/useAuth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -27,17 +27,20 @@ interface SubscriptionGateProps {
  * Shows children if user has access, otherwise shows upgrade prompt.
  * Handles trial users, active subscribers, and expired users.
  */
-export const SubscriptionGate = memo(function SubscriptionGate({ children, fallback, feature }: SubscriptionGateProps) {
-  const { hasAccess, isTrial, daysRemaining, isLoading, data } = useSubscription()
+export const SubscriptionGate = memo(function SubscriptionGate({
+  children,
+  fallback,
+  feature,
+}: SubscriptionGateProps) {
+  const { hasAccess, isTrial, loading, subscriptionExpiresAt } = useAuth()
 
-  // Show loading state while checking subscription OR while data is still undefined
-  // This prevents race condition where isLoading becomes false but data hasn't arrived yet
-  if (isLoading || data === undefined) {
+  // Only show loading during auth check (much faster now)
+  if (loading) {
     return (
       <div className="min-h-[400px] flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Checking access...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     )
@@ -53,6 +56,14 @@ export const SubscriptionGate = memo(function SubscriptionGate({ children, fallb
     return <>{fallback}</>
   }
 
+  // Calculate days remaining
+  const daysRemaining = subscriptionExpiresAt
+    ? Math.max(
+        0,
+        Math.ceil((new Date(subscriptionExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      )
+    : null
+
   return <UpgradePrompt feature={feature} daysRemaining={daysRemaining} isTrial={isTrial} />
 })
 
@@ -65,7 +76,11 @@ interface UpgradePromptProps {
 /**
  * Attractive upgrade prompt component with feature benefits and checkout integration
  */
-const UpgradePrompt = memo(function UpgradePrompt({ feature, daysRemaining, isTrial }: UpgradePromptProps) {
+const UpgradePrompt = memo(function UpgradePrompt({
+  feature,
+  daysRemaining,
+  isTrial,
+}: UpgradePromptProps) {
   const { startCheckout, isPending } = useCheckout()
 
   const handleUpgrade = useCallback(() => {

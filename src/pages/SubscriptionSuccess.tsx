@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useSubscription } from '@/hooks/useSubscription'
+import { useAuth } from '@/hooks/useAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,15 +9,23 @@ import { CheckCircle, ArrowRight, Home } from 'lucide-react'
 export function SubscriptionSuccess() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { refetch: refetchSubscription } = useSubscription()
+  const { refreshSubscription } = useAuth()
 
   // Get session_id from URL params (Stripe redirects with this)
   const sessionId = searchParams.get('session_id')
 
   useEffect(() => {
-    // Refetch subscription status when component mounts to get updated subscription info
-    refetchSubscription()
-  }, [refetchSubscription])
+    // Refresh subscription metadata to get updated JWT
+    const updateSubscription = async () => {
+      await refreshSubscription()
+      // Wait a moment for Stripe webhook to process
+      setTimeout(() => {
+        refreshSubscription()
+      }, 2000)
+    }
+
+    updateSubscription()
+  }, [refreshSubscription])
 
   return (
     <AppLayout>

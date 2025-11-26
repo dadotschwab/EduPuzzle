@@ -13,25 +13,39 @@ import {
   Wifi,
   RefreshCw,
 } from 'lucide-react'
-import { useSubscription } from '@/hooks/useSubscription'
+import { useAuth } from '@/hooks/useAuth'
 import { useCheckout } from '@/hooks/useCheckout'
 import { useCustomerPortal } from '@/hooks/useCustomerPortal'
 import { usePostPayment } from '@/hooks/usePostPayment'
 
 export function SubscriptionSettings() {
   const {
-    data: subscription,
-    isLoading,
-    error,
+    user,
+    loading: isLoading,
     hasAccess,
-    daysRemaining,
-    errorType,
-    retry,
-    isActive,
-  } = useSubscription()
+    isTrial,
+    subscriptionStatus,
+    subscriptionExpiresAt,
+    refreshSubscription: refreshAuthSubscription,
+  } = useAuth()
   const { startCheckout, isPending: checkoutPending } = useCheckout()
   const { openPortal, isPending: portalPending } = useCustomerPortal()
   const { refreshSubscription } = usePostPayment()
+
+  // Calculate days remaining
+  const daysRemaining = subscriptionExpiresAt
+    ? Math.max(
+        0,
+        Math.ceil((new Date(subscriptionExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      )
+    : null
+
+  // Get subscription data from user metadata
+  const subscription = user?.subscription
+  const isActive = subscriptionStatus === 'active'
+  const error = null
+  const errorType = null
+  const retry = () => {}
 
   // Refresh subscription status after returning from Stripe checkout
   useEffect(() => {
@@ -42,13 +56,14 @@ export function SubscriptionSettings() {
       // User returned from successful Stripe checkout
       console.log('Detected Stripe checkout return, refreshing subscription status')
       refreshSubscription()
+      refreshAuthSubscription()
 
       // Clean up URL parameter
       const newUrl = new URL(window.location.href)
       newUrl.searchParams.delete('session_id')
       window.history.replaceState({}, '', newUrl.toString())
     }
-  }, [refreshSubscription])
+  }, [refreshSubscription, refreshAuthSubscription])
 
   // Only show portal access for paid subscriptions (not trial)
   const canAccessPortal =
@@ -175,7 +190,7 @@ export function SubscriptionSettings() {
       return `${daysRemaining} day${daysRemaining === 1 ? '' : 's'} remaining in trial`
     }
 
-    return subscription.message
+    return ''
   }
 
   const handleUpgrade = () => {
@@ -219,14 +234,14 @@ export function SubscriptionSettings() {
               {subscription && (
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground">{getStatusMessage()}</p>
-                  {subscription.trialEndsAt && subscription.status === 'trial' && (
+                  {subscription?.trial_ends_at && subscription.status === 'trial' && (
                     <p className="text-xs text-muted-foreground">
-                      Trial ends: {new Date(subscription.trialEndsAt).toLocaleDateString()}
+                      Trial ends: {new Date(subscription.trial_ends_at).toLocaleDateString()}
                     </p>
                   )}
-                  {subscription.subscriptionEndsAt && subscription.status === 'active' && (
+                  {subscription?.expires_at && subscription.status === 'active' && (
                     <p className="text-xs text-muted-foreground">
-                      Next billing: {new Date(subscription.subscriptionEndsAt).toLocaleDateString()}
+                      Next billing: {new Date(subscription.expires_at).toLocaleDateString()}
                     </p>
                   )}
                 </div>

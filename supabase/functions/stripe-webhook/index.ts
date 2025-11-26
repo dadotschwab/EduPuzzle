@@ -5,6 +5,7 @@
  * SECURITY CRITICAL: Handles all Stripe subscription events.
  * - Verifies webhook signatures (prevents spoofing)
  * - Updates subscription status in database
+ * - Updates JWT metadata for instant access
  * - Handles payment failures and cancellations
  * - PUBLIC ACCESS: Uses webhook signature verification instead of auth headers
  *
@@ -112,7 +113,7 @@ Deno.serve(async (request) => {
   const warnings = detectSuspiciousPatterns(request)
   if (warnings.length > 0) {
     logSecurityEvent('Suspicious request patterns detected', { warnings })
-    // Continue processing but log the warnings
+    // Continue processing but log warnings
   }
 
   try {
@@ -127,7 +128,7 @@ Deno.serve(async (request) => {
     // verification relies on the raw request body rather than the parsed JSON.
     const body = await request.text()
 
-    let receivedEvent
+    let receivedEvent: Stripe.Event
     try {
       receivedEvent = await stripe.webhooks.constructEventAsync(
         body,
@@ -136,7 +137,7 @@ Deno.serve(async (request) => {
         undefined,
         cryptoProvider
       )
-    } catch (err) {
+    } catch (err: any) {
       logger.error('Webhook signature verification failed:', err.message)
       return new Response(err.message, { status: 400 })
     }
@@ -144,8 +145,10 @@ Deno.serve(async (request) => {
     logger.info(`Event received: ${receivedEvent.id} - Type: ${receivedEvent.type}`, {
       customer: receivedEvent.data.object.customer,
       subscription: receivedEvent.data.object.subscription,
-      amount: receivedEvent.data.object.amount_total || receivedEvent.data.object.amount,
-      status: receivedEvent.data.object.status,
+      amount:
+        (receivedEvent.data.object as any).amount_total ||
+        (receivedEvent.data.object as any).amount,
+      status: (receivedEvent.data.object as any).status,
     })
 
     // Security Layer 3: Idempotency Check
@@ -195,7 +198,7 @@ Deno.serve(async (request) => {
 
       const supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
 
-      // Process the event based on its type
+      // Process event based on its type
       // Check if event was already processed
       const { data: existingEvent, error: eventCheckError } = await supabaseClient
         .from('stripe_webhook_events')
@@ -344,6 +347,7 @@ async function handleCheckoutCompleted(
     .from('users')
     .update({
       stripe_customer_id: customerId,
+      stripe_subscription_id: subscriptionId,
       subscription_status: newStatus,
       subscription_end_date: subscriptionEndDate.toISOString(),
     })
@@ -355,6 +359,10 @@ async function handleCheckoutCompleted(
   }
 
   logger.info(`User subscription status updated`, { userId, newStatus })
+
+  // Update user JWT metadata with new subscription status
+  await updateUserSubscriptionMetadata(userId)
+
   return { userId, newStatus }
 }
 
@@ -394,6 +402,7 @@ async function handleSubscriptionUpdated(
   const { error } = await supabase
     .from('users')
     .update({
+      stripe_subscription_id: subscription.id,
       subscription_status: newStatus,
       subscription_end_date: subscriptionEndDate.toISOString(),
     })
@@ -405,6 +414,10 @@ async function handleSubscriptionUpdated(
   }
 
   logger.info(`User subscription updated`, { userId: user.id, newStatus })
+
+  // Update user JWT metadata with new subscription status
+  await updateUserSubscriptionMetadata(user.id)
+
   return { userId: user.id, newStatus }
 }
 
@@ -446,6 +459,10 @@ async function handleSubscriptionDeleted(
   }
 
   logger.info(`User subscription cancelled`, { userId: user.id })
+
+  // Update user JWT metadata with new subscription status
+  await updateUserSubscriptionMetadata(user.id)
+
   return { userId: user.id, newStatus: 'cancelled' }
 }
 
@@ -483,7 +500,7 @@ async function handlePaymentSucceeded(
 
   // Update subscription end date
   const subscriptionEndDate = new Date(subscription.current_period_end * 1000)
-  const newStatus = mapStripeStatus(subscription.status) // Fixed: Use mapStripeStatus instead of hardcoded 'active'
+  const newStatus = mapStripeStatus(subscription.status)
 
   const { error } = await supabase
     .from('users')
@@ -499,6 +516,10 @@ async function handlePaymentSucceeded(
   }
 
   logger.info(`User payment processed successfully`, { userId: user.id, newStatus })
+
+  // Update user JWT metadata with new subscription status
+  await updateUserSubscriptionMetadata(user.id)
+
   return { userId: user.id, newStatus }
 }
 
@@ -539,5 +560,46 @@ async function handlePaymentFailed(
   }
 
   logger.warn(`User payment failed - marked as past_due`, { userId: user.id })
+
+  // Update user JWT metadata with new subscription status
+  await updateUserSubscriptionMetadata(user.id)
+
   return { userId: user.id, newStatus: 'past_due' }
+}
+
+/**
+ * Update user subscription metadata in JWT
+ */
+async function updateUserSubscriptionMetadata(userId: string): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      logger.error('Missing Supabase configuration for metadata update')
+      return
+    }
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/update-user-subscription`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${supabaseServiceKey}`,
+      },
+      body: JSON.stringify({ userId }),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      logger.error('Failed to update user subscription metadata:', {
+        userId,
+        status: response.status,
+        error: errorText,
+      })
+    } else {
+      logger.info('Successfully updated user subscription metadata:', { userId })
+    }
+  } catch (error) {
+    logger.error('Error updating user subscription metadata:', { userId, error })
+  }
 }
