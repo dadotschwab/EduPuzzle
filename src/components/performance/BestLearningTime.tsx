@@ -20,7 +20,7 @@ export const BestLearningTime = memo(function BestLearningTime({
       : { hour: 0, successRate: 0 } // Default value for empty data
 
   return (
-    <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-slate-200/60">
+    <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-blue-900">
           <span className="text-2xl">⏰</span>

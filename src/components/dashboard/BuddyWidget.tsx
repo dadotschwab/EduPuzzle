@@ -22,7 +22,7 @@ export function BuddyWidget({ className }: BuddyWidgetProps) {
 
   if (isLoading) {
     return (
-      <div className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-slate-200/60 ${className}`}>
+      <div className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200 ${className}`}>
         <Skeleton className="h-4 w-20 mb-3" />
         <div className="space-y-2">
           <Skeleton className="h-12 w-full rounded-lg" />
@@ -34,12 +34,12 @@ export function BuddyWidget({ className }: BuddyWidgetProps) {
 
   if (error) {
     return (
-      <div className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-slate-200/60 ${className}`}>
+      <div className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200 ${className}`}>
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">👥</span>
           <h3 className="text-sm font-bold text-slate-900">Buddy</h3>
         </div>
-        <div className="flex items-center gap-2 p-2 bg-white rounded-lg border-2 border-red-200/60">
+        <div className="flex items-center gap-2 p-2 bg-white rounded-lg border-2 border-red-200">
           <div className="text-xl">⚠️</div>
           <div className="flex-1">
             <div className="text-xs font-semibold text-slate-900">Unable to load</div>
@@ -53,14 +53,14 @@ export function BuddyWidget({ className }: BuddyWidgetProps) {
   }
 
   return (
-    <div className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-slate-200/60 ${className}`}>
+    <div className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200 ${className}`}>
       <div className="flex items-center gap-2 mb-3">
         <span className="text-lg">👥</span>
         <h3 className="text-sm font-bold text-slate-900">Buddy</h3>
       </div>
 
       <div className="space-y-2">
-        <div className="p-2 bg-white rounded-lg border-2 border-slate-200/60">
+        <div className="p-2 bg-white rounded-lg border-2 border-violet-300">
           <div className="flex items-center gap-2 mb-2">
             <div className="text-xl">{hasBuddy ? '👥' : '🔍'}</div>
             <div className="flex-1">

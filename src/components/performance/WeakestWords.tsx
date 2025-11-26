@@ -16,7 +16,7 @@ export const WeakestWords = memo(function WeakestWords({
 }): ReactElement {
   if (data.length === 0) {
     return (
-      <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-slate-200/60">
+      <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-amber-900">
             <span className="text-2xl">💪</span>
@@ -36,7 +36,7 @@ export const WeakestWords = memo(function WeakestWords({
   }
 
   return (
-    <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-slate-200/60">
+    <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-amber-900">
           <span className="text-2xl">💪</span>
@@ -51,7 +51,7 @@ export const WeakestWords = memo(function WeakestWords({
           {data.map((word, index) => (
             <div
               key={word.id}
-              className="flex items-center justify-between p-3 bg-white border-2 border-slate-200/60 rounded-xl"
+              className="flex items-center justify-between p-3 bg-white border-2 border-amber-200 rounded-xl"
             >
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-8 h-8 bg-amber-200 text-amber-900 font-bold rounded-full border-2 border-amber-400">

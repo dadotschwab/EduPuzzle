@@ -32,7 +32,7 @@ export function StreakDisplay({ className }: StreakDisplayProps) {
   if (isLoading) {
     return (
       <div
-        className={`p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl border-2 border-slate-200/60 ${className}`}
+        className={`p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl border-2 border-amber-200 ${className}`}
       >
         <Skeleton className="h-4 w-20 mb-3" />
         <div className="space-y-2">
@@ -122,7 +122,7 @@ export function StreakDisplay({ className }: StreakDisplayProps) {
   return (
     <TooltipProvider>
       <div
-        className={`p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl border-2 border-slate-200/60 ${className}`}
+        className={`p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl border-2 border-amber-200 ${className}`}
       >
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">🔥</span>
@@ -133,7 +133,7 @@ export function StreakDisplay({ className }: StreakDisplayProps) {
           {/* Current Streak */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center justify-between p-2 bg-white rounded-lg border-2 border-slate-200/60 cursor-help">
+              <div className="flex items-center justify-between p-2 bg-white rounded-lg border-2 border-amber-300 cursor-help">
                 <div className="flex items-center gap-2">
                   <div className={`text-xl ${hasActiveStreak ? 'text-orange-500' : 'text-gray-400'}`}>
                     🔥
@@ -157,7 +157,7 @@ export function StreakDisplay({ className }: StreakDisplayProps) {
             {/* Longest Streak */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex flex-col p-2 bg-white rounded-lg border-2 border-slate-200/60 cursor-help">
+                <div className="flex flex-col p-2 bg-white rounded-lg border-2 border-amber-200 cursor-help">
                   <div className="flex items-center gap-1 mb-0.5">
                     <Trophy className="w-3 h-3 text-yellow-500" />
                     <div className="text-[10px] font-semibold text-slate-500">Best</div>
@@ -173,7 +173,7 @@ export function StreakDisplay({ className }: StreakDisplayProps) {
             {/* Freeze Available */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex flex-col p-2 bg-white rounded-lg border-2 border-slate-200/60 cursor-help">
+                <div className="flex flex-col p-2 bg-white rounded-lg border-2 border-blue-200 cursor-help">
                   <div className="flex items-center gap-1 mb-0.5">
                     <div className={`text-sm ${canUseFreeze ? 'text-blue-500' : 'text-gray-400'}`}>
                       🧊

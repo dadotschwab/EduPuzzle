@@ -39,7 +39,7 @@ export function SettingsLayout() {
         <div className="flex gap-8">
           {/* Sidebar */}
           <aside className="w-64 flex-shrink-0 sticky top-20 self-start">
-            <nav className="space-y-2 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-slate-200/60 p-4">
+            <nav className="space-y-2 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200 p-4">
               {settingsNavItems.map((item, index) => {
                 const Icon = item.icon
                 const colors = [
