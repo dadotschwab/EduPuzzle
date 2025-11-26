@@ -28,10 +28,11 @@ interface SubscriptionGateProps {
  * Handles trial users, active subscribers, and expired users.
  */
 export const SubscriptionGate = memo(function SubscriptionGate({ children, fallback, feature }: SubscriptionGateProps) {
-  const { hasAccess, isTrial, daysRemaining, isLoading } = useSubscription()
+  const { hasAccess, isTrial, daysRemaining, isLoading, data } = useSubscription()
 
-  // Show loading state while checking subscription
-  if (isLoading) {
+  // Show loading state while checking subscription OR while data is still undefined
+  // This prevents race condition where isLoading becomes false but data hasn't arrived yet
+  if (isLoading || data === undefined) {
     return (
       <div className="min-h-[400px] flex items-center justify-center">
         <div className="text-center">
@@ -151,7 +152,7 @@ const UpgradePrompt = memo(function UpgradePrompt({ feature, daysRemaining, isTr
             </CardDescription>
             <div className="pt-4">
               <div className="text-3xl font-bold">
-                €4.99<span className="text-lg font-normal text-muted-foreground">/month</span>
+                €6.99<span className="text-lg font-normal text-muted-foreground">/month</span>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 7-day free trial • Cancel anytime
