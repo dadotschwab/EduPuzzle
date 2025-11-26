@@ -55,55 +55,53 @@ export function PerformanceStats(): ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Performance Insights</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-violet-600 via-pink-600 to-amber-600 bg-clip-text text-transparent">
+          Performance Insights
+        </h1>
+        <p className="text-slate-600 text-lg font-medium">
           Analyze your learning patterns and optimize your study sessions
         </p>
       </div>
 
       {/* Key Metrics Overview */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Learned</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data?.totalLearned || 0}</div>
-            <p className="text-xs text-muted-foreground">words mastered</p>
-          </CardContent>
-        </Card>
+        <div className="p-6 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">📚</span>
+            <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Total Learned</h3>
+          </div>
+          <div className="text-4xl font-bold text-violet-600">{data?.totalLearned || 0}</div>
+          <p className="text-sm text-slate-500 font-semibold mt-1">words mastered</p>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data?.successRate || 0}%</div>
-            <p className="text-xs text-muted-foreground">overall accuracy</p>
-          </CardContent>
-        </Card>
+        <div className="p-6 bg-gradient-to-br from-pink-50 to-rose-50 rounded-3xl border-2 border-pink-200">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">🎯</span>
+            <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Success Rate</h3>
+          </div>
+          <div className="text-4xl font-bold text-pink-600">{data?.successRate || 0}%</div>
+          <p className="text-sm text-slate-500 font-semibold mt-1">overall accuracy</p>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Weekly Puzzles</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data?.weeklyPuzzles || 0}</div>
-            <p className="text-xs text-muted-foreground">this week</p>
-          </CardContent>
-        </Card>
+        <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl border-2 border-amber-200">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">🧩</span>
+            <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Weekly Puzzles</h3>
+          </div>
+          <div className="text-4xl font-bold text-amber-600">{data?.weeklyPuzzles || 0}</div>
+          <p className="text-sm text-slate-500 font-semibold mt-1">this week</p>
+        </div>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Best Learning Time</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {data?.bestLearningTime ? `${data.bestLearningTime.hour}:00` : 'N/A'}
-            </div>
-            <p className="text-xs text-muted-foreground">peak performance</p>
-          </CardContent>
-        </Card>
+        <div className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl border-2 border-blue-200">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">⏰</span>
+            <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Best Time</h3>
+          </div>
+          <div className="text-4xl font-bold text-blue-600">
+            {data?.bestLearningTime ? `${data.bestLearningTime.hour}:00` : 'N/A'}
+          </div>
+          <p className="text-sm text-slate-500 font-semibold mt-1">peak performance</p>
+        </div>
       </div>
 
       {/* Charts Grid */}

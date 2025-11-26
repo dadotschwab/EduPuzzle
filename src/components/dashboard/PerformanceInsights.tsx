@@ -16,78 +16,91 @@ export function PerformanceInsights({ className }: { className?: string }): Reac
 
   if (isLoading) {
     return (
-      <Card className={cn('hidden lg:flex', className)}>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <Skeleton className="w-8 h-8 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-6 w-16" />
-              <Skeleton className="h-3 w-24" />
-            </div>
-            <Skeleton className="h-8 w-20" />
+      <div className={cn('p-6 bg-gradient-to-br from-pink-50 to-rose-50 rounded-3xl border-2 border-pink-200', className)}>
+        <Skeleton className="h-6 w-32 mb-4" />
+        <div className="space-y-3">
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <div className="grid grid-cols-2 gap-3">
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <Card className={cn('hidden lg:flex', className)}>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="text-2xl">📊</div>
-            <div className="flex-1">
-              <div className="text-sm text-gray-600">Performance</div>
-              <div className="font-semibold">Unable to load</div>
-              <div className="text-xs text-gray-500 mt-1">Check your connection</div>
-            </div>
-            <Button variant="outline" size="sm" onClick={retry}>
-              Retry
-            </Button>
+      <div className={cn('p-6 bg-gradient-to-br from-pink-50 to-rose-50 rounded-3xl border-2 border-pink-200', className)}>
+        <h3 className="text-lg font-bold text-slate-900 mb-4">📊 Performance</h3>
+        <div className="flex items-center gap-3 p-3 bg-white rounded-xl border-2 border-red-200">
+          <div className="text-2xl">⚠️</div>
+          <div className="flex-1">
+            <div className="font-semibold text-slate-900">Unable to load</div>
+            <div className="text-xs text-slate-500 mt-1">Check your connection</div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <Button variant="outline" size="sm" className="w-full mt-3" onClick={retry}>
+          Retry
+        </Button>
+      </div>
     )
   }
 
   const { totalLearned, successRate, weeklyPuzzles, trends } = data || {}
 
   return (
-    <Card className={cn('hidden lg:flex', className)}>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-4">
-          <div className="text-2xl">📊</div>
-          <div className="flex-1">
-            <div className="text-sm text-gray-600">Performance</div>
-            <div className="font-semibold flex items-center gap-2">
-              {totalLearned} words learned
-              {trends?.learned && (
-                <Badge variant={trends.learned > 0 ? 'default' : 'secondary'} className="text-xs">
-                  {trends.learned > 0 ? (
-                    <TrendingUp className="w-3 h-3 mr-1" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3 mr-1" />
-                  )}
-                  {Math.abs(trends.learned)}
-                </Badge>
-              )}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">
-              {successRate}% success rate • {weeklyPuzzles} puzzles this week
+    <div className={cn('p-6 bg-gradient-to-br from-pink-50 to-rose-50 rounded-3xl border-2 border-pink-200', className)}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-bold text-slate-900">📊 Performance</h3>
+      </div>
+
+      <div className="space-y-3">
+        {/* Main stat */}
+        <div className="p-4 bg-white rounded-xl border-2 border-pink-300">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Words Learned</div>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="text-3xl font-bold text-slate-900">{totalLearned || 0}</div>
+                {trends?.learned && trends.learned !== 0 && (
+                  <Badge variant={trends.learned > 0 ? 'default' : 'secondary'} className="text-xs">
+                    {trends.learned > 0 ? (
+                      <TrendingUp className="w-3 h-3 mr-1" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3 mr-1" />
+                    )}
+                    {Math.abs(trends.learned)}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => (window.location.href = '/settings/stats')}
-          >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Details
-          </Button>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Additional stats */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-white rounded-xl border-2 border-pink-200">
+            <div className="text-xs font-semibold text-slate-600 mb-1">Success Rate</div>
+            <div className="text-2xl font-bold text-pink-600">{successRate || 0}%</div>
+          </div>
+
+          <div className="p-3 bg-white rounded-xl border-2 border-pink-200">
+            <div className="text-xs font-semibold text-slate-600 mb-1">This Week</div>
+            <div className="text-2xl font-bold text-pink-600">{weeklyPuzzles || 0}</div>
+          </div>
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => (window.location.href = '/settings/stats')}
+        >
+          <BarChart3 className="w-4 h-4 mr-2" />
+          View Details
+        </Button>
+      </div>
+    </div>
   )
 }

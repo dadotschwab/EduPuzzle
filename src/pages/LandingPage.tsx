@@ -33,8 +33,8 @@ function Header() {
   return (
     <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-lg border-b border-slate-100">
       <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
-        <Link to="/" className="flex items-center gap-2 group cursor-pointer">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white transform group-hover:rotate-12 transition-transform duration-300 shadow-md shadow-violet-200">
+        <Link to="/" className="flex items-center gap-2 cursor-pointer">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white shadow-md shadow-violet-200">
             <Puzzle size={22} className="fill-white/20" />
           </div>
           <span className="text-2xl font-bold tracking-tight text-slate-900">EduPuzzle</span>
@@ -99,112 +99,50 @@ function Header() {
   )
 }
 
-// Visual Crossword Component
-function VisualCrossword() {
-  // Simple grid structure for visual representation
-  // 0 = empty/black, 1 = input slot, 2 = highlighted/active
-  const grid = [
-    [1, 1, 1, 1, 0, 1, 1, 1],
-    [1, 0, 0, 1, 0, 1, 0, 0],
-    [1, 1, 1, 2, 1, 2, 1, 1],
-    [0, 0, 0, 1, 0, 1, 0, 1],
-    [1, 1, 1, 1, 1, 0, 1, 1],
-    [1, 0, 0, 0, 0, 1, 1, 0],
-    [1, 1, 1, 1, 0, 1, 1, 1]
-  ]
-
-  return (
-    <div className="relative w-full max-w-md mx-auto aspect-square">
-      {/* Decorative Blobs */}
-      <div className="absolute top-10 -right-10 w-24 h-24 bg-amber-300 rounded-full blur-xl opacity-60 animate-pulse"></div>
-      <div className="absolute -bottom-5 -left-5 w-32 h-32 bg-violet-400 rounded-full blur-xl opacity-60"></div>
-
-      <div className="relative z-10 bg-white rounded-3xl shadow-2xl shadow-violet-200/50 p-6 border-4 border-slate-900 transform rotate-2 hover:rotate-0 transition-transform duration-500 animate-float">
-        <div className="absolute -top-5 -right-5 bg-pink-500 text-white font-bold px-6 py-2 rounded-full shadow-lg z-20 border-2 border-slate-900 transform rotate-6">
-          100% Progress 🏆
-        </div>
-
-        <div className="w-full h-full bg-slate-100 rounded-xl grid grid-rows-7 grid-cols-8 gap-1.5 p-2 border-2 border-slate-200">
-          {grid.map((row, rowIndex) => (
-            row.map((cell, colIndex) => {
-              if (cell === 0) {
-                return <div key={`${rowIndex}-${colIndex}`} className="bg-slate-200/50 rounded-md" />
-              }
-              const isHighlight = cell === 2
-              return (
-                <div
-                  key={`${rowIndex}-${colIndex}`}
-                  className={`relative rounded-md transition-all duration-300 border-b-4 border-r-2
-                    ${isHighlight
-                      ? 'bg-amber-300 border-amber-500 transform -translate-y-1'
-                      : 'bg-white border-slate-200 hover:border-violet-400 hover:shadow-sm'}`}
-                >
-                  {/* Random letter simulation for visuals */}
-                  <span className={`absolute bottom-0 right-1.5 font-bold text-lg select-none ${isHighlight ? 'text-amber-900' : 'text-slate-800'}`}>
-                    {isHighlight ? ['L', 'E', 'A', 'R', 'N'][colIndex % 5] : ''}
-                  </span>
-                  <span className="absolute top-0.5 left-1 text-[8px] text-slate-400 select-none font-bold">
-                    {(rowIndex * 8 + colIndex) % 5 === 0 ? (rowIndex * 8 + colIndex) / 5 + 1 : ''}
-                  </span>
-                </div>
-              )
-            })
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // Hero Component
 function Hero() {
   return (
     <section className="relative overflow-hidden pt-12 pb-20 lg:pt-28 lg:pb-32 pattern-bg">
       <div className="container mx-auto px-4 md:px-6 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-          <div className="max-w-2xl text-center lg:text-left mx-auto lg:mx-0">
-            <div className="inline-flex items-center rounded-full border-2 border-slate-900 bg-amber-300 px-4 py-1.5 text-sm font-bold text-slate-900 mb-8 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] transform -rotate-2 hover:rotate-0 transition-transform">
-              <Star size={16} className="mr-2 fill-slate-900" />
-              Boring homework is officially cancelled
-            </div>
-
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 mb-6 leading-tight">
-              Study Words. <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-pink-500">Play Games.</span>
-              <br/> Win Grades.
-            </h1>
-
-            <p className="text-xl text-slate-600 mb-10 leading-relaxed font-medium">
-              Turn that dreadfully long vocabulary list into an epic crossword battle.
-              Our AI builds unique puzzles instantly, so you can learn without falling asleep.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
-              <Link to="/signup">
-                <Button size="lg" className="shadow-violet-200/50 shadow-xl w-full sm:w-auto text-lg px-8">
-                  Generate a Puzzle Free
-                  <ArrowRight className="ml-2" />
-                </Button>
-              </Link>
-              <a href="#how-it-works">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto text-lg">
-                  See How It Works
-                </Button>
-              </a>
-            </div>
-
-            <div className="flex items-center justify-center lg:justify-start gap-4 text-sm font-semibold text-slate-500">
-               <div className="flex -space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-pink-400 border-2 border-white"></div>
-                  <div className="w-8 h-8 rounded-full bg-violet-400 border-2 border-white"></div>
-                  <div className="w-8 h-8 rounded-full bg-amber-400 border-2 border-white"></div>
-               </div>
-               <p>Join thousands of happy students</p>
-            </div>
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center rounded-full border-2 border-slate-900 bg-amber-300 px-4 py-1.5 text-sm font-bold text-slate-900 mb-8 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)]">
+            <Star size={16} className="mr-2 fill-slate-900" />
+            Boring homework is officially cancelled
           </div>
 
-          <div className="relative mx-auto lg:mr-0 w-full max-w-md lg:max-w-full">
-            <VisualCrossword />
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 mb-6 leading-tight">
+            Study Words. <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-pink-500">Play Games.</span>
+            <br/> Win Grades.
+          </h1>
+
+          <p className="text-xl text-slate-600 mb-10 leading-relaxed font-medium max-w-3xl mx-auto">
+            Turn that dreadfully long vocabulary list into an epic crossword battle.
+            Our AI builds unique puzzles instantly, so you can learn without falling asleep.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Link to="/signup">
+              <Button size="lg" className="shadow-violet-200/50 shadow-xl w-full sm:w-auto text-lg px-8">
+                Generate a Puzzle Free
+                <ArrowRight className="ml-2" />
+              </Button>
+            </Link>
+            <a href="#how-it-works">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto text-lg">
+                See How It Works
+              </Button>
+            </a>
+          </div>
+
+          <div className="flex items-center justify-center gap-4 text-sm font-semibold text-slate-500">
+             <div className="flex -space-x-2">
+                <div className="w-8 h-8 rounded-full bg-pink-400 border-2 border-white"></div>
+                <div className="w-8 h-8 rounded-full bg-violet-400 border-2 border-white"></div>
+                <div className="w-8 h-8 rounded-full bg-amber-400 border-2 border-white"></div>
+             </div>
+             <p>Join thousands of happy students</p>
           </div>
         </div>
       </div>

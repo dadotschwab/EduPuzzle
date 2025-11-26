@@ -14,22 +14,37 @@ export const StageDistributionChart = memo(function StageDistributionChart({
   data: StageData[]
 }): ReactElement {
   return (
-    <Card>
+    <Card className="bg-gradient-to-br from-violet-50 to-purple-50 border-violet-200">
       <CardHeader>
-        <CardTitle>Word Stage Distribution</CardTitle>
-        <CardDescription>Words distributed across spaced repetition stages</CardDescription>
+        <CardTitle className="flex items-center gap-2 text-violet-900">
+          <span className="text-2xl">📊</span>
+          Word Stage Distribution
+        </CardTitle>
+        <CardDescription className="text-slate-600 font-medium">
+          Words distributed across spaced repetition stages
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="stage" tickFormatter={(stage) => `Stage ${stage}`} />
-            <YAxis />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e9d5ff" />
+            <XAxis
+              dataKey="stage"
+              tickFormatter={(stage) => `Stage ${stage}`}
+              stroke="#7c3aed"
+            />
+            <YAxis stroke="#7c3aed" />
             <Tooltip
               formatter={(value: number) => [value, 'Words']}
               labelFormatter={(stage) => `Stage ${stage}`}
+              contentStyle={{
+                backgroundColor: 'white',
+                border: '2px solid #7c3aed',
+                borderRadius: '12px',
+                fontWeight: 'bold'
+              }}
             />
-            <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="count" fill="#7c3aed" radius={[8, 8, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

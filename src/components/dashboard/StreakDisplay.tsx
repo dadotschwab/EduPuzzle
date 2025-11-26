@@ -32,30 +32,16 @@ export function StreakDisplay({ className }: StreakDisplayProps) {
   if (isLoading) {
     return (
       <div
-        className={`flex items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-200 ${className}`}
+        className={`p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl border-2 border-amber-200 ${className}`}
       >
-        <div className="flex items-center gap-2">
-          <Skeleton className="w-8 h-8 rounded-full" />
-          <div>
-            <Skeleton className="h-4 w-24 mb-1" />
-            <Skeleton className="h-6 w-12" />
+        <Skeleton className="h-6 w-32 mb-4" />
+        <div className="space-y-4">
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <div className="grid grid-cols-2 gap-3">
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-20 w-full rounded-xl" />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="w-5 h-5" />
-          <div>
-            <Skeleton className="h-4 w-20 mb-1" />
-            <Skeleton className="h-5 w-8" />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="w-5 h-5" />
-          <div>
-            <Skeleton className="h-4 w-16 mb-1" />
-            <Skeleton className="h-5 w-6" />
-          </div>
-        </div>
-        <Skeleton className="h-8 w-32 ml-auto" />
       </div>
     )
   }
@@ -136,75 +122,82 @@ export function StreakDisplay({ className }: StreakDisplayProps) {
   return (
     <TooltipProvider>
       <div
-        className={`flex items-center gap-4 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-200 ${className}`}
+        className={`p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl border-2 border-amber-200 ${className}`}
       >
-        {/* Current Streak */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 cursor-help">
-              <div className={`text-2xl ${hasActiveStreak ? 'text-orange-500' : 'text-gray-400'}`}>
-                🔥
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Current Streak</div>
-                <div
-                  className={`text-2xl font-bold ${hasActiveStreak ? 'text-orange-600' : 'text-gray-500'}`}
-                >
-                  {current_streak}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-slate-900">🔥 Streak Status</h3>
+        </div>
+
+        <div className="space-y-4">
+          {/* Current Streak */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center justify-between p-3 bg-white rounded-xl border-2 border-amber-300 cursor-help">
+                <div className="flex items-center gap-3">
+                  <div className={`text-3xl ${hasActiveStreak ? 'text-orange-500' : 'text-gray-400'}`}>
+                    🔥
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Current Streak</div>
+                    <div className={`text-3xl font-bold ${hasActiveStreak ? 'text-orange-600' : 'text-gray-500'}`}>
+                      {current_streak}
+                    </div>
+                  </div>
                 </div>
+                <div className="text-xs text-slate-500">days</div>
               </div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Complete 5+ puzzles or all due words daily to maintain your streak</p>
-          </TooltipContent>
-        </Tooltip>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Complete 5+ puzzles or all due words daily to maintain your streak</p>
+            </TooltipContent>
+          </Tooltip>
 
-        {/* Longest Streak */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 cursor-help">
-              <Trophy className="w-5 h-5 text-yellow-500" />
-              <div>
-                <div className="text-sm text-gray-600">Best Streak</div>
-                <div className="text-lg font-semibold text-gray-700">{longest_streak}</div>
-              </div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Your personal best streak record</p>
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Freeze Available */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 cursor-help">
-              <div className={`text-xl ${canUseFreeze ? 'text-blue-500' : 'text-gray-400'}`}>
-                🧊
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Freezes</div>
-                <div
-                  className={`text-lg font-semibold ${canUseFreeze ? 'text-blue-600' : 'text-gray-500'}`}
-                >
-                  {streak_freezes_available}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Longest Streak */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col p-3 bg-white rounded-xl border-2 border-amber-200 cursor-help">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Trophy className="w-4 h-4 text-yellow-500" />
+                    <div className="text-xs font-semibold text-slate-600">Best</div>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-700">{longest_streak}</div>
                 </div>
-              </div>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Protect your streak on missed days. Refills monthly on the 1st.</p>
-          </TooltipContent>
-        </Tooltip>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Your personal best streak record</p>
+              </TooltipContent>
+            </Tooltip>
 
-        {/* Daily Progress */}
-        <div className="ml-auto">
-          <StreakProgress
-            puzzlesCompleted={todaysProgress.puzzlesCompleted}
-            wordsCompleted={todaysProgress.wordsCompleted}
-            dueWords={todaysProgress.dueWords}
-          />
+            {/* Freeze Available */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex flex-col p-3 bg-white rounded-xl border-2 border-blue-200 cursor-help">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`text-lg ${canUseFreeze ? 'text-blue-500' : 'text-gray-400'}`}>
+                      🧊
+                    </div>
+                    <div className="text-xs font-semibold text-slate-600">Freezes</div>
+                  </div>
+                  <div className={`text-2xl font-bold ${canUseFreeze ? 'text-blue-600' : 'text-gray-500'}`}>
+                    {streak_freezes_available}
+                  </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Protect your streak on missed days. Refills monthly on the 1st.</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Daily Progress */}
+          <div className="pt-2 border-t-2 border-amber-200">
+            <StreakProgress
+              puzzlesCompleted={todaysProgress.puzzlesCompleted}
+              wordsCompleted={todaysProgress.wordsCompleted}
+              dueWords={todaysProgress.dueWords}
+            />
+          </div>
         </div>
       </div>
     </TooltipProvider>

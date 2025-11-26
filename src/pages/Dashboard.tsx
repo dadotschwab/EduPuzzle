@@ -114,7 +114,7 @@ export function Dashboard() {
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with gradient */}
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-8">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-8">
           <div className="flex-1">
             <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-slate-900 via-violet-900 to-slate-900 bg-clip-text text-transparent">
               Welcome back{user?.name ? `, ${user.name}` : ''}!
@@ -124,8 +124,8 @@ export function Dashboard() {
             </p>
           </div>
 
-          {/* Widgets - positioned next to welcome text on desktop */}
-          <div className="hidden lg:flex gap-4">
+          {/* Widgets - positioned vertically next to welcome text on desktop */}
+          <div className="hidden lg:flex flex-col gap-4 w-80">
             <StreakDisplay />
             <BuddyWidget />
             <PerformanceInsights />
@@ -133,7 +133,7 @@ export function Dashboard() {
         </div>
 
         {/* Mobile: Show widgets below welcome text */}
-        <div className="lg:hidden space-y-4 mb-4">
+        <div className="lg:hidden space-y-4 mb-8">
           <StreakDisplay />
           <BuddyWidget />
           <PerformanceInsights />

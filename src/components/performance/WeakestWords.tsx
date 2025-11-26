@@ -16,16 +16,18 @@ export const WeakestWords = memo(function WeakestWords({
 }): ReactElement {
   if (data.length === 0) {
     return (
-      <Card>
+      <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-amber-900">
+            <span className="text-2xl">💪</span>
             Weakest Words
           </CardTitle>
-          <CardDescription>Words that need more practice</CardDescription>
+          <CardDescription className="text-slate-600 font-medium">
+            Words that need more practice
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-center py-8">
+          <p className="text-slate-600 text-center py-8 font-semibold">
             No words identified for improvement yet. Keep learning!
           </p>
         </CardContent>
@@ -34,26 +36,35 @@ export const WeakestWords = memo(function WeakestWords({
   }
 
   return (
-    <Card>
+    <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5" />
+        <CardTitle className="flex items-center gap-2 text-amber-900">
+          <span className="text-2xl">💪</span>
           Weakest Words
         </CardTitle>
-        <CardDescription>Focus on these words to improve your accuracy</CardDescription>
+        <CardDescription className="text-slate-600 font-medium">
+          Focus on these words to improve your accuracy
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {data.map((word, index) => (
-            <div key={word.id} className="flex items-center justify-between p-3 border rounded-lg">
+            <div
+              key={word.id}
+              className="flex items-center justify-between p-3 bg-white border-2 border-amber-300 rounded-xl"
+            >
               <div className="flex items-center gap-3">
-                <Badge variant="outline">{index + 1}</Badge>
+                <div className="flex items-center justify-center w-8 h-8 bg-amber-200 text-amber-900 font-bold rounded-full border-2 border-amber-400">
+                  {index + 1}
+                </div>
                 <div>
-                  <div className="font-medium">{word.word}</div>
-                  <div className="text-sm text-muted-foreground">{word.attempts} attempts</div>
+                  <div className="font-bold text-slate-900">{word.word}</div>
+                  <div className="text-sm text-slate-500 font-semibold">{word.attempts} attempts</div>
                 </div>
               </div>
-              <Badge variant="destructive">{word.accuracy}% accuracy</Badge>
+              <div className="px-3 py-1 bg-red-100 text-red-700 font-bold text-sm rounded-lg border-2 border-red-300">
+                {word.accuracy}%
+              </div>
             </div>
           ))}
         </div>
