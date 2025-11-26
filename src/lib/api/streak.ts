@@ -50,9 +50,9 @@ export async function getStreakData(): Promise<StreakData> {
     .from('user_streaks')
     .select('*')
     .eq('user_id', userId)
-    .single()
+    .maybeSingle()
 
-  if (streakError && streakError.code !== 'PGRST116') {
+  if (streakError) {
     // Check if it's a table not found error (migration not run yet)
     if (
       streakError.message?.includes('relation') &&
@@ -61,7 +61,10 @@ export async function getStreakData(): Promise<StreakData> {
       console.warn('[getStreakData] Streak tables not found - migration may not be run yet')
       return { userStreak: null, todaysCompletion: null, yesterdayCompletion: null }
     }
-    throw new StreakApiError(streakError.message, 500)
+    // Ignore PGRST116 (no rows found) - that's expected for new users
+    if (streakError.code !== 'PGRST116') {
+      throw new StreakApiError(streakError.message, 500)
+    }
   }
 
   // Get today's completion
@@ -70,9 +73,9 @@ export async function getStreakData(): Promise<StreakData> {
     .select('*')
     .eq('user_id', userId)
     .eq('completion_date', today)
-    .single()
+    .maybeSingle()
 
-  if (todayError && todayError.code !== 'PGRST116') {
+  if (todayError) {
     // Check if it's a table not found error (migration not run yet)
     if (
       todayError.message?.includes('relation') &&
@@ -81,7 +84,10 @@ export async function getStreakData(): Promise<StreakData> {
       console.warn('[getStreakData] Streak tables not found - migration may not be run yet')
       return { userStreak: userStreak || null, todaysCompletion: null, yesterdayCompletion: null }
     }
-    throw new StreakApiError(todayError.message, 500)
+    // Ignore PGRST116 (no rows found) - that's expected for new users
+    if (todayError.code !== 'PGRST116') {
+      throw new StreakApiError(todayError.message, 500)
+    }
   }
 
   // Get yesterday's completion
@@ -90,9 +96,9 @@ export async function getStreakData(): Promise<StreakData> {
     .select('*')
     .eq('user_id', userId)
     .eq('completion_date', yesterday)
-    .single()
+    .maybeSingle()
 
-  if (yesterdayError && yesterdayError.code !== 'PGRST116') {
+  if (yesterdayError) {
     // Check if it's a table not found error (migration not run yet)
     if (
       yesterdayError.message?.includes('relation') &&
@@ -105,7 +111,10 @@ export async function getStreakData(): Promise<StreakData> {
         yesterdayCompletion: null,
       }
     }
-    throw new StreakApiError(yesterdayError.message, 500)
+    // Ignore PGRST116 (no rows found) - that's expected for new users
+    if (yesterdayError.code !== 'PGRST116') {
+      throw new StreakApiError(yesterdayError.message, 500)
+    }
   }
 
   return {

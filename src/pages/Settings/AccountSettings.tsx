@@ -42,12 +42,20 @@ export function AccountSettings() {
     }
 
     try {
-      const { error } = await supabase
+      // Update name in database
+      const { error: dbError } = await supabase
         .from('users')
         .update({ name: newName.trim() })
         .eq('id', user?.id!)
 
-      if (error) throw error
+      if (dbError) throw dbError
+
+      // Update name in JWT user_metadata (this is what the app reads!)
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { name: newName.trim() },
+      })
+
+      if (authError) throw authError
 
       setSuccess('Name updated successfully!')
       await refreshUser()
@@ -193,10 +201,14 @@ export function AccountSettings() {
               <Label>Name</Label>
               <p className="text-sm text-muted-foreground">{user?.name || 'Not set'}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => {
-              setNewName(user?.name || '')
-              setNameDialogOpen(true)
-            }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setNewName(user?.name || '')
+                setNameDialogOpen(true)
+              }}
+            >
               <Edit className="w-4 h-4 mr-2" />
               Edit
             </Button>
@@ -233,9 +245,7 @@ export function AccountSettings() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Update Name</DialogTitle>
-            <DialogDescription>
-              Change how we greet you in the app.
-            </DialogDescription>
+            <DialogDescription>Change how we greet you in the app.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateName} className="space-y-4 mt-4">
             <div className="space-y-2">

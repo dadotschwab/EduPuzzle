@@ -104,11 +104,12 @@ serve(async (req) => {
 
     logger.info(`[update-user-subscription] Processing user: ${userId}`)
 
-    // 5. Fetch user subscription data from database
+    // 5. Fetch user subscription data from database (including name for JWT sync)
     const { data: userData, error: userError } = await serviceClient
       .from('users')
       .select(
         `
+        name,
         subscription_status,
         trial_end_date,
         subscription_end_date,
@@ -149,7 +150,7 @@ serve(async (req) => {
             trial_end_date: trialEndDate.toISOString(),
           })
           .select(
-            'subscription_status, trial_end_date, subscription_end_date, stripe_customer_id, stripe_subscription_id'
+            'name, subscription_status, trial_end_date, subscription_end_date, stripe_customer_id, stripe_subscription_id'
           )
           .single()
 
@@ -238,7 +239,7 @@ serve(async (req) => {
       checked_at: now.toISOString(),
     }
 
-    // 8. Update user metadata in auth system
+    // 8. Update user metadata in auth system (including name in user_metadata)
     const { data: updatedUser, error: updateError } = await serviceClient.auth.admin.updateUserById(
       userId,
       {
@@ -246,6 +247,9 @@ serve(async (req) => {
           subscription: subscriptionMetadata,
           stripe_customer_id: userData.stripe_customer_id,
           stripe_subscription_id: userData.stripe_subscription_id,
+        },
+        user_metadata: {
+          name: userData.name || undefined, // Sync name to JWT user_metadata
         },
       }
     )

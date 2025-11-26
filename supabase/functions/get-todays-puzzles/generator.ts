@@ -8,8 +8,14 @@ import { Grid } from './grid.ts'
 import { findPlacements } from './placement.ts'
 import { getBestPlacement } from './scoring.ts'
 import { isConnected } from './connectivity.ts'
-import { clusterWords, validateClustering, getClusteringStats, redistributeFailedWords } from './clustering.ts'
+import {
+  clusterWords,
+  validateClustering,
+  getClusteringStats,
+  redistributeFailedWords,
+} from './clustering.ts'
 import { SeededRandom } from './seededRandom.ts'
+import { logger } from '../_shared/logger.ts'
 
 const DEFAULT_CONFIG: GenerationConfig = {
   maxGridSize: 16,
@@ -54,12 +60,7 @@ function generatePuzzleAttempt(
       continue
     }
 
-    const placed = grid.placeWord(
-      word,
-      bestPlacement.x,
-      bestPlacement.y,
-      bestPlacement.direction
-    )
+    const placed = grid.placeWord(word, bestPlacement.x, bestPlacement.y, bestPlacement.direction)
 
     if (placed) {
       placedCount++
@@ -98,9 +99,8 @@ async function generatePuzzle(
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // For first attempt, use sorted order
     // For subsequent attempts, shuffle with seeded RNG
-    const orderedWords = attempt === 0
-      ? sortedWords
-      : [sortedWords[0], ...rng.shuffle(sortedWords.slice(1))]
+    const orderedWords =
+      attempt === 0 ? sortedWords : [sortedWords[0], ...rng.shuffle(sortedWords.slice(1))]
 
     const puzzle = generatePuzzleAttempt(orderedWords, fullConfig, rng, true)
 
@@ -144,7 +144,9 @@ async function generatePuzzle(
   const endTime = performance.now()
   const timeElapsed = endTime - startTime
 
-  logger.info(`Generated puzzle in ${timeElapsed.toFixed(0)}ms - ${bestPlacedCount}/${words.length} words - ${bestPuzzle.gridSize}x${bestPuzzle.gridSize} grid - ${connected ? 'connected' : 'disconnected'}`)
+  logger.info(
+    `Generated puzzle in ${timeElapsed.toFixed(0)}ms - ${bestPlacedCount}/${words.length} words - ${bestPuzzle.gridSize}x${bestPuzzle.gridSize} grid - ${connected ? 'connected' : 'disconnected'}`
+  )
 
   return bestPuzzle
 }
@@ -165,7 +167,7 @@ function cropToSquare(puzzle: {
   let maxX = -Infinity
   let maxY = -Infinity
 
-  puzzle.placedWords.forEach(word => {
+  puzzle.placedWords.forEach((word) => {
     const startX = word.x
     const startY = word.y
     const endX = word.direction === 'horizontal' ? word.x + word.word.length - 1 : word.x
@@ -201,7 +203,7 @@ function cropToSquare(puzzle: {
     }
   }
 
-  const croppedWords: PlacedWord[] = puzzle.placedWords.map(word => ({
+  const croppedWords: PlacedWord[] = puzzle.placedWords.map((word) => ({
     ...word,
     x: word.x - minX + offsetX,
     y: word.y - minY + offsetY,
@@ -217,8 +219,8 @@ function cropToSquare(puzzle: {
 function convertToPuzzle(grid: Grid): Puzzle {
   const placedWords = grid.getPlacedWords()
 
-  const publicPlacedWords: PlacedWord[] = placedWords.map(word => {
-    const crossings: Crossing[] = word.crossings.map(c => ({
+  const publicPlacedWords: PlacedWord[] = placedWords.map((word) => {
+    const crossings: Crossing[] = word.crossings.map((c) => ({
       position: c.position,
       otherWordId: c.otherWordId,
       otherWordPosition: c.otherWordPosition,
@@ -246,7 +248,9 @@ function convertToPuzzle(grid: Grid): Puzzle {
   const cropped = cropToSquare(uncropped)
 
   if (cropped.gridSize < uncropped.gridSize) {
-    logger.info(`Cropped: ${uncropped.gridSize}x${uncropped.gridSize} → ${cropped.gridSize}x${cropped.gridSize}`)
+    logger.info(
+      `Cropped: ${uncropped.gridSize}x${uncropped.gridSize} → ${cropped.gridSize}x${cropped.gridSize}`
+    )
   }
 
   return {
@@ -295,7 +299,9 @@ export async function generatePuzzles(
   })
 
   const stats = getClusteringStats(clusters)
-  logger.info(`Created ${clusters.length} clusters - Avg size: ${stats.avgClusterSize.toFixed(1)}, Difficulty: ${stats.difficultyBreakdown.easy}E/${stats.difficultyBreakdown.medium}M/${stats.difficultyBreakdown.hard}H`)
+  logger.info(
+    `Created ${clusters.length} clusters - Avg size: ${stats.avgClusterSize.toFixed(1)}, Difficulty: ${stats.difficultyBreakdown.easy}E/${stats.difficultyBreakdown.medium}M/${stats.difficultyBreakdown.hard}H`
+  )
 
   if (!validateClustering(clusters, words)) {
     logger.warn('Clustering did not cover all words!')
@@ -309,18 +315,22 @@ export async function generatePuzzles(
 
   for (let i = 0; i < clusters.length; i++) {
     const cluster = clusters[i]
-    logger.info(`Puzzle ${i + 1}/${clusters.length}: ${cluster.words.length} words (${cluster.difficulty})`)
+    logger.info(
+      `Puzzle ${i + 1}/${clusters.length}: ${cluster.words.length} words (${cluster.difficulty})`
+    )
 
     const puzzle = await generatePuzzle(cluster.words, config)
 
     if (puzzle) {
       puzzles.push(puzzle)
 
-      const placedIds = new Set(puzzle.placedWords.map(w => w.id))
-      const unplaced = cluster.words.filter(w => !placedIds.has(w.id))
+      const placedIds = new Set(puzzle.placedWords.map((w) => w.id))
+      const unplaced = cluster.words.filter((w) => !placedIds.has(w.id))
 
       if (unplaced.length > 0) {
-        logger.info(`${unplaced.length} words not placed: ${unplaced.map(w => w.term).join(', ')}`)
+        logger.info(
+          `${unplaced.length} words not placed: ${unplaced.map((w) => w.term).join(', ')}`
+        )
 
         if (i < clusters.length - 1) {
           const remainingClusters = clusters.slice(i + 1)
@@ -345,27 +355,35 @@ export async function generatePuzzles(
     const retryPuzzles = await retryFailedWords(allFailedWords, config)
     puzzles.push(...retryPuzzles)
   } else if (allFailedWords.length > 0) {
-    logger.info(`Skipping retry for ${allFailedWords.length} failed words (too few to create meaningful puzzle)`)
-    logger.info(`Failed words will be available in next batch: ${allFailedWords.map(w => w.term).join(', ')}`)
+    logger.info(
+      `Skipping retry for ${allFailedWords.length} failed words (too few to create meaningful puzzle)`
+    )
+    logger.info(
+      `Failed words will be available in next batch: ${allFailedWords.map((w) => w.term).join(', ')}`
+    )
   }
 
   // Step 4: Filter out puzzles with too few words (minimum 5 words)
   const MIN_PUZZLE_SIZE = 5
-  const filteredPuzzles = puzzles.filter(p => p.placedWords.length >= MIN_PUZZLE_SIZE)
+  const filteredPuzzles = puzzles.filter((p) => p.placedWords.length >= MIN_PUZZLE_SIZE)
 
   if (filteredPuzzles.length < puzzles.length) {
     const removed = puzzles.length - filteredPuzzles.length
     const removedWords = puzzles
-      .filter(p => p.placedWords.length < MIN_PUZZLE_SIZE)
-      .flatMap(p => p.placedWords.map(w => w.word))
+      .filter((p) => p.placedWords.length < MIN_PUZZLE_SIZE)
+      .flatMap((p) => p.placedWords.map((w) => w.word))
     logger.info(`Filtered out ${removed} small puzzle(s) with <${MIN_PUZZLE_SIZE} words`)
-    logger.info(`Words from small puzzles will be available in next batch: ${removedWords.join(', ')}`)
+    logger.info(
+      `Words from small puzzles will be available in next batch: ${removedWords.join(', ')}`
+    )
   }
 
   const totalPlaced = filteredPuzzles.reduce((sum, p) => sum + p.placedWords.length, 0)
-  const coverage = (totalPlaced / words.length * 100).toFixed(1)
+  const coverage = ((totalPlaced / words.length) * 100).toFixed(1)
 
-  logger.info(`Generated ${filteredPuzzles.length} puzzles - ${totalPlaced}/${words.length} words (${coverage}% coverage)`)
+  logger.info(
+    `Generated ${filteredPuzzles.length} puzzles - ${totalPlaced}/${words.length} words (${coverage}% coverage)`
+  )
 
   return filteredPuzzles
 }

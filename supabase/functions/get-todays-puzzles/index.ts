@@ -191,7 +191,8 @@ serve(async (req: Request) => {
 
         // Check if already reviewed today
         const lastReviewed = progress.last_reviewed_at
-        const alreadyReviewedToday = lastReviewed === today
+        const lastReviewedDate = lastReviewed ? lastReviewed.split('T')[0] : null
+        const alreadyReviewedToday = lastReviewedDate === today
 
         return isDue && !alreadyReviewedToday
       })
@@ -270,16 +271,15 @@ serve(async (req: Request) => {
     // Step 4: Create cache key from sorted word IDs
     const wordIds = wordsToUse.map((w) => w.id).sort()
 
-    // Step 4: Check cache
-    const { data: cachedData, error: cacheError } = await supabaseClient
-      .from('puzzle_cache')
-      .select('puzzle_data, valid_until')
-      .eq('user_id', user.id)
-      .eq('word_ids', wordIds)
-      .gte('valid_until', new Date().toISOString())
-      .maybeSingle()
+    // Note: Cache is disabled due to array comparison issues in PostgREST
+    // We would need to either:
+    // 1. Convert word_ids to a text column with JSON string
+    // 2. Use a hash of the word IDs instead
+    // 3. Query all user's cache entries and filter in JS
+    // For now, we'll just generate fresh puzzles each time
+    const cachedData = null
 
-    if (cachedData && !cacheError) {
+    if (cachedData) {
       logger.info('Cache hit - returning cached puzzles')
       return new Response(
         JSON.stringify({
@@ -317,22 +317,9 @@ serve(async (req: Request) => {
           : undefined,
     }
 
-    // Step 6: Cache the result for 24 hours
-    const validUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-
-    const { error: cacheInsertError } = await supabaseClient.from('puzzle_cache').upsert({
-      user_id: user.id,
-      word_ids: wordIds,
-      puzzle_data: response,
-      valid_until: validUntil,
-    })
-
-    if (cacheInsertError) {
-      logger.error('[Edge Function] Failed to cache puzzles:', cacheInsertError)
-      // Continue anyway - we have the puzzles generated
-    } else {
-      logger.info('Cached puzzles', { validUntil })
-    }
+    // Step 6: Cache disabled (see note above about array comparison issues)
+    // When caching is re-enabled, we'll need to fix the word_ids storage/comparison
+    logger.info('Cache disabled - returning fresh puzzles')
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

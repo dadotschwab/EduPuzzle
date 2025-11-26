@@ -81,4 +81,7 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 }
 
 // Signal worker is ready
-self.postMessage({ type: 'ready' })
+// Use setTimeout to ensure the message is sent after the event listener is attached
+setTimeout(() => {
+  self.postMessage({ type: 'ready' })
+}, 0)

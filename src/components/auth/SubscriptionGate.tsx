@@ -7,7 +7,7 @@
  * @module components/auth/SubscriptionGate
  */
 
-import { ReactNode, memo, useCallback } from 'react'
+import { ReactNode, memo, useCallback, useState } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,7 +32,25 @@ export const SubscriptionGate = memo(function SubscriptionGate({
   fallback,
   feature,
 }: SubscriptionGateProps) {
-  const { hasAccess, isTrial, loading, subscriptionExpiresAt } = useAuth()
+  const {
+    hasAccess,
+    isTrial,
+    loading,
+    subscriptionExpiresAt,
+    user,
+    subscriptionStatus,
+    refreshSubscription,
+  } = useAuth()
+
+  // Debug logging
+  console.log('[SubscriptionGate] Access check:', {
+    hasAccess,
+    isTrial,
+    loading,
+    subscriptionStatus,
+    subscriptionExpiresAt,
+    subscriptionMeta: user?.subscription,
+  })
 
   // Only show loading during auth check (much faster now)
   if (loading) {
@@ -64,13 +82,21 @@ export const SubscriptionGate = memo(function SubscriptionGate({
       )
     : null
 
-  return <UpgradePrompt feature={feature} daysRemaining={daysRemaining} isTrial={isTrial} />
+  return (
+    <UpgradePrompt
+      feature={feature}
+      daysRemaining={daysRemaining}
+      isTrial={isTrial}
+      refreshSubscription={refreshSubscription}
+    />
+  )
 })
 
 interface UpgradePromptProps {
   feature?: string
   daysRemaining: number | null
   isTrial: boolean
+  refreshSubscription: () => Promise<void>
 }
 
 /**
@@ -80,8 +106,22 @@ const UpgradePrompt = memo(function UpgradePrompt({
   feature,
   daysRemaining,
   isTrial,
+  refreshSubscription,
 }: UpgradePromptProps) {
   const { startCheckout, isPending } = useCheckout()
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await refreshSubscription()
+      window.location.reload() // Reload to get new JWT
+    } catch (error) {
+      console.error('Failed to refresh subscription:', error)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   const handleUpgrade = useCallback(() => {
     startCheckout({
@@ -209,6 +249,22 @@ const UpgradePrompt = memo(function UpgradePrompt({
             <p className="text-xs text-center text-muted-foreground">
               No credit card required • Upgrade or cancel anytime
             </p>
+
+            {/* Debug: Refresh Subscription Button */}
+            <div className="pt-4 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="w-full"
+              >
+                {isRefreshing ? 'Refreshing...' : 'Refresh Subscription Status'}
+              </Button>
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                Having issues? Click to refresh your subscription status
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
