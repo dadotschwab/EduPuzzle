@@ -105,7 +105,7 @@ function Hero() {
   return (
     <section className="relative overflow-hidden pt-12 pb-20 lg:pt-28 lg:pb-32 pattern-bg">
       <div className="container mx-auto px-4 md:px-6 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-2xl text-center lg:text-left mx-auto lg:mx-0">
           <div className="inline-flex items-center rounded-full border-2 border-slate-900 bg-amber-300 px-4 py-1.5 text-sm font-bold text-slate-900 mb-8 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)]">
             <Star size={16} className="mr-2 fill-slate-900" />
             Boring homework is officially cancelled
@@ -117,14 +117,14 @@ function Hero() {
             <br/> Win Grades.
           </h1>
 
-          <p className="text-xl text-slate-600 mb-10 leading-relaxed font-medium max-w-3xl mx-auto">
+          <p className="text-xl text-slate-600 mb-10 leading-relaxed font-medium">
             Turn that dreadfully long vocabulary list into an epic crossword battle.
             Our AI builds unique puzzles instantly, so you can learn without falling asleep.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
             <Link to="/signup">
-              <Button size="lg" className="shadow-violet-200/50 shadow-xl w-full sm:w-auto text-lg px-8">
+              <Button size="lg" className="w-full sm:w-auto text-lg px-8">
                 Generate a Puzzle Free
                 <ArrowRight className="ml-2" />
               </Button>
@@ -136,7 +136,7 @@ function Hero() {
             </a>
           </div>
 
-          <div className="flex items-center justify-center gap-4 text-sm font-semibold text-slate-500">
+          <div className="flex items-center justify-center lg:justify-start gap-4 text-sm font-semibold text-slate-500">
              <div className="flex -space-x-2">
                 <div className="w-8 h-8 rounded-full bg-pink-400 border-2 border-white"></div>
                 <div className="w-8 h-8 rounded-full bg-violet-400 border-2 border-white"></div>

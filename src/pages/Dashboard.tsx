@@ -113,86 +113,79 @@ export function Dashboard() {
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header with gradient */}
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 mb-8">
-          <div className="flex-1">
-            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-slate-900 via-violet-900 to-slate-900 bg-clip-text text-transparent">
-              Welcome back{user?.name ? `, ${user.name}` : ''}!
-            </h1>
-            <p className="text-slate-600 text-lg">
-              Continue your vocabulary journey with crossword puzzles
-            </p>
-          </div>
-
-          {/* Widgets - positioned vertically next to welcome text on desktop */}
-          <div className="hidden lg:flex flex-col gap-4 w-80">
-            <StreakDisplay />
-            <BuddyWidget />
-            <PerformanceInsights />
-          </div>
-        </div>
-
-        {/* Mobile: Show widgets below welcome text */}
-        <div className="lg:hidden space-y-4 mb-8">
-          <StreakDisplay />
-          <BuddyWidget />
-          <PerformanceInsights />
-        </div>
-
-        {/* Action Buttons with vibrant styling */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          <Button
-            size="lg"
-            onClick={() => navigate('/app/todays-puzzles')}
-            className="flex-1 sm:flex-none bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 shadow-lg shadow-violet-200 text-lg h-14"
-          >
-            <PlayCircle className="w-5 h-5 mr-2" />
-            Learn Today's Words
-            {dueCount && dueCount > 0 && (
-              <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-sm">
-                {dueCount > 99 ? '99+' : dueCount}
-              </span>
-            )}
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={() => setCreateDialogOpen(true)}
-            className="flex-1 sm:flex-none border-2 border-slate-200 hover:border-violet-300 hover:bg-violet-50 text-lg h-14"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            New Word List
-          </Button>
-        </div>
-
-        {/* Word Lists Section */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">Your Word Lists</h2>
-          <p className="text-slate-600 mt-1">Manage and practice your vocabulary collections</p>
-        </div>
-
-        {wordLists && wordLists.length === 0 ? (
-          <Card className="border-2 border-dashed border-slate-200">
-            <CardContent className="py-16 text-center">
-              <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-pink-100 mb-4">
-                <BookOpen className="w-8 h-8 text-violet-600" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">No word lists yet</h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Create your first word list to start learning vocabulary with crossword puzzles
+        <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-6">
+          {/* Main Content Column */}
+          <div className="min-w-0">
+            {/* Header */}
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-slate-900 via-violet-900 to-slate-900 bg-clip-text text-transparent">
+                Welcome back{user?.name ? `, ${user.name}` : ''}!
+              </h1>
+              <p className="text-slate-600 text-lg">
+                Continue your vocabulary journey with crossword puzzles
               </p>
+            </div>
+
+            {/* Mobile: Show widgets below welcome text */}
+            <div className="lg:hidden space-y-4 mb-8">
+              <StreakDisplay />
+              <BuddyWidget />
+              <PerformanceInsights />
+            </div>
+
+            {/* Action Buttons with vibrant styling */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <Button
-                onClick={() => setCreateDialogOpen(true)}
                 size="lg"
-                className="shadow-lg shadow-violet-200"
+                onClick={() => navigate('/app/todays-puzzles')}
+                className="flex-1 sm:flex-none bg-gradient-to-r from-violet-600 to-violet-700 text-lg h-14"
+              >
+                <PlayCircle className="w-5 h-5 mr-2" />
+                Learn Today's Words
+                {dueCount && dueCount > 0 && (
+                  <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-sm">
+                    {dueCount > 99 ? '99+' : dueCount}
+                  </span>
+                )}
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => setCreateDialogOpen(true)}
+                className="flex-1 sm:flex-none text-lg h-14"
               >
                 <Plus className="w-5 h-5 mr-2" />
-                Create Your First List
+                New Word List
               </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+
+            {/* Word Lists Section */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-slate-900">Your Word Lists</h2>
+              <p className="text-slate-600 mt-1">Manage and practice your vocabulary collections</p>
+            </div>
+
+            {wordLists && wordLists.length === 0 ? (
+              <Card className="border-2 border-dashed border-slate-200">
+                <CardContent className="py-16 text-center">
+                  <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-pink-100 mb-4">
+                    <BookOpen className="w-8 h-8 text-violet-600" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">No word lists yet</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Create your first word list to start learning vocabulary with crossword puzzles
+                  </p>
+                  <Button
+                    onClick={() => setCreateDialogOpen(true)}
+                    size="lg"
+                  >
+                    <Plus className="w-5 h-5 mr-2" />
+                    Create Your First List
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {wordLists?.map((list, index) => {
               const accentColors = [
                 'from-violet-500 to-purple-500',
@@ -206,7 +199,8 @@ export function Dashboard() {
               return (
                 <Card
                   key={list.id}
-                  className="group hover:shadow-xl transition-all duration-200 cursor-pointer relative overflow-hidden"
+                  hover="default"
+                  className="group cursor-pointer relative overflow-hidden"
                   onClick={() => handleCardClick(list.id)}
                 >
                   {/* Gradient accent bar */}
@@ -311,7 +305,7 @@ export function Dashboard() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1 hover:bg-slate-50"
+                        className="flex-1"
                         onClick={(e) => {
                           e.stopPropagation()
                           setSelectedList(list)
@@ -323,7 +317,7 @@ export function Dashboard() {
                       </Button>
                       <Button
                         size="sm"
-                        className={`flex-1 bg-gradient-to-r ${accentColors[colorIndex]} hover:opacity-90 shadow-md`}
+                        className={`flex-1 bg-gradient-to-r ${accentColors[colorIndex]}`}
                         onClick={(e) => {
                           e.stopPropagation()
                           navigate(`/app/puzzle/${list.id}`)
@@ -335,70 +329,81 @@ export function Dashboard() {
                     </div>
                   </CardContent>
                 </Card>
-              )
-            })}
+                )
+              })}
+              </div>
+            )}
+
+            {/* Dialogs */}
+            <CreateWordListDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+
+            {selectedList && (
+              <>
+                <EditWordListDialog
+                  open={editDialogOpen}
+                  onOpenChange={setEditDialogOpen}
+                  wordList={selectedList}
+                />
+                <ShareWordListDialog
+                  open={shareDialogOpen}
+                  onOpenChange={setShareDialogOpen}
+                  wordList={selectedList}
+                />
+                <CreateWordDialog
+                  open={addWordDialogOpen}
+                  onOpenChange={setAddWordDialogOpen}
+                  listId={selectedList.id}
+                />
+              </>
+            )}
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Word List</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "{listToDelete?.name}"? This will permanently delete
+                    the list and all{' '}
+                    {wordLists?.find((l: WordList) => l.id === listToDelete?.id)?.wordCount || 0} words
+                    in it. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteConfirm}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Leave Collaborative List Dialog */}
+            {listToLeave && (
+              <LeaveCollaborativeListDialog
+                open={leaveDialogOpen}
+                onOpenChange={(open) => {
+                  setLeaveDialogOpen(open)
+                  if (!open) setListToLeave(null)
+                }}
+                sharedListId={listToLeave.sharedListId}
+                listName={listToLeave.name}
+              />
+            )}
           </div>
-        )}
 
-        {/* Dialogs */}
-        <CreateWordListDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
-
-        {selectedList && (
-          <>
-            <EditWordListDialog
-              open={editDialogOpen}
-              onOpenChange={setEditDialogOpen}
-              wordList={selectedList}
-            />
-            <ShareWordListDialog
-              open={shareDialogOpen}
-              onOpenChange={setShareDialogOpen}
-              wordList={selectedList}
-            />
-            <CreateWordDialog
-              open={addWordDialogOpen}
-              onOpenChange={setAddWordDialogOpen}
-              listId={selectedList.id}
-            />
-          </>
-        )}
-
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Word List</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete "{listToDelete?.name}"? This will permanently delete
-                the list and all{' '}
-                {wordLists?.find((l: WordList) => l.id === listToDelete?.id)?.wordCount || 0} words
-                in it. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDeleteConfirm}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Leave Collaborative List Dialog */}
-        {listToLeave && (
-          <LeaveCollaborativeListDialog
-            open={leaveDialogOpen}
-            onOpenChange={(open) => {
-              setLeaveDialogOpen(open)
-              if (!open) setListToLeave(null)
-            }}
-            sharedListId={listToLeave.sharedListId}
-            listName={listToLeave.name}
-          />
-        )}
+          {/* Sticky Sidebar - Desktop only */}
+          <div className="hidden lg:block">
+            <div className="sticky top-20 space-y-4">
+              <StreakDisplay />
+              <BuddyWidget />
+              <PerformanceInsights />
+            </div>
+          </div>
+        </div>
       </div>
     </AppLayout>
   )
