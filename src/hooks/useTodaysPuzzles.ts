@@ -110,8 +110,8 @@ export function useCompletePuzzle() {
       // Record word completion for streak tracking
       // Note: dueWordsCount will be updated after this mutation completes
       // We'll get the updated count from the queryClient
-      const dueWordsData = queryClient.getQueryData(['dueWordsCount', user?.id])
-      const dueWordsCount = (dueWordsData as any)?.count || 0
+      const dueWordsData = queryClient.getQueryData<{ count: number }>(['dueWordsCount', user?.id])
+      const dueWordsCount = dueWordsData?.count || 0
 
       recordDailyCompletion({
         puzzlesCompleted: 0, // Words only, not puzzles

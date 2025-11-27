@@ -138,8 +138,7 @@ export async function savePuzzleSession(
   }
 
   const data = await mutate(
-    // TODO: Remove 'as any' once database types are regenerated after migration
-    () => (supabase.from('puzzle_sessions') as any).insert(insertData).select().single(),
+    () => supabase.from('puzzle_sessions').insert(insertData).select().single(),
     { table: 'puzzle_sessions', operation: 'insert' }
   )
 
@@ -175,14 +174,10 @@ export async function createPuzzleSession(session: {
     total_words: session.totalWords,
   }
 
-  return mutate(
-    // TODO: Remove 'as any' once database types are regenerated after migration
-    () => (supabase.from('puzzle_sessions') as any).insert(insertData).select().single(),
-    {
-      table: 'puzzle_sessions',
-      operation: 'insert',
-    }
-  )
+  return mutate(() => supabase.from('puzzle_sessions').insert(insertData).select().single(), {
+    table: 'puzzle_sessions',
+    operation: 'insert',
+  })
 }
 
 export async function completePuzzleSession(
@@ -195,9 +190,7 @@ export async function completePuzzleSession(
   }
 
   return mutate(
-    // TODO: Remove 'as any' once database types are regenerated after migration
-    () =>
-      (supabase.from('puzzle_sessions') as any).update(updateData).eq('id', id).select().single(),
+    () => supabase.from('puzzle_sessions').update(updateData).eq('id', id).select().single(),
     { table: 'puzzle_sessions', operation: 'update' }
   )
 }

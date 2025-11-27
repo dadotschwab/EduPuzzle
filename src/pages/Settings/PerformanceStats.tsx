@@ -1,5 +1,5 @@
 import { type ReactElement } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { usePerformanceInsights } from '@/hooks/usePerformanceInsights'
@@ -68,7 +68,9 @@ export function PerformanceStats(): ReactElement {
         <div className="p-6 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl">📚</span>
-            <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Total Learned</h3>
+            <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+              Total Learned
+            </h3>
           </div>
           <div className="text-4xl font-bold text-violet-600">{data?.totalLearned || 0}</div>
           <p className="text-sm text-slate-500 font-semibold mt-1">words mastered</p>
@@ -77,7 +79,9 @@ export function PerformanceStats(): ReactElement {
         <div className="p-6 bg-gradient-to-br from-pink-50 to-rose-50 rounded-3xl border-2 border-pink-200">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl">🎯</span>
-            <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Success Rate</h3>
+            <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+              Success Rate
+            </h3>
           </div>
           <div className="text-4xl font-bold text-pink-600">{data?.successRate || 0}%</div>
           <p className="text-sm text-slate-500 font-semibold mt-1">overall accuracy</p>
@@ -86,7 +90,9 @@ export function PerformanceStats(): ReactElement {
         <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl border-2 border-amber-200">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-2xl">🧩</span>
-            <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">Weekly Puzzles</h3>
+            <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide">
+              Weekly Puzzles
+            </h3>
           </div>
           <div className="text-4xl font-bold text-amber-600">{data?.weeklyPuzzles || 0}</div>
           <p className="text-sm text-slate-500 font-semibold mt-1">this week</p>

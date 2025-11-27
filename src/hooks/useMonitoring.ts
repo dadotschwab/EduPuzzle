@@ -1,5 +1,12 @@
 import { useCallback } from 'react'
 
+// Extend Window interface for gtag
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void
+  }
+}
+
 interface ErrorEvent {
   message: string
   stack?: string
@@ -31,8 +38,8 @@ export function useMonitoring() {
     console.error('Error logged:', errorEvent)
 
     // Could send to analytics/monitoring service
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'exception', {
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'exception', {
         description: error.message,
         fatal: false,
       })
@@ -52,8 +59,8 @@ export function useMonitoring() {
       console.log('Performance metric:', metric)
 
       // Could send to analytics service
-      if (typeof window !== 'undefined' && (window as any).gtag) {
-        (window as any).gtag('event', 'timing_complete', {
+      if (typeof window !== 'undefined' && window.gtag) {
+        window.gtag('event', 'timing_complete', {
           name,
           value: Math.round(value),
           event_category: 'performance',

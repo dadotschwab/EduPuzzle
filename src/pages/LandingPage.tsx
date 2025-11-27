@@ -2,9 +2,23 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
-  Menu, X, Puzzle, ArrowRight, Star, Brain, Gamepad2,
-  Users, Upload, Rocket, Play, Grid3X3, Github, Twitter,
-  Instagram, Cpu, Calendar, Languages, Share2
+  Menu,
+  X,
+  Puzzle,
+  ArrowRight,
+  Star,
+  Brain,
+  Gamepad2,
+  Upload,
+  Play,
+  Grid3X3,
+  Github,
+  Twitter,
+  Instagram,
+  Cpu,
+  Calendar,
+  Languages,
+  Share2,
 } from 'lucide-react'
 
 // --- TYPES ---
@@ -55,7 +69,9 @@ function Header() {
 
         <div className="hidden md:flex items-center gap-4">
           <Link to="/login">
-            <Button variant="ghost" size="sm">Sign In</Button>
+            <Button variant="ghost" size="sm">
+              Sign In
+            </Button>
           </Link>
           <Link to="/signup">
             <Button size="sm">Get Started Free</Button>
@@ -87,7 +103,9 @@ function Header() {
             ))}
             <hr className="my-2 border-slate-100" />
             <Link to="/login">
-              <Button variant="ghost" className="justify-start w-full">Sign In</Button>
+              <Button variant="ghost" className="justify-start w-full">
+                Sign In
+              </Button>
             </Link>
             <Link to="/signup">
               <Button className="w-full">Get Started Free</Button>
@@ -98,7 +116,6 @@ function Header() {
     </header>
   )
 }
-
 
 // Hero Component
 function Hero() {
@@ -112,14 +129,16 @@ function Hero() {
           </div>
 
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 mb-6 leading-tight">
-            Study Words. <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-pink-500">Play Games.</span>
-            <br/> Win Grades.
+            Study Words. <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-pink-500">
+              Play Games.
+            </span>
+            <br /> Win Grades.
           </h1>
 
           <p className="text-xl text-slate-600 mb-10 leading-relaxed font-medium">
-            Turn that dreadfully long vocabulary list into an epic crossword battle.
-            Our AI builds unique puzzles instantly, so you can learn without falling asleep.
+            Turn that dreadfully long vocabulary list into an epic crossword battle. Our AI builds
+            unique puzzles instantly, so you can learn without falling asleep.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
@@ -137,12 +156,12 @@ function Hero() {
           </div>
 
           <div className="flex items-center justify-center lg:justify-start gap-4 text-sm font-semibold text-slate-500">
-             <div className="flex -space-x-2">
-                <div className="w-8 h-8 rounded-full bg-pink-400 border-2 border-white"></div>
-                <div className="w-8 h-8 rounded-full bg-violet-400 border-2 border-white"></div>
-                <div className="w-8 h-8 rounded-full bg-amber-400 border-2 border-white"></div>
-             </div>
-             <p>Join thousands of happy students</p>
+            <div className="flex -space-x-2">
+              <div className="w-8 h-8 rounded-full bg-pink-400 border-2 border-white"></div>
+              <div className="w-8 h-8 rounded-full bg-violet-400 border-2 border-white"></div>
+              <div className="w-8 h-8 rounded-full bg-amber-400 border-2 border-white"></div>
+            </div>
+            <p>Join thousands of happy students</p>
           </div>
         </div>
       </div>
@@ -153,35 +172,40 @@ function Hero() {
 // Features Component
 const featuresList: Feature[] = [
   {
-    title: "Create Custom Word Lists",
-    description: "Build vocabulary lists in any language pair. Add words with translations and example sentences.",
-    icon: Upload
+    title: 'Create Custom Word Lists',
+    description:
+      'Build vocabulary lists in any language pair. Add words with translations and example sentences.',
+    icon: Upload,
   },
   {
-    title: "AI-Generated Puzzles",
-    description: "Our smart algorithm creates perfect crossword puzzles from your words automatically.",
-    icon: Brain
+    title: 'AI-Generated Puzzles',
+    description:
+      'Our smart algorithm creates perfect crossword puzzles from your words automatically.',
+    icon: Brain,
   },
   {
-    title: "Spaced Repetition",
-    description: "Master vocabulary with proven learning science. The app tracks what you know and schedules reviews.",
-    icon: Calendar
+    title: 'Spaced Repetition',
+    description:
+      'Master vocabulary with proven learning science. The app tracks what you know and schedules reviews.',
+    icon: Calendar,
   },
   {
     title: "Today's Practice",
-    description: "Get daily puzzle challenges with words due for review. Turn studying into a fun game.",
-    icon: Gamepad2
+    description:
+      'Get daily puzzle challenges with words due for review. Turn studying into a fun game.',
+    icon: Gamepad2,
   },
   {
-    title: "Multi-Language Support",
-    description: "Learn any language pair. From Spanish to Japanese, French to German, and beyond.",
-    icon: Languages
+    title: 'Multi-Language Support',
+    description: 'Learn any language pair. From Spanish to Japanese, French to German, and beyond.',
+    icon: Languages,
   },
   {
-    title: "Collaborate & Share",
-    description: "Share word lists with friends. Work together on vocabulary. Challenge each other to solve puzzles faster.",
-    icon: Share2
-  }
+    title: 'Collaborate & Share',
+    description:
+      'Share word lists with friends. Work together on vocabulary. Challenge each other to solve puzzles faster.',
+    icon: Share2,
+  },
 ]
 
 function Features() {
@@ -203,14 +227,14 @@ function Features() {
               key={feature.title}
               className="group relative bg-white rounded-3xl p-8 border-2 border-slate-100 hover:border-slate-900 transition-all duration-300 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_rgba(15,23,42,1)]"
             >
-              <div className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-6 text-white shadow-lg group-hover:scale-110 transition-transform ${idx % 3 === 0 ? 'bg-violet-500' : idx % 3 === 1 ? 'bg-pink-500' : 'bg-amber-500'}`}>
+              <div
+                className={`h-14 w-14 rounded-2xl flex items-center justify-center mb-6 text-white shadow-lg group-hover:scale-110 transition-transform ${idx % 3 === 0 ? 'bg-violet-500' : idx % 3 === 1 ? 'bg-pink-500' : 'bg-amber-500'}`}
+              >
                 <feature.icon size={28} />
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-3">{feature.title}</h3>
-                <p className="text-slate-600 text-lg leading-relaxed">
-                  {feature.description}
-                </p>
+                <p className="text-slate-600 text-lg leading-relaxed">{feature.description}</p>
               </div>
             </div>
           ))}
@@ -226,7 +250,9 @@ function HowItWorks() {
     <section id="how-it-works" className="py-16 bg-slate-50">
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-16">
-          <span className="text-violet-600 font-bold tracking-wider uppercase text-sm">Simple as 1-2-3</span>
+          <span className="text-violet-600 font-bold tracking-wider uppercase text-sm">
+            Simple as 1-2-3
+          </span>
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mt-2">How it Works</h2>
         </div>
 
@@ -239,7 +265,9 @@ function HowItWorks() {
               <Upload size={32} className="text-violet-600" />
             </div>
             <h3 className="text-xl font-bold mb-2">1. Add Your Words</h3>
-            <p className="text-slate-600">Create a word list and add vocabulary with translations.</p>
+            <p className="text-slate-600">
+              Create a word list and add vocabulary with translations.
+            </p>
           </div>
 
           <div className="relative z-10 flex flex-col items-center text-center">
@@ -247,7 +275,9 @@ function HowItWorks() {
               <Cpu size={32} className="text-pink-500" />
             </div>
             <h3 className="text-xl font-bold mb-2">2. AI Generates Puzzle</h3>
-            <p className="text-slate-600">Our algorithm creates a perfect crossword grid instantly.</p>
+            <p className="text-slate-600">
+              Our algorithm creates a perfect crossword grid instantly.
+            </p>
           </div>
 
           <div className="relative z-10 flex flex-col items-center text-center">
@@ -255,7 +285,9 @@ function HowItWorks() {
               <Play size={32} className="text-amber-500 fill-amber-500" />
             </div>
             <h3 className="text-xl font-bold mb-2">3. Play & Master</h3>
-            <p className="text-slate-600">Solve puzzles, learn with spaced repetition, ace your tests.</p>
+            <p className="text-slate-600">
+              Solve puzzles, learn with spaced repetition, ace your tests.
+            </p>
           </div>
         </div>
       </div>
@@ -268,7 +300,13 @@ function CTASection() {
   return (
     <section className="py-24 bg-violet-600 relative overflow-hidden">
       {/* Fun pattern background overlay */}
-      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#fff 2px, transparent 2px)', backgroundSize: '30px 30px' }}></div>
+      <div
+        className="absolute inset-0 opacity-20"
+        style={{
+          backgroundImage: 'radial-gradient(#fff 2px, transparent 2px)',
+          backgroundSize: '30px 30px',
+        }}
+      ></div>
 
       <div className="container mx-auto px-4 md:px-6 text-center relative z-10">
         <h2 className="text-4xl md:text-5xl font-bold mb-8 text-white">
@@ -279,12 +317,18 @@ function CTASection() {
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link to="/signup">
-            <Button variant="secondary" size="lg" className="px-12 text-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)]">
+            <Button
+              variant="secondary"
+              size="lg"
+              className="px-12 text-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)]"
+            >
               Start For Free
             </Button>
           </Link>
         </div>
-        <p className="mt-6 text-sm text-violet-200 opacity-80 font-medium">No credit card • No boring stuff</p>
+        <p className="mt-6 text-sm text-violet-200 opacity-80 font-medium">
+          No credit card • No boring stuff
+        </p>
       </div>
     </section>
   )
@@ -302,25 +346,50 @@ function Footer() {
               <span className="text-xl font-bold">EduPuzzle</span>
             </div>
             <p className="max-w-xs text-sm text-slate-400">
-              Making studying less painful and more playful. Join thousands of students mastering their exams one puzzle at a time.
+              Making studying less painful and more playful. Join thousands of students mastering
+              their exams one puzzle at a time.
             </p>
           </div>
 
           <div>
             <h4 className="text-white font-semibold mb-4">Product</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-              <li><Link to="/signup" className="hover:text-white transition-colors">Get Started</Link></li>
-              <li><Link to="/login" className="hover:text-white transition-colors">Sign In</Link></li>
+              <li>
+                <a href="#features" className="hover:text-white transition-colors">
+                  Features
+                </a>
+              </li>
+              <li>
+                <Link to="/signup" className="hover:text-white transition-colors">
+                  Get Started
+                </Link>
+              </li>
+              <li>
+                <Link to="/login" className="hover:text-white transition-colors">
+                  Sign In
+                </Link>
+              </li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-white font-semibold mb-4">Company</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-white transition-colors">About</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  About
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Blog
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-white transition-colors">
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
         </div>
@@ -330,9 +399,15 @@ function Footer() {
             © {new Date().getFullYear()} EduPuzzle. All rights reserved.
           </p>
           <div className="flex gap-4">
-            <a href="#" className="text-slate-400 hover:text-white"><Twitter size={20} /></a>
-            <a href="#" className="text-slate-400 hover:text-white"><Github size={20} /></a>
-            <a href="#" className="text-slate-400 hover:text-white"><Instagram size={20} /></a>
+            <a href="#" className="text-slate-400 hover:text-white">
+              <Twitter size={20} />
+            </a>
+            <a href="#" className="text-slate-400 hover:text-white">
+              <Github size={20} />
+            </a>
+            <a href="#" className="text-slate-400 hover:text-white">
+              <Instagram size={20} />
+            </a>
           </div>
         </div>
       </div>

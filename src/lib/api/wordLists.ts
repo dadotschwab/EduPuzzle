@@ -25,9 +25,8 @@ export async function getWordLists(params?: { withCounts?: boolean }): Promise<W
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
     return (
-      (data as any)?.map((list: any) => ({
+      data?.map((list) => ({
         ...list,
         wordCount:
           Array.isArray(list.wordCount) && list.wordCount.length > 0
@@ -67,14 +66,10 @@ export async function createWordList(wordList: {
     target_language: wordList.target_language,
   }
 
-  return mutate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
-    () => (supabase.from('word_lists') as any).insert(insertData).select().single(),
-    {
-      table: 'word_lists',
-      operation: 'insert',
-    }
-  )
+  return mutate(() => supabase.from('word_lists').insert(insertData).select().single(), {
+    table: 'word_lists',
+    operation: 'insert',
+  })
 }
 
 export async function updateWordList(
@@ -91,8 +86,7 @@ export async function updateWordList(
   if (updates.target_language !== undefined) updateData.target_language = updates.target_language
 
   return mutate(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase type inference limitation
-    () => (supabase.from('word_lists') as any).update(updateData).eq('id', id).select().single(),
+    () => supabase.from('word_lists').update(updateData).eq('id', id).select().single(),
     { table: 'word_lists', operation: 'update' }
   )
 }

@@ -49,7 +49,7 @@ export function HowItWorks({ className }: HowItWorksProps) {
           </p>
         </div>
 
-        <div ref={ref as any} className="relative">
+        <div ref={ref} className="relative">
           {/* Connecting line */}
           <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-200 via-purple-200 to-blue-200 transform -translate-y-1/2 hidden md:block" />
 

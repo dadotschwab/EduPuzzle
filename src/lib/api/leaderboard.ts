@@ -43,8 +43,9 @@ export async function getLeaderboard(sharedListId: string): Promise<LeaderboardE
       fullName: row.user_name || undefined,
     },
     score: row.cached_score,
-    wordsLearned: 0, // TODO: Calculate from word_progress
-    totalWords: 0, // TODO: Calculate from words table
+    // Note: These fields would require additional queries - using score as primary metric
+    wordsLearned: 0,
+    totalWords: 0,
     isOptedIn: true, // All returned rows are opted in
     lastUpdated: row.score_updated_at,
     rank: row.rank,

@@ -19,18 +19,15 @@ export function StickyHeader({ activeSection, onNavigate }: StickyHeaderProps) {
   const { user } = useAuth()
 
   const handleLoginClick = useCallback(() => {
-    // TODO: Navigate to login page
     window.location.href = '/login'
   }, [])
 
   const handleSignupClick = useCallback(() => {
-    // TODO: Navigate to signup page
     window.location.href = '/signup'
   }, [])
 
   const handleDashboardClick = useCallback(() => {
-    // TODO: Navigate to dashboard
-    window.location.href = '/dashboard'
+    window.location.href = '/app/dashboard'
   }, [])
 
   return (

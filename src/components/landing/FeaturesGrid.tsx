@@ -67,7 +67,7 @@ export const FeaturesGrid = memo(function FeaturesGrid({ className }: FeaturesGr
           </p>
         </div>
 
-        <div ref={ref as any} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div ref={ref} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <Card
               key={feature.title}

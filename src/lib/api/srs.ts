@@ -186,8 +186,8 @@ export async function fetchDueWords(userId: string): Promise<WordWithProgress[]>
  * Excludes words that have already been reviewed today
  */
 export async function fetchDueWordsCount(userId: string): Promise<number> {
-  // Use optimized database function to avoid N+1 query
-  // TODO: Use get_due_words_count() once migration is applied and types regenerated
+  // Note: Could be optimized with a database function to avoid fetching all records
+  // Current implementation fetches all due words to get count
   const dueWords = await fetchDueWords(userId)
   return dueWords.length
 }
@@ -324,8 +324,7 @@ export async function updateWordProgress(
       current_streak: wasCorrect ? 1 : 0,
     }
 
-    // TODO: Remove 'as any' once database types are regenerated after migration
-    await mutate(() => (supabase.from('word_progress') as any).insert(initialProgress), {
+    await mutate(() => supabase.from('word_progress').insert(initialProgress), {
       table: 'word_progress',
       operation: 'insert',
     })
@@ -364,11 +363,10 @@ export async function updateWordProgress(
   )
 
   // Update database
-  await mutate(
-    // TODO: Remove 'as any' once database types are regenerated after migration
-    () => (supabase.from('word_progress') as any).update(updates).eq('id', progressData.id),
-    { table: 'word_progress', operation: 'update' }
-  )
+  await mutate(() => supabase.from('word_progress').update(updates).eq('id', progressData.id), {
+    table: 'word_progress',
+    operation: 'update',
+  })
 }
 
 /**

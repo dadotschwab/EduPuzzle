@@ -23,7 +23,6 @@ export function SubscriptionSettings() {
     user,
     loading: isLoading,
     hasAccess,
-    isTrial,
     subscriptionStatus,
     subscriptionExpiresAt,
     refreshSubscription: refreshAuthSubscription,
@@ -44,7 +43,7 @@ export function SubscriptionSettings() {
   const subscription = user?.subscription
   const isActive = subscriptionStatus === 'active'
   const error = null
-  const errorType = null
+  const errorType: 'auth' | 'network' | 'rate_limit' | 'server' | null = null
   const retry = () => {}
 
   // Refresh subscription status after returning from Stripe checkout
@@ -67,7 +66,7 @@ export function SubscriptionSettings() {
 
   // Only show portal access for paid subscriptions (not trial)
   const canAccessPortal =
-    isActive || subscription?.status === 'cancelled' || subscription?.status === 'past_due'
+    isActive || subscriptionStatus === 'canceled' || subscriptionStatus === 'expired'
 
   // Show loading state while fetching subscription data
   if (isLoading) {
@@ -82,7 +81,8 @@ export function SubscriptionSettings() {
   }
 
   // Show error state if subscription fetch failed
-  if (error) {
+  // Note: Currently error is always null - this is legacy code kept for future error handling
+  if (error && errorType) {
     const getErrorIcon = () => {
       switch (errorType) {
         case 'auth':
@@ -172,12 +172,12 @@ export function SubscriptionSettings() {
         return <Badge variant="secondary">Free Trial</Badge>
       case 'active':
         return <Badge className="bg-green-100 text-green-800">Active</Badge>
-      case 'cancelled':
-        return <Badge variant="destructive">Cancelled</Badge>
+      case 'canceled':
+        return <Badge variant="destructive">Canceled</Badge>
       case 'expired':
         return <Badge variant="outline">Expired</Badge>
-      case 'past_due':
-        return <Badge className="bg-orange-100 text-orange-800">Past Due</Badge>
+      case 'trialing':
+        return <Badge variant="secondary">Trial</Badge>
       default:
         return null
     }

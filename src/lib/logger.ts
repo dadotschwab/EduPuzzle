@@ -71,9 +71,20 @@ class Logger {
 
   /**
    * Error logs - critical issues (always shown)
+   * Also reports to Sentry in production
    */
   error(message: string, ...args: unknown[]): void {
     console.error(`[ERROR] ${message}`, ...args)
+
+    // Send to Sentry in production
+    if (import.meta.env.PROD && args.length > 0 && args[0] instanceof Error) {
+      import('@/lib/sentry').then(({ captureException }) => {
+        captureException(args[0] as Error, {
+          message,
+          additionalContext: args.slice(1),
+        })
+      })
+    }
   }
 
   /**

@@ -10,7 +10,6 @@
  * @module hooks/useSubscription
  */
 
-import { useCallback } from 'react'
 import { useAuth } from './useAuth'
 
 /**

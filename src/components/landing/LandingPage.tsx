@@ -28,8 +28,7 @@ export function LandingPage({ className }: LandingPageProps) {
   )
 
   const handleCtaClick = useCallback(() => {
-    // TODO: Implement CTA click handler (navigate to signup/login)
-    console.log('CTA clicked - navigate to signup')
+    window.location.href = '/signup'
   }, [])
 
   return (

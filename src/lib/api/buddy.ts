@@ -19,13 +19,13 @@ export class BuddyApiError extends Error {
 }
 
 export async function getBuddyStatus(): Promise<BuddyData> {
-  const { data, error } = await supabase.rpc('get_buddy_status' as any)
+  const { data, error } = await supabase.rpc('get_buddy_status')
 
   if (error) {
     throw new BuddyApiError(error.message, error.code === 'PGRST116' ? 500 : 400)
   }
 
-  const rawData = (data as any)?.[0]
+  const rawData = Array.isArray(data) ? data[0] : null
   if (!rawData) {
     return { buddyName: null, hasLearnedToday: false, completionPercentage: 0 }
   }
@@ -38,10 +38,14 @@ export async function getBuddyStatus(): Promise<BuddyData> {
 }
 
 export async function generateBuddyInvite(): Promise<{ inviteToken: string; expiresAt: string }> {
-  const { data, error } = await supabase.rpc('create_buddy_invite' as any)
+  const { data, error } = await supabase.rpc('create_buddy_invite')
 
   if (error) {
     throw new BuddyApiError(error.message, error.code === 'PGRST116' ? 500 : 400)
+  }
+
+  if (!data || data.length === 0) {
+    throw new BuddyApiError('Failed to generate invite')
   }
 
   return {
@@ -51,7 +55,7 @@ export async function generateBuddyInvite(): Promise<{ inviteToken: string; expi
 }
 
 export async function acceptBuddyInvite(inviteToken: string): Promise<void> {
-  const { error } = await supabase.rpc('accept_buddy_invite' as any, {
+  const { error } = await supabase.rpc('accept_buddy_invite', {
     p_invite_token: inviteToken,
   })
 
@@ -61,7 +65,7 @@ export async function acceptBuddyInvite(inviteToken: string): Promise<void> {
 }
 
 export async function removeBuddy(): Promise<void> {
-  const { error } = await supabase.rpc('remove_buddy_relationship' as any)
+  const { error } = await supabase.rpc('remove_buddy_relationship')
 
   if (error) {
     throw new BuddyApiError(error.message, error.code === 'PGRST116' ? 500 : 400)

@@ -3,8 +3,12 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
+import { initSentry } from '@/lib/sentry'
 import App from './App.tsx'
 import './index.css'
+
+// Initialize error monitoring
+initSentry()
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -1,4 +1,3 @@
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBuddy } from '@/hooks/useBuddy'
@@ -23,7 +22,9 @@ export function BuddyWidget({ className }: BuddyWidgetProps) {
 
   if (isLoading) {
     return (
-      <div className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200 ${className}`}>
+      <div
+        className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200 ${className}`}
+      >
         <Skeleton className="h-4 w-20 mb-3" />
         <div className="space-y-2">
           <Skeleton className="h-12 w-full rounded-lg" />
@@ -35,7 +36,9 @@ export function BuddyWidget({ className }: BuddyWidgetProps) {
 
   if (error) {
     return (
-      <div className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200 ${className}`}>
+      <div
+        className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200 ${className}`}
+      >
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">👥</span>
           <h3 className="text-sm font-bold text-slate-900">Buddy</h3>
@@ -46,7 +49,12 @@ export function BuddyWidget({ className }: BuddyWidgetProps) {
             <div className="text-xs font-semibold text-slate-900">Unable to load</div>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => window.location.reload()}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full mt-2"
+          onClick={() => window.location.reload()}
+        >
           Retry
         </Button>
       </div>
@@ -54,7 +62,9 @@ export function BuddyWidget({ className }: BuddyWidgetProps) {
   }
 
   return (
-    <div className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200 ${className}`}>
+    <div
+      className={`p-4 bg-gradient-to-br from-violet-50 to-purple-50 rounded-3xl border-2 border-violet-200 ${className}`}
+    >
       <div className="flex items-center gap-2 mb-3">
         <span className="text-lg">👥</span>
         <h3 className="text-sm font-bold text-slate-900">Buddy</h3>
@@ -67,12 +77,16 @@ export function BuddyWidget({ className }: BuddyWidgetProps) {
             <div className="flex-1">
               {hasBuddy ? (
                 <>
-                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Your Buddy</div>
+                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+                    Your Buddy
+                  </div>
                   <div className="font-bold text-sm text-slate-900">{buddyName}</div>
                 </>
               ) : (
                 <>
-                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">No Buddy Yet</div>
+                  <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+                    No Buddy Yet
+                  </div>
                   <div className="font-bold text-xs text-slate-900">Find a study partner</div>
                 </>
               )}
@@ -80,7 +94,9 @@ export function BuddyWidget({ className }: BuddyWidgetProps) {
           </div>
 
           {hasBuddy && (
-            <div className={`text-xs font-semibold px-2 py-1 rounded-md ${buddyHasLearnedToday ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+            <div
+              className={`text-xs font-semibold px-2 py-1 rounded-md ${buddyHasLearnedToday ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}
+            >
               {buddyHasLearnedToday ? '✅ Learned today!' : '⏳ Not yet today'}
             </div>
           )}

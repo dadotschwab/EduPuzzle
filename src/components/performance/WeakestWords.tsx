@@ -1,7 +1,5 @@
 import { type ReactElement, memo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { AlertTriangle } from 'lucide-react'
 import type { WeakWord } from '@/types/performance.types'
 
 /**
@@ -59,7 +57,9 @@ export const WeakestWords = memo(function WeakestWords({
                 </div>
                 <div>
                   <div className="font-bold text-slate-900">{word.word}</div>
-                  <div className="text-sm text-slate-500 font-semibold">{word.attempts} attempts</div>
+                  <div className="text-sm text-slate-500 font-semibold">
+                    {word.attempts} attempts
+                  </div>
                 </div>
               </div>
               <div className="px-3 py-1 bg-red-100 text-red-700 font-bold text-sm rounded-lg border-2 border-red-300">

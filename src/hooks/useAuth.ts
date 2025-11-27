@@ -89,7 +89,7 @@ export function useAuth() {
     if (!user) return
 
     // Call Edge Function to update metadata
-    const { data, error } = await supabase.functions.invoke('update-user-subscription', {
+    const { error } = await supabase.functions.invoke('update-user-subscription', {
       body: { userId: user.id },
     })
 
@@ -112,8 +112,26 @@ export function useAuth() {
       if (session?.user) {
         const userWithProfile = fetchUserProfile(session.user)
         setUser(userWithProfile)
+
+        // Set Sentry user context in production
+        if (import.meta.env.PROD) {
+          import('@/lib/sentry').then(({ setUser }) => {
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              username: userWithProfile.name,
+            })
+          })
+        }
       } else {
         setUser(null)
+
+        // Clear Sentry user context
+        if (import.meta.env.PROD) {
+          import('@/lib/sentry').then(({ clearUser }) => {
+            clearUser()
+          })
+        }
       }
       setLoading(false)
     })
@@ -125,8 +143,26 @@ export function useAuth() {
       if (session?.user) {
         const userWithProfile = fetchUserProfile(session.user)
         setUser(userWithProfile)
+
+        // Set Sentry user context in production
+        if (import.meta.env.PROD) {
+          import('@/lib/sentry').then(({ setUser }) => {
+            setUser({
+              id: session.user.id,
+              email: session.user.email,
+              username: userWithProfile.name,
+            })
+          })
+        }
       } else {
         setUser(null)
+
+        // Clear Sentry user context
+        if (import.meta.env.PROD) {
+          import('@/lib/sentry').then(({ clearUser }) => {
+            clearUser()
+          })
+        }
       }
       setLoading(false)
     })

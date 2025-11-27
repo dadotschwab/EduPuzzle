@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useStreak, useStreakHelpers } from '@/hooks/useStreak'
-import { StreakProgress } from './StreakProgress'
 
 interface StreakDisplayProps {
   className?: string
@@ -26,7 +25,7 @@ interface StreakDisplayProps {
  */
 export function StreakDisplay({ className }: StreakDisplayProps) {
   const { data, isLoading, error, errorType, retry } = useStreak()
-  const { hasActiveStreak, canUseFreeze, todaysProgress } = useStreakHelpers()
+  const { hasActiveStreak, canUseFreeze } = useStreakHelpers()
 
   // Loading state
   if (isLoading) {
@@ -135,12 +134,18 @@ export function StreakDisplay({ className }: StreakDisplayProps) {
             <TooltipTrigger asChild>
               <div className="flex items-center justify-between p-2 bg-white rounded-lg border-2 border-amber-300 cursor-help">
                 <div className="flex items-center gap-2">
-                  <div className={`text-xl ${hasActiveStreak ? 'text-orange-500' : 'text-gray-400'}`}>
+                  <div
+                    className={`text-xl ${hasActiveStreak ? 'text-orange-500' : 'text-gray-400'}`}
+                  >
                     🔥
                   </div>
                   <div>
-                    <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Current</div>
-                    <div className={`text-xl font-bold ${hasActiveStreak ? 'text-orange-600' : 'text-gray-500'}`}>
+                    <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
+                      Current
+                    </div>
+                    <div
+                      className={`text-xl font-bold ${hasActiveStreak ? 'text-orange-600' : 'text-gray-500'}`}
+                    >
                       {current_streak}
                     </div>
                   </div>
@@ -180,7 +185,9 @@ export function StreakDisplay({ className }: StreakDisplayProps) {
                     </div>
                     <div className="text-[10px] font-semibold text-slate-500">Freezes</div>
                   </div>
-                  <div className={`text-lg font-bold ${canUseFreeze ? 'text-blue-600' : 'text-gray-500'}`}>
+                  <div
+                    className={`text-lg font-bold ${canUseFreeze ? 'text-blue-600' : 'text-gray-500'}`}
+                  >
                     {streak_freezes_available}
                   </div>
                 </div>

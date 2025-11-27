@@ -101,8 +101,8 @@ export function useCollaborativeLists({
         return resolveConflict(
           // Actual operation
           async () => {
-            // TODO: Remove 'as any' once database types are regenerated after migration
-            const { data, error } = await (supabase.from('words') as any)
+            const { error } = await supabase
+              .from('words')
               .insert({
                 list_id: listId,
                 term: wordData.term,
@@ -114,7 +114,6 @@ export function useCollaborativeLists({
               .single()
 
             if (error) throw error
-            return data
           },
           // Query key
           ['words', listId],
@@ -152,8 +151,8 @@ export function useCollaborativeLists({
         return resolveConflict(
           // Actual operation
           async () => {
-            // TODO: Remove 'as any' once database types are regenerated after migration
-            const { error } = await (supabase.from('words') as any)
+            const { error } = await supabase
+              .from('words')
               .update({
                 term: updates.term,
                 translation: updates.translation,
